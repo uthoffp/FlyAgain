@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package flyagain;
+
+option java_package = "com.flyagain.server.proto";
+option java_multiple_files = true;
+option csharp_namespace = "FlyAgain.Proto";
+
+// ============================================================
+// Opcodes — full contract from ARCHITECTURE.md
+// ============================================================
+enum Opcode {
+    OPCODE_UNSPECIFIED = 0;
+
+    // Auth (0x0001 - 0x0007)
+    LOGIN_REQUEST         = 0x0001;
+    LOGIN_RESPONSE        = 0x0002;
+    CHARACTER_SELECT      = 0x0003;
+    ENTER_WORLD           = 0x0004;
+    CHARACTER_CREATE      = 0x0005;
+    REGISTER_REQUEST      = 0x0006;
+    REGISTER_RESPONSE     = 0x0007;
+
+    // Movement (0x0101 - 0x0103)
+    MOVEMENT_INPUT        = 0x0101;
+    ENTITY_POSITION       = 0x0102;
+    POSITION_CORRECTION   = 0x0103;
+
+    // Combat (0x0201 - 0x0206)
+    SELECT_TARGET         = 0x0201;
+    USE_SKILL             = 0x0202;
+    DAMAGE_EVENT          = 0x0203;
+    ENTITY_DEATH          = 0x0204;
+    XP_GAIN               = 0x0205;
+    TOGGLE_AUTO_ATTACK    = 0x0206;
+
+    // Entity (0x0301 - 0x0303)
+    ENTITY_SPAWN          = 0x0301;
+    ENTITY_DESPAWN        = 0x0302;
+    ENTITY_STATS_UPDATE   = 0x0303;
+
+    // Inventory (0x0401 - 0x0407)
+    MOVE_ITEM             = 0x0401;
+    INVENTORY_UPDATE      = 0x0402;
+    EQUIP_ITEM            = 0x0403;
+    UNEQUIP_ITEM          = 0x0404;
+    NPC_BUY               = 0x0405;
+    NPC_SELL              = 0x0406;
+    GOLD_UPDATE           = 0x0407;
+
+    // Chat (0x0501 - 0x0502)
+    CHAT_MESSAGE          = 0x0501;
+    CHAT_BROADCAST        = 0x0502;
+
+    // System (0x0601 - 0x0603)
+    HEARTBEAT             = 0x0601;
+    SERVER_MESSAGE        = 0x0602;
+    ERROR_RESPONSE        = 0x0603;
+
+    // Zone (0x0701 - 0x0703)
+    ZONE_DATA             = 0x0701;
+    CHANNEL_SWITCH        = 0x0702;
+    CHANNEL_LIST          = 0x0703;
+}
+
+// ============================================================
+// Common Types
+// ============================================================
+message Position {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message CharacterStats {
+    int32 level = 1;
+    int32 hp = 2;
+    int32 max_hp = 3;
+    int32 mp = 4;
+    int32 max_mp = 5;
+    int32 str = 6;
+    int32 sta = 7;
+    int32 dex = 8;
+    int32 int_ = 9;
+    int64 xp = 10;
+    int64 xp_to_next_level = 11;
+}
+
+// ============================================================
+// Auth Messages
+// ============================================================
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    bool success = 1;
+    string jwt = 2;
+    repeated CharacterInfo characters = 3;
+    string error_message = 4;
+}
+
+message RegisterRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message RegisterResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message CharacterSelectRequest {
+    int64 character_id = 1;
+}
+
+message CharacterCreateRequest {
+    string name = 1;
+    string character_class = 2;
+}
+
+message EnterWorldResponse {
+    bool success = 1;
+    Position position = 2;
+    CharacterStats stats = 3;
+    string error_message = 4;
+}
+
+message CharacterInfo {
+    int64 id = 1;
+    string name = 2;
+    string character_class = 3;
+    int32 level = 4;
+}
+
+// ============================================================
+// System Messages
+// ============================================================
+message Heartbeat {
+    int64 client_time = 1;
+    int64 server_time = 2;
+}
+
+message ServerMessage {
+    string type = 1;
+    string text = 2;
+}
+
+message ErrorResponse {
+    int32 original_opcode = 1;
+    int32 error_code = 2;
+    string message = 3;
+}

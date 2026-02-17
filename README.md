@@ -15,10 +15,33 @@ A Flyff-inspired MMORPG focused on fair gameplay with no pay-to-win mechanics. B
 ## Project Structure
 
 ```
-server/          # Kotlin Netty game server
-client/          # Unity client project
-shared/proto/    # Shared Protocol Buffer definitions
+server/              # Kotlin Netty game server (standalone Gradle project)
+client/              # Unity client project (URP)
+shared/proto/        # Shared Protocol Buffer definitions
+scripts/             # Build and codegen scripts
+docs/                # Design docs, architecture, setup guides
+docker-compose.yml   # PostgreSQL + Redis dev services
 ```
+
+## Quick Start
+
+### Server
+
+```bash
+cd server
+./gradlew build       # compile + test
+./gradlew run         # start the server
+```
+
+### Infrastructure
+
+```bash
+docker-compose up -d  # start PostgreSQL + Redis
+```
+
+### Client
+
+See [docs/unity-setup.md](docs/unity-setup.md) for Unity project setup instructions.
 
 ## Architecture Highlights
 
@@ -39,14 +62,15 @@ shared/proto/    # Shared Protocol Buffer definitions
 
 ## Status
 
-Early development (pre-Phase 1). See [IMPLEMENTATION_PHASES.md](IMPLEMENTATION_PHASES.md) for the detailed build plan.
+Early development (Phase 1.1 — project setup complete). See [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) for the detailed build plan.
 
 ## Documentation
 
-- [GDD.md](GDD.md) -- Game Design Document
-- [ARCHITECTURE.md](ARCHITECTURE.md) -- Technical Architecture
-- [IMPLEMENTATION_PHASES.md](IMPLEMENTATION_PHASES.md) -- Phased Build Plan
-- [ROADMAP.md](ROADMAP.md) -- High-level Roadmap
+- [docs/GDD.md](docs/GDD.md) -- Game Design Document
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) -- Technical Architecture
+- [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) -- Phased Build Plan
+- [docs/ROADMAP.md](docs/ROADMAP.md) -- High-level Roadmap
+- [docs/unity-setup.md](docs/unity-setup.md) -- Unity Client Setup Guide
 
 ## License
 

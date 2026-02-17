@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) server, and PostgreSQL + Redis persistence. The project is currently in early development (pre-Phase 1). See GDD.md for game design, ARCHITECTURE.md for full technical spec, and IMPLEMENTATION_PHASES.md for the phased build plan.
+FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) server, and PostgreSQL + Redis persistence. The project is currently in early development (pre-Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
 
 ## Planned Tech Stack
 
@@ -12,15 +12,20 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) ser
 - **Server:** Kotlin with Netty (TCP/TLS 1.3 + UDP), Gradle build
 - **Database:** PostgreSQL + Redis (via Docker Compose)
 - **Serialization:** Protocol Buffers (shared `.proto` definitions)
-- **DB Migrations:** Flyway or Liquibase
+- **DB Migrations:** Flyway
 
-## Planned Project Structure
+## Monorepo Structure
 
 ```
-server/          # Kotlin Netty server (Gradle)
-client/          # Unity project (URP)
-shared/proto/    # Protocol Buffer definitions (.proto)
+server/              # Kotlin Netty server (standalone Gradle project with wrapper)
+client/              # Unity client project (URP)
+shared/proto/        # Shared Protocol Buffer definitions (.proto)
+scripts/             # Build and codegen scripts
+docs/                # Design docs, architecture, setup guides
+docker-compose.yml   # PostgreSQL + Redis dev services
 ```
+
+The server is a self-contained Gradle project — all Gradle files (`gradlew`, `build.gradle.kts`, etc.) live inside `server/`. Build commands run from `server/` (e.g., `cd server && ./gradlew build`).
 
 ## Architecture Essentials
 
@@ -41,7 +46,7 @@ shared/proto/    # Protocol Buffer definitions (.proto)
 4. **Phase 4 — Expansion:** Job specializations, more zones, crafting
 5. **Phase 5 — Polish & Launch:** Balancing, anti-cheat hardening, beta
 
-Phase 1 is broken into 8 sub-phases in IMPLEMENTATION_PHASES.md with detailed acceptance criteria.
+Phase 1 is broken into 8 sub-phases in docs/IMPLEMENTATION_PHASES.md with detailed acceptance criteria.
 
 ## Key Design Principles
 

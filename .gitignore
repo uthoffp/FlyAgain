@@ -1,0 +1,64 @@
+# ===== Unity =====
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+MemoryCaptures/
+*.csproj
+*.sln
+*.suo
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ===== Kotlin / Gradle =====
+build/
+.gradle/
+.kotlin/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+out/
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===== Docker =====
+docker-volumes/
+
+# ===== Generated Code =====
+server/src/main/generated/
+client/Assets/Scripts/Generated/
+
+# ===== Environment =====
+.env
+*.local
+!.claude/settings.local.json
+
+# ===== Logs =====
+logs/
+*.log
