@@ -3,3 +3,9 @@ plugins {
 }
 
 rootProject.name = "flyagain-server"
+
+include("common")
+include("database-service")
+include("login-service")
+include("account-service")
+include("world-service")

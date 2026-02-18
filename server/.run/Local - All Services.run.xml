@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Local - All Services" type="CompoundRunConfigurationType" folderName="Local">
+    <toRun name="Docker - Infrastructure" type="docker-deploy" />
+    <toRun name="Account Service" type="GradleRunConfiguration" />
+    <toRun name="Database Service" type="GradleRunConfiguration" />
+    <toRun name="Login Service" type="GradleRunConfiguration" />
+    <toRun name="World Service" type="GradleRunConfiguration" />
+    <method v="2" />
+  </configuration>
+</component>

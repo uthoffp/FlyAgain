@@ -9,6 +9,8 @@ services:
       POSTGRES_PASSWORD: flyagain_dev
     volumes:
       - flyagain-pgdata:/var/lib/postgresql/data
+    networks:
+      - flyagain-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U flyagain"]
       interval: 10s
@@ -21,11 +23,96 @@ services:
       - "6379:6379"
     volumes:
       - flyagain-redis-data:/data
+    networks:
+      - flyagain-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  database-service:
+    build:
+      context: .
+      dockerfile: server/database-service/Dockerfile
+    ports:
+      - "9090:9090"
+    networks:
+      - flyagain-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      FLYAGAIN_DB_URL: jdbc:postgresql://postgres:5432/flyagain
+      FLYAGAIN_DB_USERNAME: flyagain
+      FLYAGAIN_DB_PASSWORD: flyagain_dev
+      FLYAGAIN_REDIS_URL: redis://redis:6379
+
+  login-service:
+    build:
+      context: .
+      dockerfile: server/login-service/Dockerfile
+    ports:
+      - "7777:7777"
+    networks:
+      - flyagain-net
+    depends_on:
+      database-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      FLYAGAIN_REDIS_URL: redis://redis:6379
+      FLYAGAIN_DB_SERVICE_HOST: database-service
+      FLYAGAIN_DB_SERVICE_PORT: "9090"
+      FLYAGAIN_ACCOUNT_SERVICE_HOST: account-service
+      FLYAGAIN_ACCOUNT_SERVICE_PORT: "7779"
+
+  account-service:
+    build:
+      context: .
+      dockerfile: server/account-service/Dockerfile
+    ports:
+      - "7779:7779"
+    networks:
+      - flyagain-net
+    depends_on:
+      database-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      FLYAGAIN_REDIS_URL: redis://redis:6379
+      FLYAGAIN_DB_SERVICE_HOST: database-service
+      FLYAGAIN_DB_SERVICE_PORT: "9090"
+      FLYAGAIN_WORLD_SERVICE_HOST: world-service
+      FLYAGAIN_WORLD_SERVICE_TCP_PORT: "7780"
+      FLYAGAIN_WORLD_SERVICE_UDP_PORT: "7781"
+
+  world-service:
+    build:
+      context: .
+      dockerfile: server/world-service/Dockerfile
+    ports:
+      - "7780:7780"
+      - "7781:7781/udp"
+    networks:
+      - flyagain-net
+    depends_on:
+      database-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      FLYAGAIN_REDIS_URL: redis://redis:6379
+      FLYAGAIN_DB_SERVICE_HOST: database-service
+      FLYAGAIN_DB_SERVICE_PORT: "9090"
+
+networks:
+  flyagain-net:
+    driver: bridge
 
 volumes:
   flyagain-pgdata:

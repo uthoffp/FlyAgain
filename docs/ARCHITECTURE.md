@@ -8,22 +8,30 @@
 │  - 3D Rendering (URP)                │
 │  - Input, UI, Audio                  │
 │  - Client-Side Prediction            │
-└──────────────┬───────────────────────┘
-               │ TCP (TLS 1.3) + UDP
-┌──────────────┴───────────────────────┐
-│      Game Server: Kotlin (Netty)     │
-│  - Authoritative Game Logic          │
-│  - Anti-Cheat Validierung            │
-│  - Zone/Channel Management           │
-│  - Entity Management + AI            │
-│  - Chat, Combat, Inventory           │
+└──┬───────────────┬──────────────┬────┘
+   │ TCP :7777     │ TCP :7779    │ TCP :7780 + UDP :7781
+   ▼               ▼              ▼
+┌────────┐   ┌──────────┐   ┌────────────┐
+│ Login  │   │ Account  │   │   World    │
+│Service │   │ Service  │   │  Service   │
+│(Auth)  │   │(Char-    │   │(Gameplay,  │
+│        │   │ Mgmt)    │   │ 20Hz Loop) │
+└───┬────┘   └────┬─────┘   └─────┬──────┘
+    │ gRPC        │ gRPC          │ gRPC
+    ▼             ▼               ▼
+┌──────────────────────────────────────┐
+│     Database Service (gRPC :9090)    │
+│  - Einziger PostgreSQL-Zugriff       │
+│  - Flyway Migrationen                │
+│  - Write-Back Scheduler              │
 └──────────────┬───────────────────────┘
                │
 ┌──────────────┴───────────────────────┐
 │           Persistenz                 │
 │  - PostgreSQL (Spielerdaten)         │
-│  - Redis (Sessions, Cache)           │
+│  - Redis (Sessions, Cache) *         │
 └──────────────────────────────────────┘
+* Redis wird von allen Services direkt genutzt
 ```
 
 **Ziel-Last:** max. 10.000 Accounts gleichzeitig online, max. 5.000 CCU
@@ -44,7 +52,7 @@
 - Generiert Kotlin- **und** C#-Code aus einer `.proto`-Datei
 - Kompaktes Binaerformat (kleiner als JSON, schneller als XML)
 - Versionierbar (neue Felder ohne Breaking Changes)
-- Single-Source-of-Truth: `server/src/main/proto/flyagain.proto`
+- Single-Source-of-Truth: `shared/proto/flyagain.proto` (Client-facing) + `shared/proto/internal.proto` (gRPC inter-service)
 
 ### 1.3 Paket-Struktur
 
@@ -142,25 +150,31 @@ Mit Interest Management (SpatialGrid) und Delta-Compression (Post-MVP) deutlich 
 
 ## 2. Server-Struktur
 
-### 2.1 Architektur: Modularer Monolith
+### 2.1 Architektur: Microservices
 
-Ein Kotlin-Prozess mit klar getrennten Modulen. Begruendung:
-- Solo-Entwickler: Ein Deployment, einfaches Debugging
-- Kein Netzwerk-Overhead zwischen Services
-- Spaetere Aufteilung moeglich ohne Architektur-Umbau
+4 eigenstaendige Kotlin-Services, verbunden ueber gRPC und Redis:
+
+| Service | Port | Verantwortlichkeit |
+|---------|------|--------------------|
+| **database-service** | gRPC :9090 | Einziger PostgreSQL-Zugriff, Flyway, Write-Back |
+| **login-service** | TCP :7777 | Auth, Registration, JWT, Sessions, Rate-Limiting |
+| **account-service** | TCP :7779 | Character CRUD, JWT-Validierung |
+| **world-service** | TCP :7780, UDP :7781 | Gameplay, 20Hz Loop, Zonen, Combat, AI |
+
+**Vorteile:**
+- Fehler-Isolation: Crash eines Services betrifft nicht die anderen
+- Unabhaengige Skalierung pro Service
+- Klare Verantwortlichkeiten und Schnittstellen
+
+**Client-Flow:** Login Service -> Account Service -> World Service (sequentiell per Handoff)
 
 ```
 server/
-├── network/          # Netty TCP/UDP, PacketRouter, SessionManager
-├── auth/             # Login, Registrierung, JWT-Generierung
-├── world/            # ZoneManager, ZoneChannel, SpatialGrid
-├── entity/           # PlayerEntity, MonsterEntity, NPCEntity
-├── combat/           # CombatEngine, SkillSystem, DamageCalc
-├── inventory/        # InventoryManager, EquipmentManager, LootSystem
-├── ai/               # MonsterAI (StateMachine)
-├── chat/             # ChatManager (Say, Shout, Whisper)
-├── persistence/      # DatabaseManager, CacheManager, WriteBackScheduler
-└── gameloop/         # GameLoop (20 Hz Tick-Orchestrierung)
+├── common/               # Shared Library: Protobuf/gRPC Stubs, Redis-Client, Config
+├── database-service/     # gRPC Server, Repositories, Flyway, WriteBack
+├── login-service/        # Netty TCP, Login/Register Handler, bcrypt, JWT
+├── account-service/      # Netty TCP, Character Create/Select, JWT-Validierung
+└── world-service/        # Netty TCP+UDP, GameLoop, Zonen, Combat, AI
 ```
 
 ### 2.2 Zonen- und Channel-System
@@ -280,10 +294,10 @@ Gesamt:                   5.000 Spieler     5 Channels + 100 Instanzen
 
 ### 2.8 Skalierungspfad
 
-1. **MVP:** Ein Server-Prozess, Vertical Scaling (mehr RAM/CPU)
-2. **Phase 2:** Login/Auth als separater Service abtrennen
-3. **Phase 3:** Chat-Server abtrennen, Zone-Server aufteilen (jede Zone eigener Prozess)
-4. **Falls noetig:** Mehrere physische Server mit Load Balancer
+1. **Aktuell:** 4 Microservices (Login, Account, World, Database), Vertical Scaling pro Service
+2. **Phase 2:** Mehrere World-Service-Instanzen (eine pro Zone oder Zone-Gruppe)
+3. **Phase 3:** Chat als eigener Service, Dungeon-Instanzen als separate Prozesse
+4. **Falls noetig:** Horizontal Scaling mit Load Balancer vor Login/Account
 
 ### 2.9 Dungeon-Instanzen (Post-MVP)
 
@@ -545,45 +559,31 @@ online_players               -> SET von Character-IDs                          K
 
 ## 4. Authentifizierung und Sicherheit
 
-### 4.1 Login-Flow
+### 4.1 Login-Flow (Microservice-Handoff)
 
 ```
-  Client                              Server                         Redis          PostgreSQL
-    │                                    │                             │                │
-    │─── LoginRequest ──────────────────►│                             │                │
-    │    {username, password}            │──── SELECT * FROM accounts ────────────────►│
-    │                                    │◄─── account row ──────────────────────────│
-    │                                    │                             │                │
-    │                                    │  1. is_banned pruefen       │                │
-    │                                    │     (ban_until abgelaufen?) │                │
-    │                                    │  2. bcrypt.verify(password, │                │
-    │                                    │                    hash)    │                │
-    │                                    │                             │                │
-    │                                    │── GET session:account:{id} ►│                │
-    │                                    │   (Multi-Login-Check)       │                │
-    │                                    │   Falls existiert:          │                │
-    │                                    │   -> Alte Session kicken    │                │
-    │                                    │   -> Force-Flush Write-Back │                │
-    │                                    │                             │                │
-    │                                    │── SET session:{id} ────────►│                │
-    │                                    │── SET session:account:{aId} │                │
-    │                                    │── UPDATE last_login ────────────────────────►│
-    │                                    │                             │                │
-    │◄── LoginResponse ─────────────────│                             │                │
-    │    {jwt, sessionSecret,           │                             │                │
-    │     characterList}                │                             │                │
-    │                                    │                             │                │
-    │─── CharacterSelect ──────────────►│                             │                │
-    │    {characterId}                  │  Validate: character.       │                │
-    │                                    │  account_id == session.     │                │
-    │                                    │  accountId                  │                │
-    │                                    │── Load character ───────────────────────────►│
-    │                                    │── Cache in Redis ──────────►│                │
-    │                                    │                             │                │
-    │◄── EnterWorld ────────────────────│                             │                │
-    │    {position, entities, stats}    │                             │                │
-    │                                    │                             │                │
-    │═══ Ab hier: UDP mit HMAC ════════│                             │                │
+  Client           Login-Service         Account-Service       DB-Service    Redis
+    │                    │                      │                  │            │
+    │── LoginRequest ───►│                      │                  │            │
+    │   {user, pass}     │── GetAccount (gRPC)─────────────────►│            │
+    │                    │◄── AccountRecord ────────────────────│            │
+    │                    │  bcrypt.verify()      │                  │            │
+    │                    │── Multi-Login-Check──────────────────────────────►│
+    │                    │── SET session ───────────────────────────────────►│
+    │                    │── UpdateLastLogin (gRPC)─────────────►│            │
+    │◄─ LoginResponse ──│                      │                  │            │
+    │  {jwt, hmac,       │                      │                  │            │
+    │   accountSvcHost}  │                      │                  │            │
+    │                    │                      │                  │            │
+    │── CharacterSelect ───────────────────────►│                  │            │
+    │   {characterId}    │                      │── GetChar(gRPC)─►│            │
+    │                    │                      │◄── CharRecord ──│            │
+    │                    │                      │── Cache in Redis────────────►│
+    │◄─ EnterWorld ────────────────────────────│                  │            │
+    │  {pos, stats,      │                      │                  │            │
+    │   worldSvcHost}    │                      │                  │            │
+    │                    │                      │                  │            │
+    │══ Verbindung zu World-Service (TCP :7780 + UDP :7781) ═════════════════│
 ```
 
 **Sicherheitspruefungen im Login-Flow:**

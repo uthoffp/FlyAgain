@@ -4,12 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) server, and PostgreSQL + Redis persistence. The project is currently in early development (pre-Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
+FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) microservice server, and PostgreSQL + Redis persistence. The project is currently in early development (Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
 
-## Planned Tech Stack
+## Tech Stack
 
 - **Client:** Unity 2022 LTS with URP (C#)
-- **Server:** Kotlin with Netty (TCP/TLS 1.3 + UDP), Gradle build
+- **Server:** Kotlin with Netty (TCP/TLS 1.3 + UDP), Gradle multi-project build
+- **Inter-Service:** gRPC (protobuf-based)
 - **Database:** PostgreSQL + Redis (via Docker Compose)
 - **Serialization:** Protocol Buffers (shared `.proto` definitions)
 - **DB Migrations:** Flyway
@@ -17,15 +18,23 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) ser
 ## Monorepo Structure
 
 ```
-server/              # Kotlin Netty server (standalone Gradle project with wrapper)
-client/              # Unity client project (URP)
-shared/proto/        # Shared Protocol Buffer definitions (.proto)
-scripts/             # Build and codegen scripts
-docs/                # Design docs, architecture, setup guides
-docker-compose.yml   # PostgreSQL + Redis dev services
+server/                    # Kotlin multi-project Gradle build
+  common/                  # Shared library: Protobuf/gRPC stubs, Redis client, config
+  database-service/        # gRPC :9090 — sole PostgreSQL access, Flyway, write-back
+  login-service/           # TCP :7777 — auth, registration, JWT, sessions, rate-limiting
+  account-service/         # TCP :7779 — character CRUD, JWT validation
+  world-service/           # TCP :7780 + UDP :7781 — gameplay, 20Hz loop, zones, combat, AI
+  gradle/libs.versions.toml # Central version catalog
+client/                    # Unity client project (URP)
+shared/proto/              # Shared Protocol Buffer definitions (.proto)
+  flyagain.proto           # Client-facing messages and opcodes
+  internal.proto           # gRPC service definitions for inter-service communication
+scripts/                   # Build and codegen scripts
+docs/                      # Design docs, architecture, setup guides
+docker-compose.yml         # PostgreSQL + Redis + all 4 services
 ```
 
-The server is a self-contained Gradle project — all Gradle files (`gradlew`, `build.gradle.kts`, etc.) live inside `server/`. Build commands run from `server/` (e.g., `cd server && ./gradlew build`).
+The server is a Gradle multi-project build. All Gradle files live inside `server/`. Build all services: `cd server && ./gradlew build`. Build a single service: `./gradlew :login-service:build`.
 
 ## Architecture Essentials
 

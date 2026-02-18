@@ -1,0 +1,17 @@
+.git
+.idea
+.claude
+client
+docs
+scripts
+*.md
+**/node_modules
+
+# Include server and shared
+!server/**
+!shared/**
+
+# But exclude build artifacts inside server
+server/.gradle/
+server/**/build/
+server/**/.gradle/

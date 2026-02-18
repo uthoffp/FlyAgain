@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package flyagain;
 
-option java_package = "com.flyagain.server.proto";
+option java_package = "com.flyagain.common.proto";
 option java_multiple_files = true;
 option csharp_namespace = "FlyAgain.Proto";
 
@@ -99,6 +99,9 @@ message LoginResponse {
     string jwt = 2;
     repeated CharacterInfo characters = 3;
     string error_message = 4;
+    string hmac_secret = 5;
+    string account_service_host = 6;
+    int32 account_service_port = 7;
 }
 
 message RegisterRequest {
@@ -126,6 +129,9 @@ message EnterWorldResponse {
     Position position = 2;
     CharacterStats stats = 3;
     string error_message = 4;
+    string world_service_host = 5;
+    int32 world_service_tcp_port = 6;
+    int32 world_service_udp_port = 7;
 }
 
 message CharacterInfo {

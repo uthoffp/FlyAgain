@@ -1,0 +1,388 @@
+syntax = "proto3";
+
+package flyagain.internal;
+
+option java_package = "com.flyagain.common.grpc";
+option java_multiple_files = true;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============================================================
+// Account Data Service (exposed by database-service)
+// ============================================================
+service AccountDataService {
+    rpc GetAccountByUsername(GetAccountRequest) returns (AccountRecord);
+    rpc GetAccountById(GetAccountByIdRequest) returns (AccountRecord);
+    rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+    rpc UpdateLastLogin(UpdateLastLoginRequest) returns (google.protobuf.Empty);
+    rpc CheckBan(CheckBanRequest) returns (BanStatus);
+}
+
+message GetAccountRequest {
+    string username = 1;
+}
+
+message GetAccountByIdRequest {
+    int64 account_id = 1;
+}
+
+message AccountRecord {
+    int64 id = 1;
+    string username = 2;
+    string email = 3;
+    string password_hash = 4;
+    bool is_banned = 5;
+    string ban_reason = 6;
+    google.protobuf.Timestamp ban_until = 7;
+    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp last_login = 9;
+    bool found = 10;
+}
+
+message CreateAccountRequest {
+    string username = 1;
+    string email = 2;
+    string password_hash = 3;
+}
+
+message CreateAccountResponse {
+    bool success = 1;
+    int64 account_id = 2;
+    string error_message = 3;
+}
+
+message UpdateLastLoginRequest {
+    int64 account_id = 1;
+}
+
+message CheckBanRequest {
+    int64 account_id = 1;
+}
+
+message BanStatus {
+    bool is_banned = 1;
+    string ban_reason = 2;
+    google.protobuf.Timestamp ban_until = 3;
+}
+
+// ============================================================
+// Character Data Service (exposed by database-service)
+// ============================================================
+service CharacterDataService {
+    rpc GetCharactersByAccount(GetCharactersByAccountRequest) returns (CharacterList);
+    rpc GetCharacter(GetCharacterRequest) returns (CharacterRecord);
+    rpc CreateCharacter(CreateCharacterRequest) returns (CreateCharacterResponse);
+    rpc SaveCharacter(SaveCharacterRequest) returns (google.protobuf.Empty);
+    rpc DeleteCharacter(DeleteCharacterRequest) returns (google.protobuf.Empty);
+    rpc GetCharacterSkills(GetCharacterSkillsRequest) returns (CharacterSkillList);
+}
+
+message GetCharactersByAccountRequest {
+    int64 account_id = 1;
+}
+
+message CharacterList {
+    repeated CharacterRecord characters = 1;
+}
+
+message GetCharacterRequest {
+    int64 character_id = 1;
+    int64 account_id = 2;
+}
+
+message CharacterRecord {
+    int64 id = 1;
+    int64 account_id = 2;
+    string name = 3;
+    int32 character_class = 4;
+    int32 level = 5;
+    int64 xp = 6;
+    int32 hp = 7;
+    int32 mp = 8;
+    int32 max_hp = 9;
+    int32 max_mp = 10;
+    int32 str = 11;
+    int32 sta = 12;
+    int32 dex = 13;
+    int32 int_stat = 14;
+    int32 stat_points = 15;
+    int32 map_id = 16;
+    float pos_x = 17;
+    float pos_y = 18;
+    float pos_z = 19;
+    int64 gold = 20;
+    int64 play_time = 21;
+    bool is_deleted = 22;
+    bool found = 23;
+}
+
+message CreateCharacterRequest {
+    int64 account_id = 1;
+    string name = 2;
+    int32 character_class = 3;
+}
+
+message CreateCharacterResponse {
+    bool success = 1;
+    int64 character_id = 2;
+    string error_message = 3;
+}
+
+message SaveCharacterRequest {
+    int64 character_id = 1;
+    int32 hp = 2;
+    int32 mp = 3;
+    int64 xp = 4;
+    int32 level = 5;
+    int32 map_id = 6;
+    float pos_x = 7;
+    float pos_y = 8;
+    float pos_z = 9;
+    int64 gold = 10;
+    int64 play_time = 11;
+    int32 str = 12;
+    int32 sta = 13;
+    int32 dex = 14;
+    int32 int_stat = 15;
+    int32 stat_points = 16;
+}
+
+message DeleteCharacterRequest {
+    int64 character_id = 1;
+    int64 account_id = 2;
+}
+
+message GetCharacterSkillsRequest {
+    int64 character_id = 1;
+}
+
+message CharacterSkillList {
+    repeated CharacterSkillRecord skills = 1;
+}
+
+message CharacterSkillRecord {
+    int32 skill_id = 1;
+    int32 skill_level = 2;
+}
+
+// ============================================================
+// Inventory Data Service (exposed by database-service)
+// ============================================================
+service InventoryDataService {
+    rpc GetInventory(GetInventoryRequest) returns (InventoryContents);
+    rpc GetEquipment(GetEquipmentRequest) returns (EquipmentContents);
+    rpc MoveItem(MoveItemRequest) returns (MoveItemResponse);
+    rpc AddItem(AddItemRequest) returns (AddItemResponse);
+    rpc RemoveItem(RemoveItemRequest) returns (google.protobuf.Empty);
+    rpc EquipItem(EquipItemRequest) returns (EquipItemResponse);
+    rpc UnequipItem(UnequipItemRequest) returns (UnequipItemResponse);
+    rpc NpcBuy(NpcBuyRequest) returns (NpcBuyResponse);
+    rpc NpcSell(NpcSellRequest) returns (NpcSellResponse);
+}
+
+message GetInventoryRequest {
+    int64 character_id = 1;
+}
+
+message InventoryContents {
+    repeated InventorySlot slots = 1;
+}
+
+message InventorySlot {
+    int64 id = 1;
+    int32 slot = 2;
+    int32 item_id = 3;
+    int32 amount = 4;
+    int32 enhancement = 5;
+}
+
+message GetEquipmentRequest {
+    int64 character_id = 1;
+}
+
+message EquipmentContents {
+    repeated EquipmentSlot slots = 1;
+}
+
+message EquipmentSlot {
+    int32 slot_type = 1;
+    int64 inventory_id = 2;
+    int32 item_id = 3;
+    int32 enhancement = 4;
+}
+
+message MoveItemRequest {
+    int64 character_id = 1;
+    int32 from_slot = 2;
+    int32 to_slot = 3;
+}
+
+message MoveItemResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message AddItemRequest {
+    int64 character_id = 1;
+    int32 item_id = 2;
+    int32 amount = 3;
+}
+
+message AddItemResponse {
+    bool success = 1;
+    int32 assigned_slot = 2;
+    string error_message = 3;
+}
+
+message RemoveItemRequest {
+    int64 character_id = 1;
+    int32 slot = 2;
+    int32 amount = 3;
+}
+
+message EquipItemRequest {
+    int64 character_id = 1;
+    int32 inventory_slot = 2;
+    int32 equip_slot_type = 3;
+}
+
+message EquipItemResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message UnequipItemRequest {
+    int64 character_id = 1;
+    int32 equip_slot_type = 2;
+}
+
+message UnequipItemResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+message NpcBuyRequest {
+    int64 character_id = 1;
+    int32 item_def_id = 2;
+    int32 amount = 3;
+    int64 current_gold = 4;
+}
+
+message NpcBuyResponse {
+    bool success = 1;
+    int64 new_gold = 2;
+    int32 assigned_slot = 3;
+    string error_message = 4;
+}
+
+message NpcSellRequest {
+    int64 character_id = 1;
+    int32 inventory_slot = 2;
+    int32 amount = 3;
+}
+
+message NpcSellResponse {
+    bool success = 1;
+    int64 new_gold = 2;
+    string error_message = 3;
+}
+
+// ============================================================
+// Game Data Service (static definitions, loaded on startup)
+// ============================================================
+service GameDataService {
+    rpc GetAllItemDefinitions(google.protobuf.Empty) returns (ItemDefinitionList);
+    rpc GetAllMonsterDefinitions(google.protobuf.Empty) returns (MonsterDefinitionList);
+    rpc GetAllMonsterSpawns(google.protobuf.Empty) returns (MonsterSpawnList);
+    rpc GetAllSkillDefinitions(google.protobuf.Empty) returns (SkillDefinitionList);
+    rpc GetAllLootTables(google.protobuf.Empty) returns (LootTableList);
+}
+
+message ItemDefinitionList {
+    repeated ItemDefinitionRecord items = 1;
+}
+
+message ItemDefinitionRecord {
+    int32 id = 1;
+    string name = 2;
+    int32 type = 3;
+    int32 subtype = 4;
+    int32 level_req = 5;
+    int32 class_req = 6;
+    int32 rarity = 7;
+    int32 base_attack = 8;
+    int32 base_defense = 9;
+    int32 base_hp = 10;
+    int32 base_mp = 11;
+    int32 buy_price = 12;
+    int32 sell_price = 13;
+    bool stackable = 14;
+    int32 max_stack = 15;
+    string description = 16;
+}
+
+message MonsterDefinitionList {
+    repeated MonsterDefinitionRecord monsters = 1;
+}
+
+message MonsterDefinitionRecord {
+    int32 id = 1;
+    string name = 2;
+    int32 level = 3;
+    int32 hp = 4;
+    int32 attack = 5;
+    int32 defense = 6;
+    int32 xp_reward = 7;
+    float aggro_range = 8;
+    float attack_range = 9;
+    int32 attack_speed_ms = 10;
+    float move_speed = 11;
+}
+
+message MonsterSpawnList {
+    repeated MonsterSpawnRecord spawns = 1;
+}
+
+message MonsterSpawnRecord {
+    int32 id = 1;
+    int32 monster_id = 2;
+    int32 map_id = 3;
+    float pos_x = 4;
+    float pos_y = 5;
+    float pos_z = 6;
+    float spawn_radius = 7;
+    int32 spawn_count = 8;
+    int32 respawn_ms = 9;
+}
+
+message SkillDefinitionList {
+    repeated SkillDefinitionRecord skills = 1;
+}
+
+message SkillDefinitionRecord {
+    int32 id = 1;
+    string name = 2;
+    int32 class_req = 3;
+    int32 level_req = 4;
+    int32 max_level = 5;
+    int32 mp_cost = 6;
+    int32 cooldown_ms = 7;
+    int32 base_damage = 8;
+    int32 damage_per_level = 9;
+    float range_units = 10;
+    string description = 11;
+}
+
+message LootTableList {
+    repeated LootTableRecord entries = 1;
+}
+
+message LootTableRecord {
+    int32 id = 1;
+    int32 monster_id = 2;
+    int32 item_id = 3;
+    float drop_chance = 4;
+    int32 min_amount = 5;
+    int32 max_amount = 6;
+}
