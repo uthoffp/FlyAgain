@@ -2,6 +2,7 @@ package com.flyagain.login.di
 
 import com.flyagain.common.grpc.AccountDataServiceGrpcKt
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.TcpServer
 import com.flyagain.common.redis.RedisClientFactory
 import com.flyagain.login.auth.JwtManager
@@ -74,8 +75,11 @@ val loginServiceModule = module {
     // Coroutine scope for the router
     single<CoroutineScope> { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
+    // Heartbeat tracker (15s timeout per ARCHITECTURE.md)
+    single { HeartbeatTracker() }
+
     // Packet router
-    single { PacketRouter(get(), get(), get()) }
+    single { PacketRouter(get(), get(), get(), get()) }
 
     // TCP server
     single {

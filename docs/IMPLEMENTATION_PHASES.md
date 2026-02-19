@@ -56,13 +56,13 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 
 **Server:**
 - [x] Netty TCP-Server (TLS-faehig, Port 7777) — zentralisiert in `common/network/TcpServer.kt`
-- [ ] Netty UDP-Server (Port 7778)
+- [x] Netty UDP-Server (Port 7781) — `common/network/UdpServer.kt` mit HMAC-SHA256 Verifikation, Session-Token, Sequence-Check
 - [x] `PacketRouter`: Opcode -> Handler-Mapping
 - [x] `SessionManager`: Session-Erstellung, Lookup, Invalidierung
 - [x] Paketgroessen-Limits (TCP 64KB, UDP 512B)
 - [x] Connection-Limits pro IP (max 5 TCP) — `common/network/ConnectionLimiter.kt`
-- [ ] UDP Flood Protection (In-Memory IP-Counter, max 100/s)
-- [ ] Heartbeat-System (Opcode `0x0601`, 15s Timeout)
+- [x] UDP Flood Protection (In-Memory IP-Counter, max 100/s) — `common/network/UdpFloodProtection.kt`
+- [x] Heartbeat-System (Opcode `0x0601`, 15s Timeout) — `common/network/HeartbeatTracker.kt`, integriert in Login- und Account-Service
 - [x] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
 
 **Client:**
@@ -643,12 +643,10 @@ miteinander zu interagieren und gegeneinander anzutreten.
 ## Naechster Schritt
 
 **Phase 1, Schritt 1.1** ist weitgehend abgeschlossen (Server-Setup, Build-Pipeline, Protobuf, Docker).
-**Schritt 1.2** (Netzwerk) ist teilweise erledigt (TCP-Server, PacketRouter, ConnectionLimiter).
+**Schritt 1.2** (Netzwerk) ist auf Server-Seite abgeschlossen (TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker). Client-Seite ausstehend.
 **Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung — DB-Migrationen und Session-Lifecycle fehlen).
 
 **Naechste Prioritaeten:**
 1. Flyway-SQL-Migrationen erstellen (alle Tabellen aus Abschnitt 3.2)
-2. UDP-Server implementieren (world-service)
-3. Heartbeat-System
-4. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup)
-5. Weiter mit Schritt 1.4 (Welt, Bewegung, Zone-System)
+2. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup)
+3. Weiter mit Schritt 1.4 (Welt, Bewegung, Zone-System)

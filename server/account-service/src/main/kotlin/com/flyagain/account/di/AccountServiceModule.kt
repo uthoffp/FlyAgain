@@ -5,6 +5,7 @@ import com.flyagain.account.handler.CharacterSelectHandler
 import com.flyagain.account.handler.JwtValidator
 import com.flyagain.account.handler.PacketRouter
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.TcpServer
 import com.flyagain.common.redis.RedisClientFactory
 import com.typesafe.config.Config
@@ -50,8 +51,11 @@ val accountServiceModule = module {
         )
     }
 
+    // Heartbeat tracker (15s timeout per ARCHITECTURE.md)
+    single { HeartbeatTracker() }
+
     // Packet router
-    single { PacketRouter(get(), get(), get()) }
+    single { PacketRouter(get(), get(), get(), get()) }
 
     // TCP server
     single {

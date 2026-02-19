@@ -1,5 +1,6 @@
 package com.flyagain.account.handler
 
+import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.ErrorResponse
 import com.flyagain.common.proto.Heartbeat
@@ -32,7 +33,8 @@ import org.slf4j.LoggerFactory
 class PacketRouter(
     private val jwtValidator: JwtValidator,
     private val characterCreateHandler: CharacterCreateHandler,
-    private val characterSelectHandler: CharacterSelectHandler
+    private val characterSelectHandler: CharacterSelectHandler,
+    private val heartbeatTracker: HeartbeatTracker
 ) : SimpleChannelInboundHandler<Packet>() {
 
     private val logger = LoggerFactory.getLogger(PacketRouter::class.java)
@@ -57,24 +59,6 @@ class PacketRouter(
         val authenticated = ctx.channel().attr(AUTHENTICATED_KEY).get() ?: false
 
         if (!authenticated) {
-            // Attempt to authenticate from JWT embedded in the packet
-            // The client should send a JWT token as the first bytes of the first meaningful packet.
-            // We use a channel attribute approach: the client must authenticate via a
-            // special auth packet, or the JWT is carried in the protobuf message.
-            // For this implementation, we validate the JWT from a channel attribute
-            // that gets set by a prior authentication step. Since the account-service
-            // receives clients redirected from login-service with a JWT, the JWT is
-            // passed as a Netty channel attribute or in the first packet.
-            //
-            // Design: The first packet from a client MUST be CHARACTER_SELECT or CHARACTER_CREATE.
-            // The JWT is embedded in the connection setup (the client sends it in an auth header
-            // or as the first raw bytes before the first packet).
-            //
-            // For simplicity, we handle auth inline: extract JWT from a well-known channel
-            // attribute or from the packet context. The login-service provides the JWT to the
-            // client which then presents it to the account-service.
-            //
-            // Implementation: We store auth info on the channel after first validation.
             logger.warn("Unauthenticated packet (opcode=0x{}) from {}", opcode.toString(16), ctx.channel().remoteAddress())
             sendError(ctx, opcode, 401, "Not authenticated. Send AUTH_TOKEN first.")
             return
@@ -135,6 +119,7 @@ class PacketRouter(
 
     private fun handleHeartbeat(ctx: ChannelHandlerContext, packet: Packet) {
         try {
+            heartbeatTracker.recordHeartbeat(ctx.channel())
             val clientHeartbeat = Heartbeat.parseFrom(packet.payload)
             val response = Heartbeat.newBuilder()
                 .setClientTime(clientHeartbeat.clientTime)
@@ -155,6 +140,16 @@ class PacketRouter(
             .build()
         val packet = Packet(Opcode.ERROR_RESPONSE_VALUE, error.toByteArray())
         ctx.writeAndFlush(packet)
+    }
+
+    override fun channelActive(ctx: ChannelHandlerContext) {
+        heartbeatTracker.register(ctx.channel())
+        super.channelActive(ctx)
+    }
+
+    override fun channelInactive(ctx: ChannelHandlerContext) {
+        heartbeatTracker.unregister(ctx.channel())
+        super.channelInactive(ctx)
     }
 
     override fun userEventTriggered(ctx: ChannelHandlerContext, evt: Any) {
