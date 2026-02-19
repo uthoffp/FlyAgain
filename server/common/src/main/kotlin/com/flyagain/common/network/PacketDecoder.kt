@@ -1,4 +1,4 @@
-package com.flyagain.account.network
+package com.flyagain.common.network
 
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext

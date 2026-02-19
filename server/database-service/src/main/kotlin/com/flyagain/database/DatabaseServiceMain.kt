@@ -1,62 +1,58 @@
 package com.flyagain.database
 
-import com.flyagain.common.redis.RedisClientFactory
-import com.flyagain.database.config.DatabaseConfig
-import com.flyagain.database.grpc.*
+import com.flyagain.database.di.databaseServiceModule
 import com.flyagain.database.migration.FlywayRunner
-import com.flyagain.database.repository.*
 import com.flyagain.database.writeback.WriteBackScheduler
-import com.typesafe.config.ConfigFactory
+import com.zaxxer.hikari.HikariDataSource
+import io.grpc.Server
+import io.lettuce.core.RedisClient
+import io.lettuce.core.api.StatefulRedisConnection
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.slf4j.LoggerFactory
 
+/**
+ * Entry point for the FlyAgain Database Service.
+ *
+ * Bootstraps the service in order:
+ * 1. Koin DI container with [databaseServiceModule]
+ * 2. Flyway schema migrations ([FlywayRunner])
+ * 3. [WriteBackScheduler] — periodic Redis-to-PostgreSQL flush
+ * 4. gRPC server exposing all data operations to other services
+ *
+ * A JVM shutdown hook ensures graceful teardown in reverse order.
+ */
 fun main() {
     val logger = LoggerFactory.getLogger("DatabaseService")
-    val config = ConfigFactory.load()
-
     logger.info("FlyAgain Database Service starting...")
 
-    // 1. Database connection pool
-    val dataSource = DatabaseConfig.createDataSource(config)
+    val koinApp = startKoin {
+        modules(databaseServiceModule)
+    }
+    val koin = koinApp.koin
 
-    // 2. Run Flyway migrations
+    // Run Flyway migrations (one-shot side-effect)
+    val dataSource = koin.get<HikariDataSource>()
     FlywayRunner.migrate(dataSource)
 
-    // 3. Create repositories
-    val accountRepo = AccountRepository(dataSource)
-    val characterRepo = CharacterRepository(dataSource)
-    val inventoryRepo = InventoryRepository(dataSource)
-    val gameDataRepo = GameDataRepository(dataSource)
-
-    // 4. Redis connection
-    val redisUrl = config.getString("flyagain.redis.url")
-    val redisClient = RedisClientFactory.create(redisUrl)
-    val redisConnection = RedisClientFactory.createConnection(redisClient)
-
-    // 5. Write-back scheduler
-    val writeBackInterval = config.getLong("flyagain.writeback.redis-to-pg-interval-seconds")
-    val writeBackScheduler = WriteBackScheduler(characterRepo, redisConnection, writeBackInterval)
+    // Start write-back scheduler
+    val writeBackScheduler = koin.get<WriteBackScheduler>()
     writeBackScheduler.start()
 
-    // 6. gRPC server
-    val grpcPort = config.getInt("flyagain.grpc.port")
-    val grpcServer = GrpcServerFactory.create(
-        grpcPort,
-        AccountGrpcService(accountRepo),
-        CharacterGrpcService(characterRepo, gameDataRepo),
-        InventoryGrpcService(inventoryRepo),
-        GameDataGrpcService(gameDataRepo)
-    )
+    // Start gRPC server
+    val grpcServer = koin.get<Server>()
     grpcServer.start()
-    logger.info("gRPC server started on port {}", grpcPort)
+    logger.info("gRPC server started on port {}", grpcServer.port)
 
-    // Shutdown hook
+    // Shutdown hook — teardown in reverse order
     Runtime.getRuntime().addShutdownHook(Thread {
         logger.info("Shutting down Database Service...")
         writeBackScheduler.stop()
         grpcServer.shutdown()
-        redisConnection.close()
-        redisClient.shutdown()
+        koin.get<StatefulRedisConnection<*, *>>().close()
+        koin.get<RedisClient>().shutdown()
         dataSource.close()
+        stopKoin()
         logger.info("Database Service stopped.")
     })
 

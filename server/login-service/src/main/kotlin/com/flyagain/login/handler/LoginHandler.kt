@@ -12,7 +12,7 @@ import com.flyagain.common.proto.Opcode
 import com.flyagain.login.auth.JwtManager
 import com.flyagain.login.auth.PasswordHasher
 import com.flyagain.login.auth.SessionSecretGenerator
-import com.flyagain.login.network.Packet
+import com.flyagain.common.network.Packet
 import com.flyagain.login.ratelimit.RateLimiter
 import com.flyagain.login.session.SessionManager
 import io.netty.channel.ChannelHandlerContext
@@ -182,7 +182,7 @@ class LoginHandler(
             .setAccountServicePort(accountServicePort)
             .build()
 
-        ctx.writeAndFlush(Packet(Opcode.LOGIN_RESPONSE, response))
+        ctx.writeAndFlush(Packet(Opcode.LOGIN_RESPONSE_VALUE, response.toByteArray()))
         logger.info("Login successful for user '{}' (accountId={}, sessionId={}, characters={})",
             username, accountId, credentials.sessionId, characters.size)
     }
@@ -192,6 +192,6 @@ class LoginHandler(
             .setSuccess(false)
             .setErrorMessage(errorMessage)
             .build()
-        ctx.writeAndFlush(Packet(Opcode.LOGIN_RESPONSE, response))
+        ctx.writeAndFlush(Packet(Opcode.LOGIN_RESPONSE_VALUE, response.toByteArray()))
     }
 }

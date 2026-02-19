@@ -1,4 +1,4 @@
-package com.flyagain.account.network
+package com.flyagain.common.network
 
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
@@ -34,11 +34,14 @@ class ConnectionLimiter(
     /** Per-IP connection counts. */
     private val connectionsByIp = ConcurrentHashMap<String, AtomicInteger>()
 
-    override fun channelActive(ctx: ChannelHandlerContext) {
-        val remoteAddress = ctx.channel().remoteAddress() as? InetSocketAddress
-        val ip = remoteAddress?.address?.hostAddress ?: "unknown"
+    init {
+        logger.info("ConnectionLimiter initialized: maxTotal={}, maxPerIp={}", maxConnections, maxConnectionsPerIp)
+    }
 
+    override fun channelActive(ctx: ChannelHandlerContext) {
+        val ip = getIp(ctx)
         val currentTotal = totalConnections.incrementAndGet()
+
         if (currentTotal > maxConnections) {
             totalConnections.decrementAndGet()
             logger.warn("Max total connections ({}) exceeded, rejecting connection from {}", maxConnections, ip)
@@ -46,36 +49,41 @@ class ConnectionLimiter(
             return
         }
 
-        val ipCount = connectionsByIp.computeIfAbsent(ip) { AtomicInteger(0) }
-        val currentIpCount = ipCount.incrementAndGet()
-        if (currentIpCount > maxConnectionsPerIp) {
-            ipCount.decrementAndGet()
+        val ipCount = connectionsByIp
+            .computeIfAbsent(ip) { AtomicInteger(0) }
+            .incrementAndGet()
+
+        if (ipCount > maxConnectionsPerIp) {
+            connectionsByIp[ip]?.decrementAndGet()
             totalConnections.decrementAndGet()
             logger.warn("Max connections per IP ({}) exceeded for {}, rejecting connection", maxConnectionsPerIp, ip)
             ctx.close()
             return
         }
 
-        logger.debug("Connection accepted from {} (total: {}, ip: {})", ip, currentTotal, currentIpCount)
+        logger.debug("Connection accepted from {} (total={}, ipCount={})", ip, currentTotal, ipCount)
         super.channelActive(ctx)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
-        val remoteAddress = ctx.channel().remoteAddress() as? InetSocketAddress
-        val ip = remoteAddress?.address?.hostAddress ?: "unknown"
-
+        val ip = getIp(ctx)
         totalConnections.decrementAndGet()
 
-        val ipCount = connectionsByIp[ip]
-        if (ipCount != null) {
-            val remaining = ipCount.decrementAndGet()
+        val counter = connectionsByIp[ip]
+        if (counter != null) {
+            val remaining = counter.decrementAndGet()
             if (remaining <= 0) {
                 connectionsByIp.remove(ip)
             }
         }
 
-        logger.debug("Connection closed from {} (total: {})", ip, totalConnections.get())
+        logger.debug("Connection closed from {} (total={}, ipCount={})", ip, totalConnections.get(), counter?.get() ?: 0)
         super.channelInactive(ctx)
+    }
+
+    override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+        logger.error("ConnectionLimiter error from {}: {}", getIp(ctx), cause.message)
+        ctx.close()
     }
 
     /** Returns the current total connection count. Useful for monitoring. */
@@ -83,4 +91,9 @@ class ConnectionLimiter(
 
     /** Returns the connection count for a specific IP. */
     fun getConnectionsForIp(ip: String): Int = connectionsByIp[ip]?.get() ?: 0
+
+    private fun getIp(ctx: ChannelHandlerContext): String {
+        val socketAddress = ctx.channel().remoteAddress() as? InetSocketAddress
+        return socketAddress?.address?.hostAddress ?: "unknown"
+    }
 }

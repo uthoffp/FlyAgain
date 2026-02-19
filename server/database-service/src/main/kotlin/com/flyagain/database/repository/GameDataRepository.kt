@@ -1,155 +1,73 @@
 package com.flyagain.database.repository
 
 import com.flyagain.common.grpc.*
-import javax.sql.DataSource
 
-class GameDataRepository(dataSource: DataSource) : BaseRepository(dataSource) {
+/**
+ * Repository interface for read-only game definition data.
+ *
+ * Provides access to static game data tables (items, monsters, spawns, skills,
+ * loot tables) that are loaded at server startup and cached by consumers.
+ * These records are defined by game designers and do not change at runtime.
+ *
+ * @see GameDataRepositoryImpl for the PostgreSQL-backed implementation
+ */
+interface GameDataRepository {
 
-    suspend fun getAllItemDefinitions(): List<ItemDefinitionRecord> = withConnection { conn ->
-        conn.prepareStatement("SELECT * FROM item_definitions ORDER BY id").use { stmt ->
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<ItemDefinitionRecord>()
-                while (rs.next()) {
-                    results.add(
-                        ItemDefinitionRecord.newBuilder()
-                            .setId(rs.getInt("id"))
-                            .setName(rs.getString("name"))
-                            .setType(rs.getInt("type"))
-                            .setSubtype(rs.getInt("subtype"))
-                            .setLevelReq(rs.getInt("level_req"))
-                            .setClassReq(rs.getInt("class_req").let { if (rs.wasNull()) -1 else it })
-                            .setRarity(rs.getInt("rarity"))
-                            .setBaseAttack(rs.getInt("base_attack"))
-                            .setBaseDefense(rs.getInt("base_defense"))
-                            .setBaseHp(rs.getInt("base_hp"))
-                            .setBaseMp(rs.getInt("base_mp"))
-                            .setBuyPrice(rs.getInt("buy_price"))
-                            .setSellPrice(rs.getInt("sell_price"))
-                            .setStackable(rs.getBoolean("stackable"))
-                            .setMaxStack(rs.getInt("max_stack"))
-                            .setDescription(rs.getString("description") ?: "")
-                            .build()
-                    )
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves all item definitions, ordered by ID.
+     *
+     * Item definitions describe every item in the game: weapons, armor,
+     * consumables, quest items, etc.
+     *
+     * @return complete list of [ItemDefinitionRecord]s
+     */
+    suspend fun getAllItemDefinitions(): List<ItemDefinitionRecord>
 
-    suspend fun getAllMonsterDefinitions(): List<MonsterDefinitionRecord> = withConnection { conn ->
-        conn.prepareStatement("SELECT * FROM monster_definitions ORDER BY id").use { stmt ->
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<MonsterDefinitionRecord>()
-                while (rs.next()) {
-                    results.add(
-                        MonsterDefinitionRecord.newBuilder()
-                            .setId(rs.getInt("id"))
-                            .setName(rs.getString("name"))
-                            .setLevel(rs.getInt("level"))
-                            .setHp(rs.getInt("hp"))
-                            .setAttack(rs.getInt("attack"))
-                            .setDefense(rs.getInt("defense"))
-                            .setXpReward(rs.getInt("xp_reward"))
-                            .setAggroRange(rs.getFloat("aggro_range"))
-                            .setAttackRange(rs.getFloat("attack_range"))
-                            .setAttackSpeedMs(rs.getInt("attack_speed_ms"))
-                            .setMoveSpeed(rs.getFloat("move_speed"))
-                            .build()
-                    )
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves all monster definitions, ordered by ID.
+     *
+     * Monster definitions describe each monster type's stats, aggro range,
+     * attack parameters, and movement speed.
+     *
+     * @return complete list of [MonsterDefinitionRecord]s
+     */
+    suspend fun getAllMonsterDefinitions(): List<MonsterDefinitionRecord>
 
-    suspend fun getAllMonsterSpawns(): List<MonsterSpawnRecord> = withConnection { conn ->
-        conn.prepareStatement("SELECT * FROM monster_spawns ORDER BY id").use { stmt ->
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<MonsterSpawnRecord>()
-                while (rs.next()) {
-                    results.add(
-                        MonsterSpawnRecord.newBuilder()
-                            .setId(rs.getInt("id"))
-                            .setMonsterId(rs.getInt("monster_id"))
-                            .setMapId(rs.getInt("map_id"))
-                            .setPosX(rs.getFloat("pos_x"))
-                            .setPosY(rs.getFloat("pos_y"))
-                            .setPosZ(rs.getFloat("pos_z"))
-                            .setSpawnRadius(rs.getFloat("spawn_radius"))
-                            .setSpawnCount(rs.getInt("spawn_count"))
-                            .setRespawnMs(rs.getInt("respawn_ms"))
-                            .build()
-                    )
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves all monster spawn points, ordered by ID.
+     *
+     * Spawn records define where monsters appear in the world, including
+     * map placement, spawn radius, count, and respawn timing.
+     *
+     * @return complete list of [MonsterSpawnRecord]s
+     */
+    suspend fun getAllMonsterSpawns(): List<MonsterSpawnRecord>
 
-    suspend fun getAllSkillDefinitions(): List<SkillDefinitionRecord> = withConnection { conn ->
-        conn.prepareStatement("SELECT * FROM skill_definitions ORDER BY id").use { stmt ->
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<SkillDefinitionRecord>()
-                while (rs.next()) {
-                    results.add(
-                        SkillDefinitionRecord.newBuilder()
-                            .setId(rs.getInt("id"))
-                            .setName(rs.getString("name"))
-                            .setClassReq(rs.getInt("class_req"))
-                            .setLevelReq(rs.getInt("level_req"))
-                            .setMaxLevel(rs.getInt("max_level"))
-                            .setMpCost(rs.getInt("mp_cost"))
-                            .setCooldownMs(rs.getInt("cooldown_ms"))
-                            .setBaseDamage(rs.getInt("base_damage"))
-                            .setDamagePerLevel(rs.getInt("damage_per_level"))
-                            .setRangeUnits(rs.getFloat("range_units"))
-                            .setDescription(rs.getString("description") ?: "")
-                            .build()
-                    )
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves all skill definitions, ordered by ID.
+     *
+     * Skill definitions describe each ability's class requirement, level
+     * requirement, damage scaling, mana cost, and cooldown.
+     *
+     * @return complete list of [SkillDefinitionRecord]s
+     */
+    suspend fun getAllSkillDefinitions(): List<SkillDefinitionRecord>
 
-    suspend fun getAllLootTables(): List<LootTableRecord> = withConnection { conn ->
-        conn.prepareStatement("SELECT * FROM loot_table ORDER BY id").use { stmt ->
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<LootTableRecord>()
-                while (rs.next()) {
-                    results.add(
-                        LootTableRecord.newBuilder()
-                            .setId(rs.getInt("id"))
-                            .setMonsterId(rs.getInt("monster_id"))
-                            .setItemId(rs.getInt("item_id"))
-                            .setDropChance(rs.getFloat("drop_chance"))
-                            .setMinAmount(rs.getInt("min_amount"))
-                            .setMaxAmount(rs.getInt("max_amount"))
-                            .build()
-                    )
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves the complete loot table, ordered by ID.
+     *
+     * Loot table entries map monsters to the items they can drop, including
+     * drop chance and amount range.
+     *
+     * @return complete list of [LootTableRecord]s
+     */
+    suspend fun getAllLootTables(): List<LootTableRecord>
 
-    suspend fun getCharacterSkills(characterId: Long): List<CharacterSkillRecord> = withConnection { conn ->
-        conn.prepareStatement(
-            "SELECT skill_id, skill_level FROM character_skills WHERE character_id = ?"
-        ).use { stmt ->
-            stmt.setLong(1, characterId)
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<CharacterSkillRecord>()
-                while (rs.next()) {
-                    results.add(
-                        CharacterSkillRecord.newBuilder()
-                            .setSkillId(rs.getInt("skill_id"))
-                            .setSkillLevel(rs.getInt("skill_level"))
-                            .build()
-                    )
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves all learned skills for a specific character.
+     *
+     * @param characterId the character whose skills to load
+     * @return list of [CharacterSkillRecord]s with skill ID and current level
+     */
+    suspend fun getCharacterSkills(characterId: Long): List<CharacterSkillRecord>
 }

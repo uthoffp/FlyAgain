@@ -1,7 +1,10 @@
-package com.flyagain.account.network
+package com.flyagain.common.network
 
 /**
  * Represents a decoded network packet exchanged between client and server.
+ *
+ * The network layer treats packets as raw bytes — protobuf deserialization
+ * is deferred to service-specific handlers (lazy decoding).
  *
  * @param opcode The 2-byte opcode identifying the message type (see [com.flyagain.common.proto.Opcode]).
  * @param payload The raw protobuf-encoded payload bytes.

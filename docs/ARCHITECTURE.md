@@ -170,12 +170,59 @@ Mit Interest Management (SpatialGrid) und Delta-Compression (Post-MVP) deutlich 
 
 ```
 server/
-├── common/               # Shared Library: Protobuf/gRPC Stubs, Redis-Client, Config
-├── database-service/     # gRPC Server, Repositories, Flyway, WriteBack
-├── login-service/        # Netty TCP, Login/Register Handler, bcrypt, JWT
-├── account-service/      # Netty TCP, Character Create/Select, JWT-Validierung
+├── common/               # Shared Library: Netzwerk (TcpServer, Packet, Codec, ConnectionLimiter),
+│                         #   Protobuf/gRPC Stubs, Redis-Client, Config-Helper
+├── database-service/     # gRPC Server, Repository-Interfaces + Impls, Flyway, WriteBack
+├── login-service/        # Netty TCP (via common), Login/Register Handler, bcrypt, JWT
+├── account-service/      # Netty TCP (via common), Character Create/Select, JWT-Validierung
 └── world-service/        # Netty TCP+UDP, GameLoop, Zonen, Combat, AI
 ```
+
+### 2.1a Dependency Injection (Koin)
+
+Alle Services verwenden **Koin** als DI-Framework. Jeder Service definiert ein Koin-Modul
+(`di/{Service}Module.kt`), das alle Abhaengigkeiten (Config, Redis, gRPC-Channels, Handler,
+TcpServer etc.) verdrahtet. Die `main()`-Funktion startet lediglich Koin und holt den
+Entry-Point per `get<TcpServer>()` bzw. `get<GrpcServer>()`.
+
+**Vorteile:**
+- Zentrale Verdrahtung aller Abhaengigkeiten an einem Ort
+- Testbarkeit: Module koennen per `Koin.verify()` auf Vollstaendigkeit geprueft werden
+- Keine manuelle Objekt-Konstruktion in `main()`
+
+### 2.1b Gemeinsame Netzwerk-Schicht (common)
+
+Die TCP-Netzwerk-Infrastruktur (TcpServer, Packet, PacketDecoder, PacketEncoder, ConnectionLimiter)
+liegt zentral im `common`-Modul (`com.flyagain.common.network`). Login-Service und Account-Service
+nutzen dieselbe Implementierung statt eigener Kopien.
+
+| Klasse | Aufgabe |
+|--------|---------|
+| `TcpServer` | Wiederverwendbarer Netty TCP-Server mit konfigurierbaren Limits |
+| `Packet` | Datenklasse: `opcode: Int, payload: ByteArray` (lazy Deserialisierung) |
+| `PacketDecoder` / `PacketEncoder` | Wire-Format: `[4B Length][2B Opcode][Protobuf Payload]` |
+| `ConnectionLimiter` | Thread-sicher (AtomicInteger/ConcurrentHashMap), pro-IP + gesamt |
+| `ConfigHelper` | Extension-Functions fuer Typesafe-Config mit Default-Werten |
+
+### 2.1c Repository-Pattern (database-service)
+
+Repositories im database-service sind als **Interfaces + Implementierungen** getrennt:
+
+```
+repository/
+├── AccountRepository.kt          # Interface
+├── AccountRepositoryImpl.kt      # SQL-Implementierung
+├── CharacterRepository.kt
+├── CharacterRepositoryImpl.kt
+├── InventoryRepository.kt
+├── InventoryRepositoryImpl.kt
+├── GameDataRepository.kt
+├── GameDataRepositoryImpl.kt
+└── BaseRepository.kt             # Gemeinsame Connection/Transaction-Logik
+```
+
+`BaseRepository` stellt `withConnection<T>` und `withTransaction<T>` bereit
+(Coroutine-basiert auf `Dispatchers.IO`). Die Koin-DI bindet Interfaces an Implementierungen.
 
 ### 2.2 Zonen- und Channel-System
 

@@ -1,6 +1,6 @@
 package com.flyagain.account.handler
 
-import com.flyagain.account.network.Packet
+import com.flyagain.common.network.Packet
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.flyagain.common.grpc.CreateCharacterRequest
 import com.flyagain.common.proto.CharacterCreateRequest

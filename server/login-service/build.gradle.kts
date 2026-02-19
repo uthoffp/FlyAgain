@@ -8,7 +8,6 @@ application {
 
 dependencies {
     implementation(project(":common"))
-    implementation(libs.netty.all)
     implementation(libs.bcrypt)
     implementation(libs.java.jwt)
     implementation(libs.grpc.netty)

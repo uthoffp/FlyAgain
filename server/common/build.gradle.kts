@@ -8,6 +8,7 @@ dependencies {
     api(libs.grpc.protobuf)
     api(libs.grpc.stub)
     api(libs.grpc.kotlin.stub)
+    api(libs.netty.all)
     api(libs.lettuce)
 }
 

@@ -1,11 +1,11 @@
 package com.flyagain.login.handler
 
+import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.ErrorResponse
 import com.flyagain.common.proto.Heartbeat
 import com.flyagain.common.proto.LoginRequest
 import com.flyagain.common.proto.Opcode
 import com.flyagain.common.proto.RegisterRequest
-import com.flyagain.login.network.Packet
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
@@ -38,37 +38,49 @@ class PacketRouter(
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         when (msg.opcode) {
-            Opcode.LOGIN_REQUEST -> {
-                val request = msg.message as LoginRequest
+            Opcode.LOGIN_REQUEST_VALUE -> {
+                val request = try {
+                    LoginRequest.parseFrom(msg.payload)
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse LOGIN_REQUEST from {}: {}", ctx.channel().remoteAddress(), e.message)
+                    sendError(ctx, msg.opcode, 400, "Malformed request.")
+                    return
+                }
                 coroutineScope.launch {
                     try {
                         loginHandler.handle(ctx, request)
                     } catch (e: Exception) {
                         logger.error("Unhandled exception in LoginHandler: {}", e.message, e)
-                        sendError(ctx, Opcode.LOGIN_REQUEST.number, 500, "Internal server error.")
+                        sendError(ctx, msg.opcode, 500, "Internal server error.")
                     }
                 }
             }
 
-            Opcode.REGISTER_REQUEST -> {
-                val request = msg.message as RegisterRequest
+            Opcode.REGISTER_REQUEST_VALUE -> {
+                val request = try {
+                    RegisterRequest.parseFrom(msg.payload)
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse REGISTER_REQUEST from {}: {}", ctx.channel().remoteAddress(), e.message)
+                    sendError(ctx, msg.opcode, 400, "Malformed request.")
+                    return
+                }
                 coroutineScope.launch {
                     try {
                         registerHandler.handle(ctx, request)
                     } catch (e: Exception) {
                         logger.error("Unhandled exception in RegisterHandler: {}", e.message, e)
-                        sendError(ctx, Opcode.REGISTER_REQUEST.number, 500, "Internal server error.")
+                        sendError(ctx, msg.opcode, 500, "Internal server error.")
                     }
                 }
             }
 
-            Opcode.HEARTBEAT -> {
-                handleHeartbeat(ctx, msg.message as Heartbeat)
+            Opcode.HEARTBEAT_VALUE -> {
+                handleHeartbeat(ctx, msg)
             }
 
             else -> {
-                logger.warn("Unhandled opcode {} from {}", msg.opcode, ctx.channel().remoteAddress())
-                sendError(ctx, msg.opcode.number, 400, "Unsupported operation for login service.")
+                logger.warn("Unhandled opcode 0x{} from {}", msg.opcode.toString(16), ctx.channel().remoteAddress())
+                sendError(ctx, msg.opcode, 400, "Unsupported operation for login service.")
             }
         }
     }
@@ -76,12 +88,17 @@ class PacketRouter(
     /**
      * Handle heartbeat by echoing back with server timestamp.
      */
-    private fun handleHeartbeat(ctx: ChannelHandlerContext, heartbeat: Heartbeat) {
-        val response = Heartbeat.newBuilder()
-            .setClientTime(heartbeat.clientTime)
-            .setServerTime(System.currentTimeMillis())
-            .build()
-        ctx.writeAndFlush(Packet(Opcode.HEARTBEAT, response))
+    private fun handleHeartbeat(ctx: ChannelHandlerContext, packet: Packet) {
+        try {
+            val heartbeat = Heartbeat.parseFrom(packet.payload)
+            val response = Heartbeat.newBuilder()
+                .setClientTime(heartbeat.clientTime)
+                .setServerTime(System.currentTimeMillis())
+                .build()
+            ctx.writeAndFlush(Packet(Opcode.HEARTBEAT_VALUE, response.toByteArray()))
+        } catch (e: Exception) {
+            logger.warn("Failed to parse heartbeat from {}", ctx.channel().remoteAddress(), e)
+        }
     }
 
     /**
@@ -93,7 +110,7 @@ class PacketRouter(
             .setErrorCode(errorCode)
             .setMessage(message)
             .build()
-        ctx.writeAndFlush(Packet(Opcode.ERROR_RESPONSE, error))
+        ctx.writeAndFlush(Packet(Opcode.ERROR_RESPONSE_VALUE, error.toByteArray()))
     }
 
     override fun userEventTriggered(ctx: ChannelHandlerContext, evt: Any) {

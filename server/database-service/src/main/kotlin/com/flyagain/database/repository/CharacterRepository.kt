@@ -1,148 +1,79 @@
 package com.flyagain.database.repository
 
 import com.flyagain.common.grpc.CharacterRecord
-import javax.sql.DataSource
+import com.flyagain.common.grpc.SaveCharacterRequest
 
-class CharacterRepository(dataSource: DataSource) : BaseRepository(dataSource) {
+/**
+ * Repository interface for character persistence operations.
+ *
+ * Manages the full lifecycle of player characters including creation with
+ * class-specific base stats, retrieval, periodic save (write-back), and
+ * soft deletion. Characters are never hard-deleted to allow potential recovery.
+ *
+ * @see CharacterRepositoryImpl for the PostgreSQL-backed implementation
+ */
+interface CharacterRepository {
 
-    suspend fun getByAccount(accountId: Long): List<CharacterRecord> = withConnection { conn ->
-        conn.prepareStatement(
-            "SELECT * FROM characters WHERE account_id = ? AND is_deleted = FALSE ORDER BY created_at"
-        ).use { stmt ->
-            stmt.setLong(1, accountId)
-            stmt.executeQuery().use { rs ->
-                val results = mutableListOf<CharacterRecord>()
-                while (rs.next()) {
-                    results.add(mapToCharacterRecord(rs))
-                }
-                results
-            }
-        }
-    }
+    /**
+     * Retrieves all non-deleted characters belonging to an account,
+     * ordered by creation date (oldest first).
+     *
+     * @param accountId the owning account's ID
+     * @return list of [CharacterRecord] for the account (may be empty)
+     */
+    suspend fun getByAccount(accountId: Long): List<CharacterRecord>
 
-    suspend fun getById(characterId: Long, accountId: Long): CharacterRecord? = withConnection { conn ->
-        conn.prepareStatement(
-            "SELECT * FROM characters WHERE id = ? AND account_id = ? AND is_deleted = FALSE"
-        ).use { stmt ->
-            stmt.setLong(1, characterId)
-            stmt.setLong(2, accountId)
-            stmt.executeQuery().use { rs ->
-                if (rs.next()) mapToCharacterRecord(rs) else null
-            }
-        }
-    }
+    /**
+     * Retrieves a single character by ID, scoped to the owning account.
+     *
+     * The account check prevents unauthorized access to another player's character.
+     *
+     * @param characterId the character's database ID
+     * @param accountId the expected owning account ID (authorization check)
+     * @return the [CharacterRecord] if found and owned by the account, or `null`
+     */
+    suspend fun getById(characterId: Long, accountId: Long): CharacterRecord?
 
-    suspend fun create(accountId: Long, name: String, characterClass: Int): Long = withTransaction { conn ->
-        // Check max 3 characters per account
-        val count = conn.prepareStatement(
-            "SELECT COUNT(*) FROM characters WHERE account_id = ? AND is_deleted = FALSE"
-        ).use { stmt ->
-            stmt.setLong(1, accountId)
-            stmt.executeQuery().use { rs ->
-                rs.next()
-                rs.getInt(1)
-            }
-        }
+    /**
+     * Creates a new character with class-specific base stats.
+     *
+     * Enforces a maximum of 3 characters per account. Initial stats vary
+     * by class:
+     * - **0 (Krieger):** High HP/STR/STA, low INT
+     * - **1 (Magier):** High MP/INT, low HP/STR
+     * - **2 (Assassine):** High DEX, balanced HP/MP
+     * - **3 (Kleriker):** Balanced stats, moderate INT/STA
+     *
+     * The character starts at level 1, map 1, position (0,0,0) with 0 gold.
+     *
+     * @param accountId the owning account's ID
+     * @param name the character name (must be unique — enforced by DB constraint)
+     * @param characterClass class index (0-3)
+     * @return the auto-generated character ID
+     * @throws IllegalStateException if the account already has 3 characters
+     * @throws IllegalArgumentException if [characterClass] is not in 0-3
+     */
+    suspend fun create(accountId: Long, name: String, characterClass: Int): Long
 
-        if (count >= 3) {
-            throw IllegalStateException("Maximum 3 characters per account")
-        }
+    /**
+     * Persists a character's mutable state (HP, MP, XP, position, stats, etc.).
+     *
+     * Called by the [WriteBackScheduler][com.flyagain.database.writeback.WriteBackScheduler]
+     * to flush dirty character data from Redis to PostgreSQL, and also on
+     * logout / zone transitions for immediate persistence.
+     *
+     * @param request protobuf message containing the character ID and all fields to save
+     */
+    suspend fun save(request: SaveCharacterRequest)
 
-        // Base stats by class: 0=Krieger, 1=Magier, 2=Assassine, 3=Kleriker
-        data class BaseStats(val hp: Int, val mp: Int, val maxHp: Int, val maxMp: Int,
-                             val str: Int, val sta: Int, val dex: Int, val intStat: Int)
-        val stats = when (characterClass) {
-            0 -> BaseStats(150, 50, 150, 50, 15, 15, 10, 5)   // Krieger
-            1 -> BaseStats(80, 150, 80, 150, 5, 8, 10, 20)    // Magier
-            2 -> BaseStats(100, 80, 100, 80, 10, 8, 20, 5)    // Assassine
-            3 -> BaseStats(120, 120, 120, 120, 8, 12, 8, 15)  // Kleriker
-            else -> throw IllegalArgumentException("Invalid class: $characterClass")
-        }
-
-        conn.prepareStatement(
-            """INSERT INTO characters (account_id, name, class, level, xp, hp, mp, max_hp, max_mp,
-               str, sta, dex, int_stat, stat_points, map_id, pos_x, pos_y, pos_z, gold)
-               VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 0, 0, 0) RETURNING id"""
-        ).use { stmt ->
-            stmt.setLong(1, accountId)
-            stmt.setString(2, name)
-            stmt.setInt(3, characterClass)
-            stmt.setInt(4, stats.hp)
-            stmt.setInt(5, stats.mp)
-            stmt.setInt(6, stats.maxHp)
-            stmt.setInt(7, stats.maxMp)
-            stmt.setInt(8, stats.str)
-            stmt.setInt(9, stats.sta)
-            stmt.setInt(10, stats.dex)
-            stmt.setInt(11, stats.intStat)
-            stmt.executeQuery().use { rs ->
-                rs.next()
-                rs.getLong("id")
-            }
-        }
-    }
-
-    suspend fun save(request: com.flyagain.common.grpc.SaveCharacterRequest) = withTransaction { conn ->
-        conn.prepareStatement(
-            """UPDATE characters SET hp = ?, mp = ?, xp = ?, level = ?, map_id = ?,
-               pos_x = ?, pos_y = ?, pos_z = ?, gold = ?, play_time = ?,
-               str = ?, sta = ?, dex = ?, int_stat = ?, stat_points = ?
-               WHERE id = ?"""
-        ).use { stmt ->
-            stmt.setInt(1, request.hp)
-            stmt.setInt(2, request.mp)
-            stmt.setLong(3, request.xp)
-            stmt.setInt(4, request.level)
-            stmt.setInt(5, request.mapId)
-            stmt.setFloat(6, request.posX)
-            stmt.setFloat(7, request.posY)
-            stmt.setFloat(8, request.posZ)
-            stmt.setLong(9, request.gold)
-            stmt.setLong(10, request.playTime)
-            stmt.setInt(11, request.str)
-            stmt.setInt(12, request.sta)
-            stmt.setInt(13, request.dex)
-            stmt.setInt(14, request.intStat)
-            stmt.setInt(15, request.statPoints)
-            stmt.setLong(16, request.characterId)
-            stmt.executeUpdate()
-        }
-    }
-
-    suspend fun softDelete(characterId: Long, accountId: Long) = withTransaction { conn ->
-        conn.prepareStatement(
-            "UPDATE characters SET is_deleted = TRUE WHERE id = ? AND account_id = ?"
-        ).use { stmt ->
-            stmt.setLong(1, characterId)
-            stmt.setLong(2, accountId)
-            stmt.executeUpdate()
-        }
-    }
-
-    private fun mapToCharacterRecord(rs: java.sql.ResultSet): CharacterRecord =
-        CharacterRecord.newBuilder()
-            .setId(rs.getLong("id"))
-            .setAccountId(rs.getLong("account_id"))
-            .setName(rs.getString("name"))
-            .setCharacterClass(rs.getInt("class"))
-            .setLevel(rs.getInt("level"))
-            .setXp(rs.getLong("xp"))
-            .setHp(rs.getInt("hp"))
-            .setMp(rs.getInt("mp"))
-            .setMaxHp(rs.getInt("max_hp"))
-            .setMaxMp(rs.getInt("max_mp"))
-            .setStr(rs.getInt("str"))
-            .setSta(rs.getInt("sta"))
-            .setDex(rs.getInt("dex"))
-            .setIntStat(rs.getInt("int_stat"))
-            .setStatPoints(rs.getInt("stat_points"))
-            .setMapId(rs.getInt("map_id"))
-            .setPosX(rs.getFloat("pos_x"))
-            .setPosY(rs.getFloat("pos_y"))
-            .setPosZ(rs.getFloat("pos_z"))
-            .setGold(rs.getLong("gold"))
-            .setPlayTime(rs.getLong("play_time"))
-            .setIsDeleted(rs.getBoolean("is_deleted"))
-            .setFound(true)
-            .build()
+    /**
+     * Soft-deletes a character by setting `is_deleted = TRUE`.
+     *
+     * The character row remains in the database but is excluded from all
+     * normal queries. Only the owning account can delete its own characters.
+     *
+     * @param characterId the character to mark as deleted
+     * @param accountId the owning account ID (authorization check)
+     */
+    suspend fun softDelete(characterId: Long, accountId: Long)
 }

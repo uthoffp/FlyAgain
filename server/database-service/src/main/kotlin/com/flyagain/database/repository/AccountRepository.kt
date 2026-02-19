@@ -1,84 +1,54 @@
 package com.flyagain.database.repository
 
 import com.flyagain.common.grpc.AccountRecord
-import com.google.protobuf.Timestamp
-import java.time.Instant
-import javax.sql.DataSource
 
-class AccountRepository(dataSource: DataSource) : BaseRepository(dataSource) {
+/**
+ * Repository interface for account persistence operations.
+ *
+ * Provides CRUD and query operations against the `accounts` table.
+ * Implementations handle connection management, transaction boundaries,
+ * and mapping between SQL result sets and protobuf [AccountRecord] objects.
+ *
+ * @see AccountRepositoryImpl for the PostgreSQL-backed implementation
+ */
+interface AccountRepository {
 
-    suspend fun getByUsername(username: String): AccountRecord? = withConnection { conn ->
-        conn.prepareStatement(
-            "SELECT id, username, email, password_hash, is_banned, ban_reason, ban_until, created_at, last_login FROM accounts WHERE username = ?"
-        ).use { stmt ->
-            stmt.setString(1, username)
-            stmt.executeQuery().use { rs ->
-                if (rs.next()) mapToAccountRecord(rs) else null
-            }
-        }
-    }
+    /**
+     * Looks up an account by its unique username.
+     *
+     * @param username the case-sensitive username to search for
+     * @return the matching [AccountRecord], or `null` if no account exists with that username
+     */
+    suspend fun getByUsername(username: String): AccountRecord?
 
-    suspend fun getById(accountId: Long): AccountRecord? = withConnection { conn ->
-        conn.prepareStatement(
-            "SELECT id, username, email, password_hash, is_banned, ban_reason, ban_until, created_at, last_login FROM accounts WHERE id = ?"
-        ).use { stmt ->
-            stmt.setLong(1, accountId)
-            stmt.executeQuery().use { rs ->
-                if (rs.next()) mapToAccountRecord(rs) else null
-            }
-        }
-    }
+    /**
+     * Looks up an account by its primary key.
+     *
+     * @param accountId the account's database ID
+     * @return the matching [AccountRecord], or `null` if no account exists with that ID
+     */
+    suspend fun getById(accountId: Long): AccountRecord?
 
-    suspend fun create(username: String, email: String, passwordHash: String): Long = withTransaction { conn ->
-        conn.prepareStatement(
-            "INSERT INTO accounts (username, email, password_hash) VALUES (?, ?, ?) RETURNING id"
-        ).use { stmt ->
-            stmt.setString(1, username)
-            stmt.setString(2, email)
-            stmt.setString(3, passwordHash)
-            stmt.executeQuery().use { rs ->
-                rs.next()
-                rs.getLong("id")
-            }
-        }
-    }
+    /**
+     * Creates a new account with the given credentials.
+     *
+     * The password should already be hashed (bcrypt cost 12) before reaching this layer.
+     * Runs inside a transaction so the insert is atomic.
+     *
+     * @param username the desired username (must be unique)
+     * @param email the account email address (must be unique)
+     * @param passwordHash the pre-hashed password (bcrypt)
+     * @return the auto-generated account ID
+     * @throws Exception if the username or email already exists (unique constraint violation)
+     */
+    suspend fun create(username: String, email: String, passwordHash: String): Long
 
-    suspend fun updateLastLogin(accountId: Long) = withConnection { conn ->
-        conn.prepareStatement(
-            "UPDATE accounts SET last_login = NOW() WHERE id = ?"
-        ).use { stmt ->
-            stmt.setLong(1, accountId)
-            stmt.executeUpdate()
-        }
-        conn.commit()
-    }
-
-    private fun mapToAccountRecord(rs: java.sql.ResultSet): AccountRecord {
-        val builder = AccountRecord.newBuilder()
-            .setId(rs.getLong("id"))
-            .setUsername(rs.getString("username"))
-            .setEmail(rs.getString("email"))
-            .setPasswordHash(rs.getString("password_hash"))
-            .setIsBanned(rs.getBoolean("is_banned"))
-            .setBanReason(rs.getString("ban_reason") ?: "")
-            .setFound(true)
-
-        rs.getTimestamp("ban_until")?.let {
-            builder.setBanUntil(instantToTimestamp(it.toInstant()))
-        }
-        rs.getTimestamp("created_at")?.let {
-            builder.setCreatedAt(instantToTimestamp(it.toInstant()))
-        }
-        rs.getTimestamp("last_login")?.let {
-            builder.setLastLogin(instantToTimestamp(it.toInstant()))
-        }
-
-        return builder.build()
-    }
-
-    private fun instantToTimestamp(instant: Instant): Timestamp =
-        Timestamp.newBuilder()
-            .setSeconds(instant.epochSecond)
-            .setNanos(instant.nano)
-            .build()
+    /**
+     * Updates the `last_login` timestamp to the current server time.
+     *
+     * Called after successful authentication to track login activity.
+     *
+     * @param accountId the account whose login timestamp should be refreshed
+     */
+    suspend fun updateLastLogin(accountId: Long)
 }

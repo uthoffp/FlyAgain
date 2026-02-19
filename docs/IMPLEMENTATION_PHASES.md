@@ -15,11 +15,11 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 ### 1.1 Projektsetup und Build-Pipeline
 
 **Server (Kotlin):**
-- [ ] Gradle-Projekt erstellen (`server/`)
-- [ ] Dependencies: Netty, Protobuf, PostgreSQL-Driver (HikariCP), Jedis/Lettuce (Redis), jBCrypt, java-jwt
-- [ ] Projektstruktur nach ARCHITECTURE.md Modul-Layout anlegen
-- [ ] Docker-Compose fuer PostgreSQL + Redis (lokale Entwicklung)
-- [ ] Flyway oder Liquibase fuer DB-Migrationen einrichten
+- [x] Gradle-Projekt erstellen (`server/`)
+- [x] Dependencies: Netty, Protobuf, PostgreSQL-Driver (HikariCP), Jedis/Lettuce (Redis), jBCrypt, java-jwt
+- [x] Projektstruktur nach ARCHITECTURE.md Modul-Layout anlegen
+- [x] Docker-Compose fuer PostgreSQL + Redis (lokale Entwicklung)
+- [x] Flyway oder Liquibase fuer DB-Migrationen einrichten
 - [ ] Erste Migration: `accounts` Tabelle erstellen
 
 **Client (Unity):**
@@ -29,9 +29,18 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [ ] Build-Targets: Windows, macOS, Linux konfigurieren
 
 **Shared:**
-- [ ] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
-- [ ] Protobuf-Codegen fuer Kotlin und C# einrichten
-- [ ] Git-Repository initialisieren, `.gitignore` fuer Unity + Kotlin + IDE-Dateien
+- [x] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
+- [x] Protobuf-Codegen fuer Kotlin und C# einrichten
+- [x] Git-Repository initialisieren, `.gitignore` fuer Unity + Kotlin + IDE-Dateien
+
+**Zusaetzlich implementiert (nicht im Original-Plan):**
+- [x] Koin Dependency Injection in allen Services
+- [x] Netzwerk-Layer (TcpServer, Packet, Codec, ConnectionLimiter) in `common` zentralisiert
+- [x] Repository-Pattern mit Interface/Impl-Trennung im database-service
+- [x] BaseRepository mit `withConnection`/`withTransaction` Coroutine-Helfern
+- [x] ConfigHelper-Utility im common-Modul
+- [x] Unit-Tests fuer alle Services (Koin-Module-Verification, Core-Logik)
+- [x] Service-spezifische README-Dokumentation
 
 **Akzeptanzkriterien:**
 - `./gradlew build` kompiliert fehlerfrei
@@ -46,15 +55,15 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 > Abhaengigkeit: 1.1
 
 **Server:**
-- [ ] Netty TCP-Server (TLS-faehig, Port 7777)
+- [x] Netty TCP-Server (TLS-faehig, Port 7777) — zentralisiert in `common/network/TcpServer.kt`
 - [ ] Netty UDP-Server (Port 7778)
-- [ ] `PacketRouter`: Opcode -> Handler-Mapping
-- [ ] `SessionManager`: Session-Erstellung, Lookup, Invalidierung
-- [ ] Paketgroessen-Limits (TCP 64KB, UDP 512B)
-- [ ] Connection-Limits pro IP (max 5 TCP)
+- [x] `PacketRouter`: Opcode -> Handler-Mapping
+- [x] `SessionManager`: Session-Erstellung, Lookup, Invalidierung
+- [x] Paketgroessen-Limits (TCP 64KB, UDP 512B)
+- [x] Connection-Limits pro IP (max 5 TCP) — `common/network/ConnectionLimiter.kt`
 - [ ] UDP Flood Protection (In-Memory IP-Counter, max 100/s)
 - [ ] Heartbeat-System (Opcode `0x0601`, 15s Timeout)
-- [ ] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
+- [x] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
 
 **Client:**
 - [ ] `NetworkManager`: TCP + UDP Verbindung zum Server
@@ -81,24 +90,24 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - `skill_definitions`, `character_skills`
   - `monster_definitions`, `monster_spawns`, `loot_table`
   - Alle CHECK-Constraints inkludiert
-- [ ] Redis-Anbindung: Session-CRUD, Rate-Limiting-Counter
-- [ ] `RegisterHandler` (Opcode `0x0006`):
+- [x] Redis-Anbindung: Session-CRUD, Rate-Limiting-Counter
+- [x] `RegisterHandler` (Opcode `0x0006`):
   - Input-Validierung (Username 3-16 Zeichen, E-Mail-Format, Passwort min 8)
   - bcrypt-Hash (Cost 12)
   - Duplikat-Check (Username + E-Mail)
   - Rate-Limit: 3 pro Stunde pro IP
-- [ ] `LoginHandler` (Opcode `0x0001`):
+- [x] `LoginHandler` (Opcode `0x0001`):
   - Ban-Check (`is_banned`, `ban_until`)
   - bcrypt-Verify
   - Multi-Login-Check (Reverse-Lookup `session:account:{id}`)
   - JWT generieren + Session-Token + HMAC-Secret generieren
   - Session in Redis speichern
   - Rate-Limit: 5 pro Minute pro IP
-- [ ] `CharacterCreateHandler` (Opcode `0x0005`):
+- [x] `CharacterCreateHandler` (Opcode `0x0005`):
   - Name-Validierung (3-16 Zeichen, `[a-zA-Z0-9-]`, Blacklist)
   - Max 3 Charaktere pro Account
   - Basis-Stats je nach Klasse setzen (MVP: nur Krieger)
-- [ ] `CharacterSelectHandler` (Opcode `0x0003`):
+- [x] `CharacterSelectHandler` (Opcode `0x0003`):
   - Ownership-Validierung (`account_id == session.accountId`)
   - Character laden, in Redis cachen
   - Zur Zone hinzufuegen (naechster Schritt)
@@ -633,4 +642,13 @@ miteinander zu interagieren und gegeneinander anzutreten.
 
 ## Naechster Schritt
 
-**Phase 1, Schritt 1.1: Projektsetup und Build-Pipeline** ist der erste konkrete Arbeitsschritt.
+**Phase 1, Schritt 1.1** ist weitgehend abgeschlossen (Server-Setup, Build-Pipeline, Protobuf, Docker).
+**Schritt 1.2** (Netzwerk) ist teilweise erledigt (TCP-Server, PacketRouter, ConnectionLimiter).
+**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung — DB-Migrationen und Session-Lifecycle fehlen).
+
+**Naechste Prioritaeten:**
+1. Flyway-SQL-Migrationen erstellen (alle Tabellen aus Abschnitt 3.2)
+2. UDP-Server implementieren (world-service)
+3. Heartbeat-System
+4. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup)
+5. Weiter mit Schritt 1.4 (Welt, Bewegung, Zone-System)

@@ -1,25 +1,31 @@
 package com.flyagain.login
 
-import com.typesafe.config.ConfigFactory
+import com.flyagain.login.di.loginServiceModule
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.slf4j.LoggerFactory
 
 fun main() {
     val logger = LoggerFactory.getLogger("LoginService")
-    val config = ConfigFactory.load()
-
-    val tcpPort = config.getInt("flyagain.network.tcp-port")
-    val dbServiceHost = config.getString("flyagain.database-service.host")
-    val dbServicePort = config.getInt("flyagain.database-service.port")
-
     logger.info("FlyAgain Login Service starting...")
-    logger.info("TCP port: {}", tcpPort)
-    logger.info("Database Service: {}:{}", dbServiceHost, dbServicePort)
 
-    // TODO: Initialize Redis connection
-    // TODO: Initialize gRPC client to database-service
-    // TODO: Start Netty TCP server (TLS 1.3)
+    val koinApp = startKoin {
+        modules(loginServiceModule)
+    }
+    val koin = koinApp.koin
+
+    // TODO: Start TCP server once login service is fully wired
+    // val tcpServer = koin.get<TcpServer>()
+    // runBlocking { tcpServer.start() }
 
     Runtime.getRuntime().addShutdownHook(Thread {
+        logger.info("FlyAgain Login Service shutting down...")
+        // TODO: Shutdown resources once login service is fully wired
+        // koin.get<TcpServer>().stop()
+        // koin.get<ManagedChannel>().shutdown()
+        // koin.get<StatefulRedisConnection<*, *>>().close()
+        // koin.get<RedisClient>().shutdown()
+        stopKoin()
         logger.info("FlyAgain Login Service stopped.")
     })
 

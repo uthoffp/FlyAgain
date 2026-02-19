@@ -10,6 +10,7 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) mic
 
 - **Client:** Unity 2022 LTS with URP (C#)
 - **Server:** Kotlin with Netty (TCP/TLS 1.3 + UDP), Gradle multi-project build
+- **DI:** Koin 4.0 (module per service, verified via tests)
 - **Inter-Service:** gRPC (protobuf-based)
 - **Database:** PostgreSQL + Redis (via Docker Compose)
 - **Serialization:** Protocol Buffers (shared `.proto` definitions)
@@ -19,12 +20,18 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) mic
 
 ```
 server/                    # Kotlin multi-project Gradle build
-  common/                  # Shared library: Protobuf/gRPC stubs, Redis client, config
-  database-service/        # gRPC :9090 — sole PostgreSQL access, Flyway, write-back
+  common/                  # Shared: network layer (TcpServer, Packet, Codec, ConnectionLimiter),
+                           #   Protobuf/gRPC stubs, Redis client, ConfigHelper
+  database-service/        # gRPC :9090 — Repository interfaces + impls, Flyway, write-back
+    src/.../di/            #   Koin DI module
+    src/.../repository/    #   Interface/Impl pattern + BaseRepository
   login-service/           # TCP :7777 — auth, registration, JWT, sessions, rate-limiting
+    src/.../di/            #   Koin DI module
   account-service/         # TCP :7779 — character CRUD, JWT validation
+    src/.../di/            #   Koin DI module
   world-service/           # TCP :7780 + UDP :7781 — gameplay, 20Hz loop, zones, combat, AI
-  gradle/libs.versions.toml # Central version catalog
+    src/.../di/            #   Koin DI module
+  gradle/libs.versions.toml # Central version catalog (incl. Koin 4.0)
 client/                    # Unity client project (URP)
 shared/proto/              # Shared Protocol Buffer definitions (.proto)
   flyagain.proto           # Client-facing messages and opcodes

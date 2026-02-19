@@ -6,7 +6,7 @@ import com.flyagain.common.proto.Opcode
 import com.flyagain.common.proto.RegisterRequest
 import com.flyagain.common.proto.RegisterResponse
 import com.flyagain.login.auth.PasswordHasher
-import com.flyagain.login.network.Packet
+import com.flyagain.common.network.Packet
 import com.flyagain.login.ratelimit.RateLimiter
 import io.netty.channel.ChannelHandlerContext
 import org.slf4j.LoggerFactory
@@ -95,7 +95,7 @@ class RegisterHandler(
             val response = RegisterResponse.newBuilder()
                 .setSuccess(true)
                 .build()
-            ctx.writeAndFlush(Packet(Opcode.REGISTER_RESPONSE, response))
+            ctx.writeAndFlush(Packet(Opcode.REGISTER_RESPONSE_VALUE, response.toByteArray()))
             logger.info("Registration successful for user '{}' (accountId={})", username, createResponse.accountId)
         } else {
             val errorMsg = createResponse.errorMessage.ifEmpty { "Registration failed." }
@@ -144,6 +144,6 @@ class RegisterHandler(
             .setSuccess(false)
             .setErrorMessage(errorMessage)
             .build()
-        ctx.writeAndFlush(Packet(Opcode.REGISTER_RESPONSE, response))
+        ctx.writeAndFlush(Packet(Opcode.REGISTER_RESPONSE_VALUE, response.toByteArray()))
     }
 }

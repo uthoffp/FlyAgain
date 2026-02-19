@@ -1,6 +1,6 @@
 package com.flyagain.account.handler
 
-import com.flyagain.account.network.Packet
+import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.ErrorResponse
 import com.flyagain.common.proto.Heartbeat
 import com.flyagain.common.proto.Opcode
