@@ -1,5 +1,6 @@
 package com.flyagain.login.handler
 
+import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.ErrorResponse
 import com.flyagain.common.proto.Heartbeat
@@ -31,7 +32,8 @@ import org.slf4j.LoggerFactory
 class PacketRouter(
     private val loginHandler: LoginHandler,
     private val registerHandler: RegisterHandler,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
+    private val heartbeatTracker: HeartbeatTracker
 ) : SimpleChannelInboundHandler<Packet>() {
 
     private val logger = LoggerFactory.getLogger(PacketRouter::class.java)
@@ -86,10 +88,11 @@ class PacketRouter(
     }
 
     /**
-     * Handle heartbeat by echoing back with server timestamp.
+     * Handle heartbeat by recording it in the tracker and echoing back with server timestamp.
      */
     private fun handleHeartbeat(ctx: ChannelHandlerContext, packet: Packet) {
         try {
+            heartbeatTracker.recordHeartbeat(ctx.channel())
             val heartbeat = Heartbeat.parseFrom(packet.payload)
             val response = Heartbeat.newBuilder()
                 .setClientTime(heartbeat.clientTime)
@@ -129,11 +132,13 @@ class PacketRouter(
 
     override fun channelActive(ctx: ChannelHandlerContext) {
         logger.info("Client connected: {}", ctx.channel().remoteAddress())
+        heartbeatTracker.register(ctx.channel())
         super.channelActive(ctx)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
         logger.info("Client disconnected: {}", ctx.channel().remoteAddress())
+        heartbeatTracker.unregister(ctx.channel())
         super.channelInactive(ctx)
     }
 }
