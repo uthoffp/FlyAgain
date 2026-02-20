@@ -58,7 +58,7 @@ class EntityManagerTest {
     @Test
     fun `addPlayer and getPlayer`() {
         val player = makePlayer()
-        manager.addPlayer(player)
+        manager.tryAddPlayer(player)
         val retrieved = manager.getPlayer(player.entityId)
         assertNotNull(retrieved)
         assertEquals("TestPlayer", retrieved.name)
@@ -67,7 +67,7 @@ class EntityManagerTest {
     @Test
     fun `getPlayerByAccount returns correct player`() {
         val player = makePlayer(entityId = 1L, accountId = 55L)
-        manager.addPlayer(player)
+        manager.tryAddPlayer(player)
         val retrieved = manager.getPlayerByAccount(55L)
         assertNotNull(retrieved)
         assertEquals(1L, retrieved.entityId)
@@ -76,7 +76,7 @@ class EntityManagerTest {
     @Test
     fun `getPlayerByCharacter returns correct player`() {
         val player = makePlayer(entityId = 1L, characterId = 300L)
-        manager.addPlayer(player)
+        manager.tryAddPlayer(player)
         val retrieved = manager.getPlayerByCharacter(300L)
         assertNotNull(retrieved)
         assertEquals(1L, retrieved.entityId)
@@ -85,7 +85,7 @@ class EntityManagerTest {
     @Test
     fun `removePlayer cleans up all lookups`() {
         val player = makePlayer(entityId = 5L, accountId = 10L, characterId = 20L)
-        manager.addPlayer(player)
+        manager.tryAddPlayer(player)
         val removed = manager.removePlayer(5L)
         assertNotNull(removed)
         assertNull(manager.getPlayer(5L))
@@ -120,9 +120,9 @@ class EntityManagerTest {
     fun `getPlayerCount reflects additions and removals`() {
         val mgr = EntityManager()
         assertEquals(0, mgr.getPlayerCount())
-        mgr.addPlayer(makePlayer(entityId = 1L))
+        mgr.tryAddPlayer(makePlayer(entityId = 1L))
         assertEquals(1, mgr.getPlayerCount())
-        mgr.addPlayer(makePlayer(entityId = 2L, accountId = 101L, characterId = 201L))
+        mgr.tryAddPlayer(makePlayer(entityId = 2L, accountId = 101L, characterId = 201L))
         assertEquals(2, mgr.getPlayerCount())
         mgr.removePlayer(1L)
         assertEquals(1, mgr.getPlayerCount())
@@ -143,7 +143,7 @@ class EntityManagerTest {
         val mgr = EntityManager()
         val player = makePlayer(entityId = 1L)
         val monster = makeMonster(entityId = 1_000_000L)
-        mgr.addPlayer(player)
+        mgr.tryAddPlayer(player)
         mgr.addMonster(monster)
 
         assertTrue(mgr.isPlayer(1L))
@@ -155,8 +155,8 @@ class EntityManagerTest {
     @Test
     fun `getAllPlayers returns all registered players`() {
         val mgr = EntityManager()
-        mgr.addPlayer(makePlayer(entityId = 1L, accountId = 100L, characterId = 200L))
-        mgr.addPlayer(makePlayer(entityId = 2L, accountId = 101L, characterId = 201L))
+        mgr.tryAddPlayer(makePlayer(entityId = 1L, accountId = 100L, characterId = 200L))
+        mgr.tryAddPlayer(makePlayer(entityId = 2L, accountId = 101L, characterId = 201L))
         assertEquals(2, mgr.getAllPlayers().size)
     }
 
@@ -166,5 +166,49 @@ class EntityManagerTest {
         mgr.addMonster(makeMonster(entityId = 1_000_000L))
         mgr.addMonster(makeMonster(entityId = 1_000_001L))
         assertEquals(2, mgr.getAllMonsters().size)
+    }
+
+    @Test
+    fun `getPlayerBySessionToken returns player when token is set`() {
+        val player = makePlayer(entityId = 1L, accountId = 100L, characterId = 200L)
+        val token = 987654321L
+        val playerWithToken = player.copy(sessionTokenLong = token)
+        manager.tryAddPlayer(playerWithToken)
+        val retrieved = manager.getPlayerBySessionToken(token)
+        assertNotNull(retrieved)
+        assertEquals(1L, retrieved.entityId)
+    }
+
+    @Test
+    fun `getPlayerBySessionToken returns null for unknown token`() {
+        assertNull(manager.getPlayerBySessionToken(999L))
+    }
+
+    @Test
+    fun `getPlayerBySessionToken returns null when token is zero`() {
+        val player = makePlayer(entityId = 1L, accountId = 100L, characterId = 200L)
+        // sessionTokenLong defaults to 0
+        manager.tryAddPlayer(player)
+        assertNull(manager.getPlayerBySessionToken(0L))
+    }
+
+    @Test
+    fun `removePlayer cleans up session token lookup`() {
+        val token = 123456L
+        val player = makePlayer(entityId = 5L, accountId = 10L, characterId = 20L)
+            .copy(sessionTokenLong = token)
+        manager.tryAddPlayer(player)
+        assertNotNull(manager.getPlayerBySessionToken(token))
+        manager.removePlayer(5L)
+        assertNull(manager.getPlayerBySessionToken(token))
+    }
+
+    @Test
+    fun `tryAddPlayer rejects duplicate account`() {
+        val player1 = makePlayer(entityId = 1L, accountId = 100L, characterId = 200L)
+        val player2 = makePlayer(entityId = 2L, accountId = 100L, characterId = 201L)
+        assertTrue(manager.tryAddPlayer(player1))
+        assertFalse(manager.tryAddPlayer(player2))
+        assertEquals(1, manager.getPlayerCount())
     }
 }

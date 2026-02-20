@@ -29,6 +29,9 @@ class EntityManager {
     // Lookup by character ID
     private val playersByCharacter = ConcurrentHashMap<Long, PlayerEntity>()
 
+    // Lookup by session token (Long) for fast UDP packet routing
+    private val playersBySessionToken = ConcurrentHashMap<Long, PlayerEntity>()
+
     /**
      * Generate a new unique entity ID for a player.
      */
@@ -40,14 +43,22 @@ class EntityManager {
     fun nextMonsterId(): Long = monsterIdCounter.getAndIncrement()
 
     /**
-     * Register a player entity in the world.
+     * Atomically try to register a player entity. Returns false if the account
+     * already has a player in the world (prevents duplicate login race condition).
      */
-    fun addPlayer(player: PlayerEntity) {
+    fun tryAddPlayer(player: PlayerEntity): Boolean {
+        val existing = playersByAccount.putIfAbsent(player.accountId, player)
+        if (existing != null) {
+            return false
+        }
         players[player.entityId] = player
-        playersByAccount[player.accountId] = player
         playersByCharacter[player.characterId] = player
+        if (player.sessionTokenLong != 0L) {
+            playersBySessionToken[player.sessionTokenLong] = player
+        }
         logger.debug("Player entity added: {} (entityId={}, accountId={})",
             player.name, player.entityId, player.accountId)
+        return true
     }
 
     /**
@@ -57,6 +68,9 @@ class EntityManager {
         val player = players.remove(entityId) ?: return null
         playersByAccount.remove(player.accountId)
         playersByCharacter.remove(player.characterId)
+        if (player.sessionTokenLong != 0L) {
+            playersBySessionToken.remove(player.sessionTokenLong)
+        }
         logger.debug("Player entity removed: {} (entityId={})", player.name, entityId)
         return player
     }
@@ -90,6 +104,11 @@ class EntityManager {
      * Get a player by character ID.
      */
     fun getPlayerByCharacter(characterId: Long): PlayerEntity? = playersByCharacter[characterId]
+
+    /**
+     * Get a player by UDP session token.
+     */
+    fun getPlayerBySessionToken(sessionToken: Long): PlayerEntity? = playersBySessionToken[sessionToken]
 
     /**
      * Get a monster by entity ID.

@@ -1,0 +1,36 @@
+CREATE TABLE characters (
+    id              BIGSERIAL PRIMARY KEY,
+    account_id      BIGINT NOT NULL REFERENCES accounts(id),
+    name            VARCHAR(32) UNIQUE NOT NULL,
+    class           SMALLINT NOT NULL,
+    level           SMALLINT NOT NULL DEFAULT 1,
+    xp              BIGINT NOT NULL DEFAULT 0,
+    hp              INT NOT NULL,
+    mp              INT NOT NULL,
+    max_hp          INT NOT NULL,
+    max_mp          INT NOT NULL,
+    str             SMALLINT NOT NULL,
+    sta             SMALLINT NOT NULL,
+    dex             SMALLINT NOT NULL,
+    int_stat        SMALLINT NOT NULL,
+    stat_points     SMALLINT NOT NULL DEFAULT 0,
+    map_id          SMALLINT NOT NULL DEFAULT 1,
+    pos_x           REAL NOT NULL DEFAULT 0,
+    pos_y           REAL NOT NULL DEFAULT 0,
+    pos_z           REAL NOT NULL DEFAULT 0,
+    gold            BIGINT NOT NULL DEFAULT 0,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    play_time       BIGINT NOT NULL DEFAULT 0,
+    is_deleted      BOOLEAN NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT chk_class CHECK (class BETWEEN 0 AND 3),
+    CONSTRAINT chk_level CHECK (level BETWEEN 1 AND 200),
+    CONSTRAINT chk_xp CHECK (xp >= 0),
+    CONSTRAINT chk_gold CHECK (gold >= 0),
+    CONSTRAINT chk_stats CHECK (str >= 0 AND sta >= 0 AND dex >= 0 AND int_stat >= 0),
+    CONSTRAINT chk_stat_points CHECK (stat_points >= 0),
+    CONSTRAINT chk_hp CHECK (hp >= 0 AND hp <= max_hp AND max_hp > 0),
+    CONSTRAINT chk_mp CHECK (mp >= 0 AND mp <= max_mp AND max_mp > 0)
+);
+
+CREATE INDEX idx_characters_account ON characters(account_id);

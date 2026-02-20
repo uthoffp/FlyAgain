@@ -112,6 +112,11 @@ class UdpServer(
 
     private inner class UdpChannelHandler : SimpleChannelInboundHandler<DatagramPacket>() {
 
+        /** Reuse Mac instances per thread to avoid expensive Mac.getInstance() per packet. */
+        private val threadLocalMac = ThreadLocal.withInitial {
+            Mac.getInstance("HmacSHA256")
+        }
+
         override fun channelRead0(ctx: ChannelHandlerContext, msg: DatagramPacket) {
             val sender = msg.sender()
             val buf = msg.content()
@@ -190,7 +195,7 @@ class UdpServer(
 
         private fun verifyHmac(data: ByteArray, expectedHmac: ByteArray, secret: ByteArray): Boolean {
             return try {
-                val mac = Mac.getInstance("HmacSHA256")
+                val mac = threadLocalMac.get()
                 mac.init(SecretKeySpec(secret, "HmacSHA256"))
                 val computedHmac = mac.doFinal(data)
                 MessageDigest.isEqual(computedHmac, expectedHmac)

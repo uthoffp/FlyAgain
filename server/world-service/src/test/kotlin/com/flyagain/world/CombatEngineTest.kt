@@ -150,6 +150,83 @@ class CombatEngineTest {
         }
     }
 
+    @Test
+    fun `processAutoAttack returns null when not auto-attacking`() {
+        val player = makePlayer()
+        player.autoAttacking = false
+        val result = engine.processAutoAttack(player)
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `processAutoAttack returns null when no target`() {
+        val player = makePlayer()
+        player.autoAttacking = true
+        player.targetEntityId = null
+        val result = engine.processAutoAttack(player)
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `processAutoAttack returns null when cooldown not elapsed`() {
+        val player = makePlayer()
+        player.autoAttacking = true
+        player.targetEntityId = 1_000_000L
+        player.lastAttackTime = System.currentTimeMillis() // just attacked
+
+        val monster = makeMonster(entityId = 1_000_000L, hp = 100)
+        entityManager.addMonster(monster)
+
+        val result = engine.processAutoAttack(player)
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `processAutoAttack deals damage when conditions are met`() {
+        val player = makePlayer()
+        player.autoAttacking = true
+        player.targetEntityId = 1_000_000L
+        player.lastAttackTime = 0L // long ago
+
+        val monster = makeMonster(entityId = 1_000_000L, hp = 1000)
+        entityManager.addMonster(monster)
+
+        val result = engine.processAutoAttack(player)
+        assertTrue(result != null, "Should return a damage result")
+        assertTrue(result!!.damage >= CombatEngine.MIN_DAMAGE)
+        assertEquals(player.entityId, result.attackerEntityId)
+        assertEquals(1_000_000L, result.targetEntityId)
+    }
+
+    @Test
+    fun `processAutoAttack returns null when target monster is dead`() {
+        val player = makePlayer()
+        player.autoAttacking = true
+        player.targetEntityId = 1_000_000L
+        player.lastAttackTime = 0L
+
+        val monster = makeMonster(entityId = 1_000_000L, hp = 0) // dead
+        entityManager.addMonster(monster)
+
+        val result = engine.processAutoAttack(player)
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun `processAutoAttack updates lastAttackTime`() {
+        val player = makePlayer()
+        player.autoAttacking = true
+        player.targetEntityId = 1_000_000L
+        player.lastAttackTime = 0L
+
+        val monster = makeMonster(entityId = 1_000_000L, hp = 1000)
+        entityManager.addMonster(monster)
+
+        val before = System.currentTimeMillis()
+        engine.processAutoAttack(player)
+        assertTrue(player.lastAttackTime >= before, "lastAttackTime should be updated")
+    }
+
     private fun assertFalse(value: Boolean, message: String = "") {
         assertTrue(!value, message)
     }

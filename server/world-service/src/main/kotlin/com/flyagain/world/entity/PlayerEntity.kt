@@ -49,18 +49,26 @@ data class PlayerEntity(
     // Network
     var tcpChannel: Channel? = null,
     var sessionId: String = "",
+    var sessionTokenLong: Long = 0L,
     var hmacSecret: String = "",
+
+    // Rate limiting for expensive operations
+    var lastZoneChangeTime: Long = 0L,
+    var lastChannelSwitchTime: Long = 0L,
 
     // Movement input (from latest client packet)
     var inputDx: Float = 0f,
     var inputDy: Float = 0f,
     var inputDz: Float = 0f,
     var isMoving: Boolean = false,
+    var isFlying: Boolean = false,
 
     // Tracking
     var lastHeartbeat: Long = System.currentTimeMillis(),
     var lastSaveTime: Long = System.currentTimeMillis(),
-    var dirty: Boolean = false
+    var sessionStartTime: Long = System.currentTimeMillis(),
+    var playTimeAccumulated: Long = 0L,
+    @Volatile var dirty: Boolean = false
 ) {
     /**
      * Computed attack power based on class and stats.

@@ -6,6 +6,8 @@ import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.common.grpc.MonsterSpawnRecord
 import com.flyagain.common.grpc.MonsterDefinitionRecord
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Manages all zones and their channels in the game world.
@@ -15,6 +17,10 @@ import org.slf4j.LoggerFactory
  * - Zone 1: Aerheim (starting town)
  * - Zone 2: Gruene Ebene (green plains)
  * - Zone 3: Dunkler Wald (dark forest)
+ *
+ * Thread-safety: Uses ConcurrentHashMap for zones and CopyOnWriteArrayList for
+ * channel lists. Channel creation is rare (only when all channels are full),
+ * so CopyOnWrite's O(n) write cost is acceptable.
  */
 class ZoneManager(
     private val entityManager: EntityManager
@@ -40,8 +46,18 @@ class ZoneManager(
 
     private val logger = LoggerFactory.getLogger(ZoneManager::class.java)
 
-    // Map of zoneId -> list of channels
-    private val zones = HashMap<Int, MutableList<ZoneChannel>>()
+    // Thread-safe map of zoneId -> channel list.
+    // CopyOnWriteArrayList because channel creation is rare (only when full).
+    private val zones = ConcurrentHashMap<Int, CopyOnWriteArrayList<ZoneChannel>>()
+
+    // Cached flat list of all channels, rebuilt only when channels are added.
+    // Avoids allocating a new list via flatten() on every game loop tick (20 Hz).
+    @Volatile
+    private var allChannelsCache: List<ZoneChannel> = emptyList()
+
+    private fun rebuildAllChannelsCache() {
+        allChannelsCache = zones.values.flatMap { it }
+    }
 
     /**
      * Initialize all zones with at least one channel each.
@@ -50,13 +66,14 @@ class ZoneManager(
         logger.info("Initializing zones...")
 
         for ((zoneId, zoneName) in ZONE_NAMES) {
-            val channels = mutableListOf<ZoneChannel>()
+            val channels = CopyOnWriteArrayList<ZoneChannel>()
             // Create initial channel (channel 0) for each zone
             channels.add(ZoneChannel(zoneId, channelId = 0))
             zones[zoneId] = channels
             logger.info("Zone '{}' (id={}) initialized with 1 channel", zoneName, zoneId)
         }
 
+        rebuildAllChannelsCache()
         logger.info("Zone initialization complete: {} zones", zones.size)
     }
 
@@ -134,6 +151,7 @@ class ZoneManager(
         val newChannelId = channels.size
         val newChannel = ZoneChannel(zoneId, newChannelId)
         channels.add(newChannel)
+        rebuildAllChannelsCache()
         logger.info("Auto-created channel {} for zone {} (all channels full)",
             newChannelId, ZONE_NAMES[zoneId] ?: zoneId)
 
@@ -158,9 +176,10 @@ class ZoneManager(
 
     /**
      * Get all zone channels across all zones (for game loop iteration).
+     * Returns a cached snapshot - no allocation on each call.
      */
     fun getAllChannels(): List<ZoneChannel> {
-        return zones.values.flatten()
+        return allChannelsCache
     }
 
     /**
