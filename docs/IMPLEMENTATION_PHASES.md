@@ -20,13 +20,13 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Projektstruktur nach ARCHITECTURE.md Modul-Layout anlegen
 - [x] Docker-Compose fuer PostgreSQL + Redis (lokale Entwicklung)
 - [x] Flyway oder Liquibase fuer DB-Migrationen einrichten
-- [ ] Erste Migration: `accounts` Tabelle erstellen
+- [x] Erste Migration: `accounts` Tabelle erstellen
 
 **Client (Unity):**
-- [ ] Unity-Projekt erstellen (`client/`) mit URP Template
-- [ ] Ordnerstruktur: `Scripts/Network/`, `Scripts/UI/`, `Scripts/Game/`, `Scripts/Entity/`
-- [ ] NuGet/Unity Protobuf-Package einbinden (Google.Protobuf)
-- [ ] Build-Targets: Windows, macOS, Linux konfigurieren
+- [x] Unity-Projekt erstellen (`client/`) mit URP Template
+- [x] Ordnerstruktur: `Scripts/Network/`, `Scripts/UI/`, `Scripts/Game/`, `Scripts/Entity/`
+- [x] NuGet/Unity Protobuf-Package einbinden (Google.Protobuf)
+- [x] Build-Targets: Windows, macOS, Linux konfigurieren
 
 **Shared:**
 - [x] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
@@ -66,11 +66,11 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
 
 **Client:**
-- [ ] `NetworkManager`: TCP + UDP Verbindung zum Server
-- [ ] `PacketSender`: Serialisierung + Senden (TCP/UDP je nach Opcode)
-- [ ] `PacketReceiver`: Empfangen + Deserialisierung + Event-Dispatch
-- [ ] Heartbeat senden (alle 5 Sekunden)
-- [ ] Reconnect-Logik (3 Versuche, dann Disconnect-Screen)
+- [x] `NetworkManager`: TCP + UDP Verbindung zum Server
+- [x] `PacketSender`: Serialisierung + Senden (TCP/UDP je nach Opcode)
+- [x] `PacketReceiver`: Empfangen + Deserialisierung + Event-Dispatch
+- [x] Heartbeat senden (alle 5 Sekunden)
+- [x] Reconnect-Logik (3 Versuche, dann Disconnect-Screen)
 
 **Akzeptanzkriterien:**
 - Client verbindet sich per TCP zum Server
@@ -111,7 +111,7 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - Ownership-Validierung (`account_id == session.accountId`)
   - Character laden, in Redis cachen
   - Zur Zone hinzufuegen (naechster Schritt)
-- [ ] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
+- [x] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
 
 **Client:**
 - [ ] Login-Screen: Username + Passwort Eingabefelder, Login-Button
@@ -642,11 +642,13 @@ miteinander zu interagieren und gegeneinander anzutreten.
 
 ## Naechster Schritt
 
-**Phase 1, Schritt 1.1** ist weitgehend abgeschlossen (Server-Setup, Build-Pipeline, Protobuf, Docker).
-**Schritt 1.2** (Netzwerk) ist auf Server-Seite abgeschlossen (TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker). Client-Seite ausstehend.
-**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung — DB-Migrationen und Session-Lifecycle fehlen).
+**Phase 1, Schritt 1.1** ist vollstaendig abgeschlossen (Server + Client + Shared).
+**Schritt 1.2** (Netzwerk) ist vollstaendig abgeschlossen (Server + Client).
+  - Server: TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker
+  - Client: NetworkManager, TcpConnection, UdpConnection, PacketHandler, Heartbeat (5s), Reconnect (3 Versuche)
+**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung, DB-Migrationen V1-V8 vorhanden — Session-Lifecycle fehlt).
 
 **Naechste Prioritaeten:**
-1. Flyway-SQL-Migrationen erstellen (alle Tabellen aus Abschnitt 3.2)
-2. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup)
-3. Weiter mit Schritt 1.4 (Welt, Bewegung, Zone-System)
+1. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup) (Schritt 1.3)
+2. Client Auth-UI: Login, Register, CharSelect, CharCreate Screens (Schritt 1.3)
+3. DB-Migrationen fuer restliche Tabellen (Schritt 1.3)

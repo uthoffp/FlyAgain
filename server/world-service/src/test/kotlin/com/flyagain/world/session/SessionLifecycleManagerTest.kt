@@ -226,4 +226,127 @@ class SessionLifecycleManagerTest {
         // Restore for subsequent tests
         coEvery { characterDataStub.saveCharacter(any(), any()) } returns Empty.getDefaultInstance()
     }
+
+    @Test
+    fun `handleDisconnect continues even if Redis cleanup fails`() = runTest {
+        // Make Redis pipeline throw during cleanup
+        every { redisAsync.del(any<String>()) } returns failedRedisFuture(RuntimeException("Redis down"))
+
+        val player = makePlayer()
+        entityManager.tryAddPlayer(player)
+        zoneManager.initialize()
+        zoneManager.addPlayerToZone(player, 1)
+
+        // Should not throw — entity manager and zone cleanup should still happen
+        manager.handleDisconnect(player)
+
+        assertNull(entityManager.getPlayer(player.entityId))
+
+        // Restore for subsequent tests
+        every { redisAsync.del(any<String>()) } returns completedRedisFuture(1L)
+    }
+
+    @Test
+    fun `handleDisconnect cleans up Redis session keys`() = runTest {
+        val player = makePlayer()
+        entityManager.tryAddPlayer(player)
+        zoneManager.initialize()
+        zoneManager.addPlayerToZone(player, 1)
+
+        // Make hget return accountId for session lookup
+        every { redisAsync.hget("session:test-session-123", "accountId") } returns completedRedisFuture("201")
+        every { redisAsync.get("session:account:201") } returns completedRedisFuture("test-session-123")
+
+        manager.handleDisconnect(player)
+
+        // Verify character cache + dirty marker deleted
+        verify { redisAsync.del("character:101") }
+        verify { redisAsync.del("character:101:dirty") }
+        // Verify online_players removal
+        verify { redisAsync.srem("online_players", "101") }
+        // Verify zone:channel set removal
+        verify { redisAsync.srem("zone:1:channel:0", "101") }
+        // Verify session cleanup
+        verify { redisAsync.del("session:test-session-123") }
+        verify { redisAsync.del("session:account:201") }
+    }
+
+    @Test
+    fun `handleDisconnect does not delete account reverse lookup if session does not match`() = runTest {
+        val player = makePlayer()
+        entityManager.tryAddPlayer(player)
+        zoneManager.initialize()
+        zoneManager.addPlayerToZone(player, 1)
+
+        // The account reverse lookup points to a DIFFERENT session (e.g. user re-logged)
+        every { redisAsync.hget("session:test-session-123", "accountId") } returns completedRedisFuture("201")
+        every { redisAsync.get("session:account:201") } returns completedRedisFuture("different-session-456")
+
+        manager.handleDisconnect(player)
+
+        // Session hash should be deleted
+        verify { redisAsync.del("session:test-session-123") }
+        // But account reverse lookup should NOT be deleted (it points to the new session)
+        verify(exactly = 0) { redisAsync.del("session:account:201") }
+    }
+
+    @Test
+    fun `saveCharacterToRedis skips non-dirty players`() = runTest {
+        val player = makePlayer()
+        player.dirty = false
+
+        manager.saveCharacterToRedis(player)
+
+        // No Redis calls should be made
+        verify(exactly = 0) { redisAsync.hset(any<String>(), any<Map<String, String>>()) }
+    }
+
+    @Test
+    fun `saveCharacterToRedis writes fields and sets TTL`() = runTest {
+        val player = makePlayer()
+        player.dirty = true
+        player.gold = 999L
+        player.xp = 12345L
+
+        manager.saveCharacterToRedis(player)
+
+        // Verify hash was written
+        verify { redisAsync.hset(eq("character:101"), any<Map<String, String>>()) }
+        // Verify TTL set (1 hour = 3600)
+        verify { redisAsync.expire("character:101", 3600) }
+        // Verify dirty marker set
+        verify { redisAsync.set("character:101:dirty", "1") }
+        verify { redisAsync.expire("character:101:dirty", 3600) }
+        // Dirty flag should be cleared
+        assertFalse(player.dirty)
+    }
+
+    @Test
+    fun `saveSnapshotToRedis pipelines all commands`() = runTest {
+        val fields = mapOf("hp" to "500", "level" to "10")
+
+        manager.saveSnapshotToRedis(42L, fields)
+
+        // Verify pipelining was used
+        verify(exactly = 1) { redisConnection.setAutoFlushCommands(false) }
+        verify(exactly = 1) { redisConnection.flushCommands() }
+        verify(exactly = 1) { redisConnection.setAutoFlushCommands(true) }
+        // Verify all 4 commands were sent
+        verify { redisAsync.hset("character:42", fields) }
+        verify { redisAsync.expire("character:42", 3600) }
+        verify { redisAsync.set("character:42:dirty", "1") }
+        verify { redisAsync.expire("character:42:dirty", 3600) }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> failedRedisFuture(exception: Exception): RedisFuture<T> {
+        val future = mockk<RedisFuture<T>>()
+        val cf = CompletableFuture<T>()
+        cf.completeExceptionally(exception)
+        every { future.toCompletableFuture() } returns cf as CompletableFuture<T>
+        every { future.isDone } returns true
+        every { future.get() } throws exception
+        every { future.get(any(), any()) } throws exception
+        return future
+    }
 }

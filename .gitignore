@@ -9,6 +9,7 @@ UserSettings/
 MemoryCaptures/
 *.csproj
 *.sln
+*.slnx
 *.suo
 *.user
 *.pidb
@@ -18,6 +19,7 @@ MemoryCaptures/
 *.mdb
 *.opendb
 *.VC.db
+.signature.p7s
 
 # ===== Kotlin / Gradle =====
 build/
@@ -53,7 +55,7 @@ docker-volumes/
 
 # ===== Generated Code =====
 server/src/main/generated/
-client/Assets/Scripts/Generated/
+**/Scripts/Generated/
 
 # ===== Environment =====
 .env

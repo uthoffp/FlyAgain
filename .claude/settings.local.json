@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file:*)",
+      "WebSearch",
+      "Bash(protoc:*)",
+      "Bash(git -C /Users/puthoff/Development/vibe-coding/FlyAgain log --all --oneline --decorate)",
+      "Bash(test:*)",
+      "Bash(git -C /Users/puthoff/Development/vibe-coding/FlyAgain log --all --stat)",
+      "Bash(git -C /Users/puthoff/Development/vibe-coding/FlyAgain log --oneline --all)",
+      "WebFetch(domain:github.com)",
+      "Bash(gradle --version:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(java -version:*)",
+      "Bash(./gradlew:*)",
+      "Bash(for dir in network auth world entity combat inventory ai chat persistence gameloop)",
+      "Bash(do touch \"/Users/puthoff/Development/vibe-coding/FlyAgain/server/src/main/kotlin/com/flyagain/server/$dir/.gitkeep\")",
+      "Bash(done)",
+      "Bash(gtimeout 5 ./gradlew :server:run:*)",
+      "Bash(git mv:*)",
+      "Bash(docker compose down:*)",
+      "Bash(docker compose up:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(find:*)",
+      "Bash(git log:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(actionlint:*)",
+      "Bash(git add:*)",
+      "Bash(gh repo view:*)",
+      "Bash(brew install:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}
