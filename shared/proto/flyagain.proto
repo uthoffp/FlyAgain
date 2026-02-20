@@ -159,3 +159,120 @@ message ErrorResponse {
     int32 error_code = 2;
     string message = 3;
 }
+
+// ============================================================
+// Movement Messages
+// ============================================================
+
+// Client -> Server (UDP): Player movement input
+message MovementInput {
+    Position position = 1;
+    float rotation = 2;
+    float dx = 3;       // normalized direction X
+    float dy = 4;       // normalized direction Y (vertical / flight)
+    float dz = 5;       // normalized direction Z
+    bool is_moving = 6;
+    bool is_flying = 7;
+    uint32 sequence = 8; // client-side sequence for reconciliation
+}
+
+// Server -> Client (UDP): Authoritative entity position update
+message EntityPositionUpdate {
+    int64 entity_id = 1;
+    Position position = 2;
+    float rotation = 3;
+    bool is_moving = 4;
+    bool is_flying = 5;
+}
+
+// Server -> Client (TCP): Forced position correction
+message PositionCorrection {
+    Position position = 1;
+    float rotation = 2;
+    string reason = 3;
+}
+
+// ============================================================
+// Entity Messages
+// ============================================================
+
+// Server -> Client: A new entity has entered the player's view
+message EntitySpawnMessage {
+    int64 entity_id = 1;
+    int32 entity_type = 2;  // 0=player, 1=monster, 2=npc, 3=loot
+    string name = 3;
+    Position position = 4;
+    float rotation = 5;
+    int32 level = 6;
+    int32 hp = 7;
+    int32 max_hp = 8;
+    int32 character_class = 9;
+    bool is_flying = 10;
+}
+
+// Server -> Client: An entity has left the player's view
+message EntityDespawnMessage {
+    int64 entity_id = 1;
+}
+
+// ============================================================
+// Zone Messages
+// ============================================================
+
+// Server -> Client: Full zone data on zone entry
+message ZoneDataMessage {
+    int32 zone_id = 1;
+    int32 channel_id = 2;
+    string zone_name = 3;
+    repeated EntitySpawnMessage entities = 4;
+}
+
+// Client -> Server: Request to switch channel
+message ChannelSwitchRequest {
+    int32 target_channel_id = 1;
+}
+
+// Server -> Client: Available channels for the current zone
+message ChannelListResponse {
+    int32 zone_id = 1;
+    repeated ChannelInfo channels = 2;
+}
+
+message ChannelInfo {
+    int32 channel_id = 1;
+    int32 player_count = 2;
+}
+
+// ============================================================
+// World Entry (Client -> World Service)
+// ============================================================
+
+// Client -> World Service: Initial connection with JWT and character ID
+message EnterWorldRequest {
+    string jwt = 1;
+    int64 character_id = 2;
+    string session_id = 3;
+}
+
+// Client -> Server: Request to change zone
+message ZoneChangeRequest {
+    int32 target_zone_id = 1;
+}
+
+// ============================================================
+// Combat Messages
+// ============================================================
+
+// Server -> Client: Damage dealt notification
+message DamageEvent {
+    int64 attacker_entity_id = 1;
+    int64 target_entity_id = 2;
+    int32 damage = 3;
+    bool is_critical = 4;
+}
+
+// Server -> Client: Entity death notification
+message EntityDeath {
+    int64 entity_id = 1;
+    int64 killer_entity_id = 2;
+}

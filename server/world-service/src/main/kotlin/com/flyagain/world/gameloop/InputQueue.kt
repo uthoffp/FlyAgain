@@ -1,7 +1,9 @@
 package com.flyagain.world.gameloop
 
 import io.netty.channel.Channel
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Represents a queued packet from a client, ready for processing
@@ -33,37 +35,54 @@ data class QueuedPacket(
  * Network threads enqueue packets; the game loop thread dequeues and processes them.
  * Uses ConcurrentLinkedQueue for lock-free, multi-producer single-consumer access.
  */
-class InputQueue {
+class InputQueue(private val maxSize: Int = 50_000) {
 
+    private val logger = LoggerFactory.getLogger(InputQueue::class.java)
     private val queue = ConcurrentLinkedQueue<QueuedPacket>()
+    private val count = AtomicInteger(0)
+
+    // Pre-allocated drain buffer reused every tick to avoid ArrayList allocation.
+    // Only accessed from the single game loop thread via drainAll().
+    private val drainBuffer = ArrayList<QueuedPacket>(1024)
 
     /**
      * Enqueue a packet from a network thread.
      * This is thread-safe and non-blocking.
+     * Returns false and drops the packet if the queue is at capacity.
      */
-    fun enqueue(packet: QueuedPacket) {
+    fun enqueue(packet: QueuedPacket): Boolean {
+        if (count.get() >= maxSize) {
+            logger.warn("InputQueue full ({} packets), dropping packet from account {}", maxSize, packet.accountId)
+            return false
+        }
         queue.offer(packet)
+        count.incrementAndGet()
+        return true
     }
 
     /**
      * Dequeue a single packet for processing. Returns null if queue is empty.
      */
     fun dequeue(): QueuedPacket? {
-        return queue.poll()
+        val packet = queue.poll() ?: return null
+        count.decrementAndGet()
+        return packet
     }
 
     /**
-     * Drain all currently queued packets into a list for batch processing.
-     * Returns an empty list if the queue is empty.
+     * Drain all currently queued packets into a reusable list for batch processing.
+     * The returned list is valid until the next call to drainAll().
+     * Only call from the game loop thread.
      */
     fun drainAll(): List<QueuedPacket> {
-        val packets = mutableListOf<QueuedPacket>()
+        drainBuffer.clear()
         var packet = queue.poll()
         while (packet != null) {
-            packets.add(packet)
+            drainBuffer.add(packet)
             packet = queue.poll()
         }
-        return packets
+        count.addAndGet(-drainBuffer.size)
+        return drainBuffer
     }
 
     /**

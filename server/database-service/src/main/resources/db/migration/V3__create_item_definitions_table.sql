@@ -1,0 +1,25 @@
+CREATE TABLE item_definitions (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(64) NOT NULL,
+    type            SMALLINT NOT NULL,
+    subtype         SMALLINT NOT NULL DEFAULT 0,
+    level_req       SMALLINT NOT NULL DEFAULT 1,
+    class_req       SMALLINT,
+    rarity          SMALLINT NOT NULL DEFAULT 0,
+    base_attack     SMALLINT NOT NULL DEFAULT 0,
+    base_defense    SMALLINT NOT NULL DEFAULT 0,
+    base_hp         SMALLINT NOT NULL DEFAULT 0,
+    base_mp         SMALLINT NOT NULL DEFAULT 0,
+    buy_price       INT NOT NULL DEFAULT 0,
+    sell_price      INT NOT NULL DEFAULT 0,
+    stackable       BOOLEAN NOT NULL DEFAULT FALSE,
+    max_stack       SMALLINT NOT NULL DEFAULT 1,
+    description     TEXT,
+
+    CONSTRAINT chk_item_type CHECK (type BETWEEN 0 AND 3),
+    CONSTRAINT chk_item_rarity CHECK (rarity BETWEEN 0 AND 3),
+    CONSTRAINT chk_item_level_req CHECK (level_req >= 1),
+    CONSTRAINT chk_item_class_req CHECK (class_req IS NULL OR class_req BETWEEN 0 AND 3),
+    CONSTRAINT chk_item_prices CHECK (buy_price >= 0 AND sell_price >= 0),
+    CONSTRAINT chk_item_max_stack CHECK (max_stack >= 1)
+);

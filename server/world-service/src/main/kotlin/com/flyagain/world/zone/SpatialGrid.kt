@@ -31,6 +31,10 @@ class SpatialGrid(
     // Map from entity ID to its current cell key
     private val entityCells = HashMap<Long, Long>()
 
+    // Reusable result set for getNearbyEntities to avoid allocation per query.
+    // Safe because SpatialGrid is only accessed from the single game loop thread.
+    private val reusableNearbyResult = HashSet<Long>(128)
+
     /**
      * Compute the cell key for a given world position.
      */
@@ -101,12 +105,15 @@ class SpatialGrid(
     /**
      * Get all entity IDs in the 3x3 neighborhood (9 cells) around a position.
      * This is the core interest management query.
+     *
+     * Returns a reusable set that is valid until the next call to this method.
+     * Callers must consume the result before the next invocation (which is
+     * guaranteed since the game loop is single-threaded).
      */
     fun getNearbyEntities(x: Float, z: Float): Set<Long> {
+        reusableNearbyResult.clear()
         val centerCellX = (x / cellSize).toInt().coerceIn(0, gridWidth - 1)
         val centerCellZ = (z / cellSize).toInt().coerceIn(0, gridHeight - 1)
-
-        val result = mutableSetOf<Long>()
 
         for (dx in -1..1) {
             for (dz in -1..1) {
@@ -118,11 +125,11 @@ class SpatialGrid(
                 }
 
                 val key = cx.toLong() * gridHeight + cz
-                cells[key]?.let { result.addAll(it) }
+                cells[key]?.let { reusableNearbyResult.addAll(it) }
             }
         }
 
-        return result
+        return reusableNearbyResult
     }
 
     /**

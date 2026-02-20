@@ -16,6 +16,16 @@ class WorldServiceModuleTest {
                 Int::class,
                 Long::class,
                 String::class,
+                Boolean::class,
+                io.grpc.Channel::class,
+                io.grpc.CallOptions::class,
+                io.grpc.ManagedChannel::class,
+                io.netty.channel.ChannelHandler::class,
+                io.lettuce.core.RedisClient::class,
+                io.lettuce.core.api.StatefulRedisConnection::class,
+                kotlinx.coroutines.CoroutineScope::class,
+                com.flyagain.common.network.UdpPacketHandler::class,
+                com.flyagain.common.network.SessionSecretProvider::class,
             )
         )
     }
