@@ -20,13 +20,13 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Projektstruktur nach ARCHITECTURE.md Modul-Layout anlegen
 - [x] Docker-Compose fuer PostgreSQL + Redis (lokale Entwicklung)
 - [x] Flyway oder Liquibase fuer DB-Migrationen einrichten
-- [ ] Erste Migration: `accounts` Tabelle erstellen
+- [x] Erste Migration: `accounts` Tabelle erstellen
 
 **Client (Unity):**
-- [ ] Unity-Projekt erstellen (`client/`) mit URP Template
-- [ ] Ordnerstruktur: `Scripts/Network/`, `Scripts/UI/`, `Scripts/Game/`, `Scripts/Entity/`
-- [ ] NuGet/Unity Protobuf-Package einbinden (Google.Protobuf)
-- [ ] Build-Targets: Windows, macOS, Linux konfigurieren
+- [x] Unity-Projekt erstellen (`client/`) mit URP Template
+- [x] Ordnerstruktur: `Scripts/Network/`, `Scripts/UI/`, `Scripts/Game/`, `Scripts/Entity/`
+- [x] NuGet/Unity Protobuf-Package einbinden (Google.Protobuf)
+- [x] Build-Targets: Windows, macOS, Linux konfigurieren
 
 **Shared:**
 - [x] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
@@ -642,11 +642,11 @@ miteinander zu interagieren und gegeneinander anzutreten.
 
 ## Naechster Schritt
 
-**Phase 1, Schritt 1.1** ist weitgehend abgeschlossen (Server-Setup, Build-Pipeline, Protobuf, Docker).
+**Phase 1, Schritt 1.1** ist vollstaendig abgeschlossen (Server + Client + Shared).
 **Schritt 1.2** (Netzwerk) ist auf Server-Seite abgeschlossen (TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker). Client-Seite ausstehend.
-**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung — DB-Migrationen und Session-Lifecycle fehlen).
+**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung, DB-Migrationen V1-V8 vorhanden — Session-Lifecycle fehlt).
 
 **Naechste Prioritaeten:**
-1. Flyway-SQL-Migrationen erstellen (alle Tabellen aus Abschnitt 3.2)
-2. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup)
-3. Weiter mit Schritt 1.4 (Welt, Bewegung, Zone-System)
+1. Client-Netzwerk: NetworkManager, PacketSender, PacketReceiver, Heartbeat, Reconnect (Schritt 1.2)
+2. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup) (Schritt 1.3)
+3. Client Auth-UI: Login, Register, CharSelect, CharCreate Screens (Schritt 1.3)
