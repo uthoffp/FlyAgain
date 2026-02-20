@@ -54,7 +54,7 @@ class WriteBackScheduler(
      * Scans Redis for `character:*:dirty` keys and persists each dirty
      * character's hash data to PostgreSQL, then removes the dirty marker.
      */
-    private suspend fun flushDirtyCharacters() {
+    internal suspend fun flushDirtyCharacters() {
         val redis = redisConnection.sync()
         val dirtyKeys = redis.keys("character:*:dirty")
 

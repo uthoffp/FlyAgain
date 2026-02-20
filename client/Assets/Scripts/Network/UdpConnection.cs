@@ -27,7 +27,7 @@ namespace FlyAgain.Network
         private IPEndPoint _serverEndpoint;
         private Thread _readThread;
         private volatile bool _running;
-        private uint _sequence;
+        private int _sequence;
 
         private long _sessionToken;
         private byte[] _hmacSecret;
@@ -62,7 +62,7 @@ namespace FlyAgain.Network
             if (!IsConnected)
                 return;
 
-            uint seq = Interlocked.Increment(ref _sequence);
+            int seq = Interlocked.Increment(ref _sequence);
 
             // Build packet: [token][seq][opcode][payload]
             int dataLen = HeaderSize + payload.Length;
@@ -72,7 +72,7 @@ namespace FlyAgain.Network
             WriteLong(data, 0, _sessionToken);
 
             // Sequence (big-endian uint32)
-            WriteUInt(data, SessionTokenSize, seq);
+            WriteUInt(data, SessionTokenSize, (uint)seq);
 
             // Opcode (big-endian uint16)
             data[SessionTokenSize + SequenceSize] = (byte)((opcode >> 8) & 0xFF);

@@ -111,7 +111,7 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - Ownership-Validierung (`account_id == session.accountId`)
   - Character laden, in Redis cachen
   - Zur Zone hinzufuegen (naechster Schritt)
-- [ ] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
+- [x] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
 
 **Client:**
 - [ ] Login-Screen: Username + Passwort Eingabefelder, Login-Button
