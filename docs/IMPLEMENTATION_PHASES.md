@@ -66,11 +66,11 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
 
 **Client:**
-- [ ] `NetworkManager`: TCP + UDP Verbindung zum Server
-- [ ] `PacketSender`: Serialisierung + Senden (TCP/UDP je nach Opcode)
-- [ ] `PacketReceiver`: Empfangen + Deserialisierung + Event-Dispatch
-- [ ] Heartbeat senden (alle 5 Sekunden)
-- [ ] Reconnect-Logik (3 Versuche, dann Disconnect-Screen)
+- [x] `NetworkManager`: TCP + UDP Verbindung zum Server
+- [x] `PacketSender`: Serialisierung + Senden (TCP/UDP je nach Opcode)
+- [x] `PacketReceiver`: Empfangen + Deserialisierung + Event-Dispatch
+- [x] Heartbeat senden (alle 5 Sekunden)
+- [x] Reconnect-Logik (3 Versuche, dann Disconnect-Screen)
 
 **Akzeptanzkriterien:**
 - Client verbindet sich per TCP zum Server
@@ -643,10 +643,12 @@ miteinander zu interagieren und gegeneinander anzutreten.
 ## Naechster Schritt
 
 **Phase 1, Schritt 1.1** ist vollstaendig abgeschlossen (Server + Client + Shared).
-**Schritt 1.2** (Netzwerk) ist auf Server-Seite abgeschlossen (TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker). Client-Seite ausstehend.
+**Schritt 1.2** (Netzwerk) ist vollstaendig abgeschlossen (Server + Client).
+  - Server: TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker
+  - Client: NetworkManager, TcpConnection, UdpConnection, PacketHandler, Heartbeat (5s), Reconnect (3 Versuche)
 **Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung, DB-Migrationen V1-V8 vorhanden — Session-Lifecycle fehlt).
 
 **Naechste Prioritaeten:**
-1. Client-Netzwerk: NetworkManager, PacketSender, PacketReceiver, Heartbeat, Reconnect (Schritt 1.2)
-2. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup) (Schritt 1.3)
-3. Client Auth-UI: Login, Register, CharSelect, CharCreate Screens (Schritt 1.3)
+1. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup) (Schritt 1.3)
+2. Client Auth-UI: Login, Register, CharSelect, CharCreate Screens (Schritt 1.3)
+3. DB-Migrationen fuer restliche Tabellen (Schritt 1.3)
