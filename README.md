@@ -25,8 +25,18 @@ docker-compose.yml   # PostgreSQL + Redis dev services
 
 ## Quick Start
 
+**🆕 New to the project?** See [SETUP.md](SETUP.md) for complete setup instructions (Windows & macOS).
+
 ### Server
 
+**Windows:**
+```powershell
+cd server
+.\gradlew.bat build       # compile + test
+.\gradlew.bat run         # start the server
+```
+
+**macOS/Linux:**
 ```bash
 cd server
 ./gradlew build       # compile + test
@@ -36,7 +46,7 @@ cd server
 ### Infrastructure
 
 ```bash
-docker-compose up -d  # start PostgreSQL + Redis
+docker compose up -d  # start PostgreSQL + Redis
 ```
 
 ### Client
@@ -66,11 +76,13 @@ Early development (Phase 1.1 — project setup complete). See [docs/IMPLEMENTATI
 
 ## Documentation
 
+- **[SETUP.md](SETUP.md) -- Complete Setup Guide (Windows & macOS) 🆕**
 - [docs/GDD.md](docs/GDD.md) -- Game Design Document
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) -- Technical Architecture
 - [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) -- Phased Build Plan
 - [docs/ROADMAP.md](docs/ROADMAP.md) -- High-level Roadmap
 - [docs/unity-setup.md](docs/unity-setup.md) -- Unity Client Setup Guide
+- [server/README.md](server/README.md) -- Server Documentation
 
 ## License
 

@@ -1,0 +1,100 @@
+# FlyAgain Cross-Platform Git Attributes
+# Ensures consistent line endings across Windows and macOS/Linux
+
+# Auto-detect text files and normalize to LF
+* text=auto
+
+# Source code - always LF
+*.cs text eol=lf
+*.kt text eol=lf
+*.java text eol=lf
+*.gradle text eol=lf
+*.kts text eol=lf
+*.proto text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Scripts - always LF (even on Windows, for Unix compatibility)
+*.sh text eol=lf
+*.bash text eol=lf
+*.ps1 text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unity files - LF
+*.unity text eol=lf
+*.prefab text eol=lf
+*.asset text eol=lf
+*.mat text eol=lf
+*.anim text eol=lf
+*.controller text eol=lf
+*.meta text eol=lf
+*.shader text eol=lf
+*.cginc text eol=lf
+*.compute text eol=lf
+*.shadergraph text eol=lf
+
+# Configuration files
+.gitignore text eol=lf
+.gitattributes text eol=lf
+*.properties text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.config text eol=lf
+
+# Docker files
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+*.dockerfile text eol=lf
+
+# Documentation
+*.pdf binary
+*.doc binary
+*.docx binary
+
+# Binary files
+*.dll binary
+*.exe binary
+*.so binary
+*.dylib binary
+*.a binary
+*.lib binary
+*.jar binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.gz binary
+*.tgz binary
+
+# Unity binary files
+*.fbx binary
+*.obj binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tga binary
+*.psd binary
+*.exr binary
+*.hdr binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.mp4 binary
+*.avi binary
+*.mov binary
+*.unity3d binary
+*.bundle binary
+*.assetbundle binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+
+# Gradle wrapper (keep original line endings)
+gradlew text eol=lf
+gradlew.bat text eol=crlf

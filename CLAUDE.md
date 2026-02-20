@@ -16,6 +16,68 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) mic
 - **Serialization:** Protocol Buffers (shared `.proto` definitions)
 - **DB Migrations:** Flyway
 
+## Unity Client Guidelines
+
+- **Input System:** ALWAYS use Unity's new Input System (`UnityEngine.InputSystem`), NOT the legacy Input Manager (`UnityEngine.Input`)
+  - Use `Keyboard.current` to access keyboard input (e.g., `Keyboard.current.tabKey.wasPressedThisFrame`)
+  - Use `Mouse.current` for mouse input
+  - Never use `Input.GetKeyDown()`, `Input.GetKey()`, etc. - these will throw `InvalidOperationException`
+  - Input actions are defined in `client/Assets/Settings/FlyAgainInputActions.inputactions`
+  - Generated C# class: `FlyAgain.Input.FlyAgainInputActions`
+
+## MMO Development Best Practices
+
+### Server-Side Authority
+- **NEVER trust client input** — validate ALL actions server-side (movement, combat, inventory, trading)
+- **Client is a dumb renderer** — all game logic and state management happens on the server
+- Client-side prediction for movement only (rollback on server correction)
+- Anti-cheat: validate timestamps, rate-limit actions, detect impossible movements/actions
+
+### Performance & Scalability
+- **Interest management:** Only send updates for entities within player's area of interest (use SpatialGrid)
+- **Network optimization:** Batch updates, compress data, use delta compression for state changes
+- **Async I/O:** Use Kotlin Coroutines for all I/O operations (database, network, Redis)
+- **Connection pooling:** Reuse database connections, maintain connection pools
+- **Lazy loading:** Load only necessary data (don't load entire character inventory on login)
+- **Horizontal scaling:** Design services to be stateless where possible for easy scaling
+
+### Security
+- **Input validation:** Sanitize and validate ALL client input (SQL injection, XSS, buffer overflows)
+- **Rate limiting:** Implement per-connection rate limits for all packet types
+- **Session management:** JWT tokens for auth, server-side session validation, detect multi-login
+- **Encryption:** TLS 1.3 for TCP, HMAC-SHA256 for UDP packet authentication
+- **Password security:** bcrypt with cost 12 minimum, never store plaintext passwords
+- **SQL injection prevention:** Use parameterized queries/prepared statements ONLY
+- **Logging:** Log suspicious activities (failed logins, unusual packet patterns, exploit attempts)
+
+### Network Protocol Design
+- **Opcodes:** Use clear, typed opcodes for all messages (see `shared/proto/flyagain.proto`)
+- **Protocol Buffers:** Use protobuf for serialization (compact, typed, versioned)
+- **TCP vs UDP:** TCP for reliable operations (auth, inventory, chat), UDP for real-time (movement, combat)
+- **Packet size:** Keep packets small (<1400 bytes for UDP to avoid fragmentation)
+- **Heartbeats:** Implement periodic heartbeats to detect disconnections
+
+### Database & Persistence
+- **Write-back caching:** RAM → Redis (60s) → PostgreSQL (5min + on logout/zone change)
+- **Batch writes:** Group database writes to reduce I/O load
+- **Transactions:** Use database transactions for multi-step operations (e.g., trading)
+- **Indexes:** Index frequently queried columns (player_id, zone_id, account_id)
+- **Connection pooling:** Use HikariCP or similar for connection management
+- **Migrations:** Use Flyway for versioned database schema changes
+
+### Code Quality
+- **Dependency Injection:** Use Koin 4.0 for all service dependencies, verify via tests
+- **Repository pattern:** Separate data access logic (interface + implementation)
+- **Error handling:** Graceful degradation, log errors, send meaningful error messages to client
+- **Testing:** Unit tests for business logic, integration tests for database/network operations
+- **Code organization:** Clear separation of concerns (network, business logic, persistence)
+
+### Game Loop & Timing
+- **Fixed tick rate:** 20 Hz server tick for consistent game state updates
+- **Single-threaded game loop:** Avoid concurrency issues in core game logic
+- **Delta time:** Use fixed delta time for game logic, variable for rendering (client)
+- **Tick budget:** Monitor tick execution time, warn if exceeding budget (50ms for 20 Hz)
+
 ## Monorepo Structure
 
 ```

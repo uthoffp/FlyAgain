@@ -1,0 +1,183 @@
+/* FlyAgain UI Toolkit Theme
+ * Mirrors UITheme.cs constants for consistency
+ * Last updated: 2026-02-20
+ */
+
+/* Root Variables - Colors & Sizes */
+:root {
+    /* Window Colors */
+    --color-window-bg: rgba(28, 31, 46, 0.97);
+    --color-titlebar-bg: rgba(20, 20, 33, 1);
+    --color-overlay-bg: rgba(0, 0, 0, 0.6);
+
+    /* Input Colors */
+    --color-input-bg: rgba(38, 41, 56, 1);
+
+    /* Button Colors */
+    --color-button-primary: rgba(56, 115, 217, 1);
+    --color-button-primary-hover: rgba(71, 133, 242, 1);
+    --color-button-primary-pressed: rgba(43, 97, 184, 1);
+    --color-button-primary-disabled: rgba(77, 77, 102, 1);
+
+    /* Text Colors */
+    --color-text-primary: rgba(235, 237, 245, 1);
+    --color-text-secondary: rgba(153, 158, 179, 1);
+    --color-text-placeholder: rgba(102, 107, 128, 1);
+    --color-text-error: rgba(235, 77, 77, 1);
+
+    /* Font Sizes */
+    --font-size-title: 20px;
+    --font-size-label: 14px;
+    --font-size-input: 16px;
+    --font-size-button: 17px;
+    --font-size-error: 13px;
+
+    /* Layout Metrics */
+    --window-padding: 24px;
+    --element-spacing: 8px;
+    --titlebar-height: 44px;
+    --input-height: 42px;
+    --button-height: 44px;
+}
+
+/* Screen Overlay - Full-screen dark background */
+.screen-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-overlay-bg);
+}
+
+/* Window Container */
+.window {
+    background-color: var(--color-window-bg);
+    flex-direction: column;
+    border-radius: 0;
+}
+
+/* Title Bar */
+.title-bar {
+    background-color: var(--color-titlebar-bg);
+    height: var(--titlebar-height);
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.title-text {
+    font-size: var(--font-size-title);
+    color: var(--color-text-primary);
+    -unity-text-align: middle-center;
+}
+
+/* Window Content Area */
+.window-content {
+    flex-direction: column;
+    padding-left: var(--window-padding);
+    padding-right: var(--window-padding);
+    padding-top: var(--window-padding);
+    padding-bottom: var(--window-padding);
+    flex-grow: 1;
+}
+
+.window-content > * {
+    margin-bottom: var(--element-spacing);
+}
+
+/* Note: Unity doesn't support :last-child, so last element margin must be handled in code or via specific classes */
+
+/* Label Styles */
+.label-secondary {
+    font-size: var(--font-size-label);
+    color: var(--color-text-secondary);
+    -unity-text-align: middle-left;
+}
+
+.error-text {
+    font-size: var(--font-size-error);
+    color: var(--color-text-error);
+    -unity-text-align: middle-center;
+}
+
+/* Text Field Container */
+.text-field-container {
+    flex-direction: column;
+    margin-bottom: var(--element-spacing);
+}
+
+/* Text Fields */
+.text-field {
+    background-color: var(--color-input-bg);
+    height: var(--input-height);
+    border-width: 0;
+    border-radius: 0;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.text-field > .unity-text-element {
+    font-size: var(--font-size-input);
+    color: var(--color-text-primary);
+    -unity-text-align: middle-left;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.text-field:focus {
+    border-color: var(--color-button-primary);
+    border-width: 2px;
+}
+
+/* Text Field Placeholder */
+.text-field-placeholder {
+    position: absolute;
+    left: 12px;
+    top: 0;
+    bottom: 0;
+    font-size: var(--font-size-input);
+    color: var(--color-text-placeholder);
+    -unity-text-align: middle-left;
+}
+
+/* Note: caret-color is not supported in Unity UI Toolkit */
+
+/* Selection Color */
+.text-field > .unity-text-element--selection {
+    background-color: rgba(51, 102, 204, 0.4);
+}
+
+/* Buttons */
+.primary-button {
+    background-color: var(--color-button-primary);
+    height: var(--button-height);
+    border-width: 0;
+    border-radius: 0;
+    transition-duration: 100ms;
+    transition-property: background-color;
+}
+
+.primary-button > .unity-text-element {
+    font-size: var(--font-size-button);
+    color: var(--color-text-primary);
+    -unity-text-align: middle-center;
+}
+
+.primary-button:hover {
+    background-color: var(--color-button-primary-hover);
+}
+
+.primary-button:active {
+    background-color: var(--color-button-primary-pressed);
+}
+
+.primary-button:disabled {
+    background-color: var(--color-button-primary-disabled);
+}
+
+/* Spacer */
+.spacer {
+    flex-shrink: 0;
+}

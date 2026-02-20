@@ -46,6 +46,23 @@ namespace FlyAgain.UI.Core
         }
 
         /// <summary>
+        /// Create an Image panel with a sprite background and optional tint color.
+        /// </summary>
+        public static RectTransform CreateImagePanel(Transform parent, string name, Sprite sprite, Color tint)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+
+            var image = go.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = tint;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = false;
+
+            return go.GetComponent<RectTransform>();
+        }
+
+        /// <summary>
         /// Create a UI Text element with consistent styling.
         /// </summary>
         public static Text CreateText(
@@ -151,20 +168,47 @@ namespace FlyAgain.UI.Core
         /// </summary>
         public static Button CreateButton(Transform parent, string text)
         {
-            var go = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(Button));
+            return CreateButtonInternal(parent, text, false);
+        }
+
+        /// <summary>
+        /// Create a secondary (less prominent) button with centered text label.
+        /// </summary>
+        public static Button CreateSecondaryButton(Transform parent, string text)
+        {
+            return CreateButtonInternal(parent, text, true);
+        }
+
+        private static Button CreateButtonInternal(Transform parent, string text, bool isSecondary)
+        {
+            var go = new GameObject(isSecondary ? "SecondaryButton" : "Button", typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
 
             var image = go.GetComponent<Image>();
             image.color = Color.white;
+            // Note: For rounded corners, use a sprite with rounded edges and set image.sprite here
+            image.type = Image.Type.Sliced;
 
             var button = go.GetComponent<Button>();
             button.targetGraphic = image;
             var colors = button.colors;
-            colors.normalColor = UITheme.ButtonPrimary;
-            colors.highlightedColor = UITheme.ButtonPrimaryHover;
-            colors.pressedColor = UITheme.ButtonPrimaryPressed;
-            colors.disabledColor = UITheme.ButtonPrimaryDisabled;
-            colors.fadeDuration = 0.1f;
+
+            if (isSecondary)
+            {
+                colors.normalColor = UITheme.ButtonSecondary;
+                colors.highlightedColor = UITheme.ButtonSecondaryHover;
+                colors.pressedColor = UITheme.ButtonSecondaryPressed;
+                colors.disabledColor = UITheme.ButtonSecondaryDisabled;
+            }
+            else
+            {
+                colors.normalColor = UITheme.ButtonPrimary;
+                colors.highlightedColor = UITheme.ButtonPrimaryHover;
+                colors.pressedColor = UITheme.ButtonPrimaryPressed;
+                colors.disabledColor = UITheme.ButtonPrimaryDisabled;
+            }
+
+            colors.fadeDuration = 0.15f;
             button.colors = colors;
 
             var layout = go.AddComponent<LayoutElement>();

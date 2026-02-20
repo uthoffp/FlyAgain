@@ -2,6 +2,8 @@
 
 Kotlin/Gradle Microservice-Backend bestehend aus 4 Services:
 
+> 📘 **Für eine vollständige Anleitung (inkl. Windows & macOS Setup)** siehe [SETUP.md](../SETUP.md) im Repository-Root.
+
 | Service | Port(s) | Aufgabe |
 |---|---|---|
 | database-service | gRPC 9090 | PostgreSQL-Zugriff, Flyway-Migrationen, Write-Back |
@@ -89,6 +91,20 @@ world-service       (TCP :7780, UDP :7781)
 
 Wenn du nur PostgreSQL und Redis per Docker laufen lässt und die Services lokal startest:
 
+**Windows (PowerShell/Command Prompt):**
+```powershell
+# 1. Infrastruktur starten
+docker compose up -d postgres redis
+
+# 2. Services einzeln starten (aus server/)
+cd server
+.\gradlew.bat :database-service:run
+.\gradlew.bat :login-service:run
+.\gradlew.bat :account-service:run
+.\gradlew.bat :world-service:run
+```
+
+**macOS/Linux:**
 ```bash
 # 1. Infrastruktur starten
 docker compose up -d postgres redis
@@ -100,8 +116,6 @@ cd server
 ./gradlew :account-service:run
 ./gradlew :world-service:run
 ```
-
-Unter Windows PowerShell statt `./gradlew` → `gradlew.bat` verwenden.
 
 ## Konfiguration
 
@@ -121,6 +135,25 @@ Im Docker-Netzwerk werden die Hostnamen automatisch auf die Service-Namen aufgel
 
 ## Nützliche Gradle-Befehle (aus `server/`)
 
+**Windows:**
+```powershell
+# Alle Services bauen
+.\gradlew.bat build
+
+# Einzelnen Service bauen
+.\gradlew.bat :login-service:build
+
+# Tests ausführen
+.\gradlew.bat test
+
+# Distribution erstellen
+.\gradlew.bat installDist
+
+# Aufräumen
+.\gradlew.bat clean
+```
+
+**macOS/Linux:**
 ```bash
 # Alle Services bauen
 ./gradlew build

@@ -16,17 +16,24 @@ namespace FlyAgain.UI.Core
         // Input
         public static readonly Color InputBackground = new(0.15f, 0.16f, 0.22f, 1f);
 
-        // Buttons
-        public static readonly Color ButtonPrimary = new(0.22f, 0.45f, 0.85f, 1f);
-        public static readonly Color ButtonPrimaryHover = new(0.28f, 0.52f, 0.95f, 1f);
-        public static readonly Color ButtonPrimaryPressed = new(0.17f, 0.38f, 0.72f, 1f);
+        // Buttons - Primary (softer colors)
+        public static readonly Color ButtonPrimary = new(0.25f, 0.40f, 0.70f, 1f);
+        public static readonly Color ButtonPrimaryHover = new(0.30f, 0.45f, 0.78f, 1f);
+        public static readonly Color ButtonPrimaryPressed = new(0.20f, 0.35f, 0.62f, 1f);
         public static readonly Color ButtonPrimaryDisabled = new(0.3f, 0.3f, 0.4f, 1f);
+
+        // Buttons - Secondary (subtle, less prominent)
+        public static readonly Color ButtonSecondary = new(0.20f, 0.22f, 0.30f, 1f);
+        public static readonly Color ButtonSecondaryHover = new(0.25f, 0.27f, 0.35f, 1f);
+        public static readonly Color ButtonSecondaryPressed = new(0.15f, 0.17f, 0.25f, 1f);
+        public static readonly Color ButtonSecondaryDisabled = new(0.2f, 0.2f, 0.25f, 1f);
 
         // Text
         public static readonly Color TextPrimary = new(0.92f, 0.93f, 0.96f, 1f);
         public static readonly Color TextSecondary = new(0.6f, 0.62f, 0.7f, 1f);
         public static readonly Color TextPlaceholder = new(0.4f, 0.42f, 0.5f, 1f);
         public static readonly Color TextError = new(0.92f, 0.3f, 0.3f, 1f);
+        public static readonly Color TextSuccess = new(0.3f, 0.85f, 0.4f, 1f);
 
         // Font sizes
         public const float TitleFontSize = 20f;

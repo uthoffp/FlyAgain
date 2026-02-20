@@ -35,7 +35,12 @@
       "Bash(gh auth:*)",
       "Bash(gh api:*)",
       "Bash(gh repo edit:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(uuidgen:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(lsof:*)",
+      "Bash(timeout 2 bash -c 'echo \"\"test\"\" | nc -v localhost 7777')"
     ]
   }
 }

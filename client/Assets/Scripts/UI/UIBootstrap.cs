@@ -1,6 +1,8 @@
+using FlyAgain.Auth;
 using FlyAgain.UI.Screens;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 
 namespace FlyAgain.UI.Core
 {
@@ -17,13 +19,21 @@ namespace FlyAgain.UI.Core
             if (UIManager.Instance != null)
                 return;
 
+            // Initialize localization based on system language
+            LocalizationManager.Initialize();
+
             EnsureEventSystem();
 
             var go = new GameObject("[UISystem]");
             var manager = go.AddComponent<UIManager>();
 
             manager.RegisterScreen<LoginScreen>();
+            manager.RegisterScreen<RegisterScreen>();
             manager.ShowScreen<LoginScreen>();
+
+            // Initialize authentication controller
+            var authGo = new GameObject("[AuthController]");
+            authGo.AddComponent<AuthController>();
         }
 
         private static void EnsureEventSystem()
@@ -33,7 +43,7 @@ namespace FlyAgain.UI.Core
 
             var go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
-            go.AddComponent<StandaloneInputModule>();
+            go.AddComponent<InputSystemUIInputModule>();
             Object.DontDestroyOnLoad(go);
         }
     }
