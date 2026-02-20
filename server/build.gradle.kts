@@ -26,6 +26,7 @@ subprojects {
         "testImplementation"(rootProject.libs.coroutines.test)
         "testImplementation"(rootProject.libs.koin.test)
         "testImplementation"(rootProject.libs.koin.test.junit5)
+        "testImplementation"(rootProject.libs.mockk)
     }
 
     configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
