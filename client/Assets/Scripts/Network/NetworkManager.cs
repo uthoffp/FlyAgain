@@ -20,19 +20,34 @@ namespace FlyAgain.Network
 
         [Header("Heartbeat")]
         [SerializeField] private float _heartbeatIntervalSec = 5f;
+        [SerializeField] private float _heartbeatTimeoutSec = 15f;
+        [SerializeField] private bool _enableHeartbeatMonitoring = true;
 
         [Header("Reconnect")]
         [SerializeField] private int _maxReconnectAttempts = 3;
         [SerializeField] private float _reconnectDelaySec = 2f;
+
+        [Header("Quality Monitoring")]
+        [SerializeField] private bool _enableQualityMetrics = true;
+        [SerializeField] private int _maxPacketsPerFrame = 100;
 
         private TcpConnection _tcp;
         private UdpConnection _udp;
         private readonly PacketHandler _packetHandler = new PacketHandler();
 
         private float _heartbeatTimer;
+        private float _lastHeartbeatReceived;
+        private bool _heartbeatResponsePending;
         private int _reconnectAttempts;
         private float _reconnectTimer;
         private bool _wasConnected;
+
+        // Connection quality metrics
+        private int _tcpPacketsReceived;
+        private int _udpPacketsReceived;
+        private int _tcpPacketsSent;
+        private int _udpPacketsSent;
+        private float _connectionStartTime;
 
         // Session data received from login
         private string _currentHost;
@@ -77,18 +92,41 @@ namespace FlyAgain.Network
                 return;
             }
 
-            // Process incoming TCP packets on main thread
-            while (_tcp.TryDequeue(out Packet tcpPacket))
+            // Check heartbeat timeout
+            if (_enableHeartbeatMonitoring && _heartbeatResponsePending)
             {
-                _packetHandler.Dispatch(tcpPacket);
+                float timeSinceLastHeartbeat = Time.time - _lastHeartbeatReceived;
+                if (timeSinceLastHeartbeat > _heartbeatTimeoutSec)
+                {
+                    Debug.LogError($"[NetworkManager] Heartbeat timeout ({timeSinceLastHeartbeat:F1}s). Server not responding.");
+                    HandleConnectionLost();
+                    return;
+                }
             }
 
-            // Process incoming UDP packets on main thread
+            // Process incoming TCP packets on main thread (with frame budget)
+            int tcpProcessed = 0;
+            while (tcpProcessed < _maxPacketsPerFrame && _tcp.TryDequeue(out Packet tcpPacket))
+            {
+                _tcpPacketsReceived++;
+                _packetHandler.Dispatch(tcpPacket);
+                tcpProcessed++;
+            }
+
+            if (_enableQualityMetrics && tcpProcessed >= _maxPacketsPerFrame)
+            {
+                Debug.LogWarning($"[NetworkManager] TCP packet budget exceeded ({_tcp.QueuedPacketCount} packets still queued)");
+            }
+
+            // Process incoming UDP packets on main thread (with frame budget)
             if (_udp != null)
             {
-                while (_udp.TryDequeue(out Packet udpPacket))
+                int udpProcessed = 0;
+                while (udpProcessed < _maxPacketsPerFrame && _udp.TryDequeue(out Packet udpPacket))
                 {
+                    _udpPacketsReceived++;
                     _packetHandler.Dispatch(udpPacket);
+                    udpProcessed++;
                 }
             }
 
@@ -125,7 +163,11 @@ namespace FlyAgain.Network
                 _currentPort = port;
                 _reconnectAttempts = 0;
                 _heartbeatTimer = 0f;
+                _lastHeartbeatReceived = Time.time;
+                _heartbeatResponsePending = false;
                 _wasConnected = true;
+                _connectionStartTime = Time.time;
+                ResetMetrics();
                 State = ConnectionState.Connected;
                 OnConnected?.Invoke();
                 return true;
@@ -158,6 +200,7 @@ namespace FlyAgain.Network
                 return;
             }
             _tcp.Send(opcode, message.ToByteArray());
+            _tcpPacketsSent++;
         }
 
         /// <summary>
@@ -171,6 +214,7 @@ namespace FlyAgain.Network
                 return;
             }
             _udp.Send(opcode, message.ToByteArray());
+            _udpPacketsSent++;
         }
 
         /// <summary>
@@ -219,6 +263,45 @@ namespace FlyAgain.Network
                 ClientTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
             SendTcp((int)Opcode.Heartbeat, hb);
+
+            if (_enableHeartbeatMonitoring)
+            {
+                _heartbeatResponsePending = true;
+            }
+        }
+
+        /// <summary>
+        /// Call this from heartbeat response handler to acknowledge server is responding.
+        /// </summary>
+        public void OnHeartbeatReceived()
+        {
+            _lastHeartbeatReceived = Time.time;
+            _heartbeatResponsePending = false;
+        }
+
+        /// <summary>
+        /// Get connection quality metrics.
+        /// </summary>
+        public (int tcpSent, int tcpReceived, int udpSent, int udpReceived, float uptime) GetMetrics()
+        {
+            float uptime = State == ConnectionState.Connected ? Time.time - _connectionStartTime : 0f;
+            return (_tcpPacketsSent, _tcpPacketsReceived, _udpPacketsSent, _udpPacketsReceived, uptime);
+        }
+
+        /// <summary>
+        /// Get PacketHandler statistics.
+        /// </summary>
+        public (int processed, int errors) GetPacketHandlerStats()
+        {
+            return _packetHandler.GetStats();
+        }
+
+        private void ResetMetrics()
+        {
+            _tcpPacketsReceived = 0;
+            _udpPacketsReceived = 0;
+            _tcpPacketsSent = 0;
+            _udpPacketsSent = 0;
         }
 
         private void HandleConnectionLost()
