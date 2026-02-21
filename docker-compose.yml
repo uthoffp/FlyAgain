@@ -67,7 +67,9 @@ services:
       FLYAGAIN_REDIS_URL: redis://redis:6379
       FLYAGAIN_DB_SERVICE_HOST: database-service
       FLYAGAIN_DB_SERVICE_PORT: "9090"
-      FLYAGAIN_ACCOUNT_SERVICE_HOST: account-service
+      # Use localhost for external clients (Unity) to connect
+      # Services are accessible on localhost because ports are exposed
+      FLYAGAIN_ACCOUNT_SERVICE_HOST: localhost
       FLYAGAIN_ACCOUNT_SERVICE_PORT: "7779"
 
   account-service:
@@ -87,7 +89,9 @@ services:
       FLYAGAIN_REDIS_URL: redis://redis:6379
       FLYAGAIN_DB_SERVICE_HOST: database-service
       FLYAGAIN_DB_SERVICE_PORT: "9090"
-      FLYAGAIN_WORLD_SERVICE_HOST: world-service
+      # Use localhost for external clients (Unity) to connect
+      # Services are accessible on localhost because ports are exposed
+      FLYAGAIN_WORLD_SERVICE_HOST: localhost
       FLYAGAIN_WORLD_SERVICE_TCP_PORT: "7780"
       FLYAGAIN_WORLD_SERVICE_UDP_PORT: "7781"
 
