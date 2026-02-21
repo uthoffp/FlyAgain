@@ -17,7 +17,7 @@ namespace FlyAgain.UI.Screens
         private const float BackgroundDarken = 0.7f;
         private const int MaxCharacters = 3;
 
-        private CharacterInfo[] _characters;
+        private FlyAgain.Proto.CharacterInfo[] _characters;
         private List<Button> _characterButtons = new List<Button>();
         private Button _createButton;
         private Button _logoutButton;
@@ -130,7 +130,7 @@ namespace FlyAgain.UI.Screens
             }
         }
 
-        public void SetCharacterList(CharacterInfo[] characters)
+        public void SetCharacterList(FlyAgain.Proto.CharacterInfo[] characters)
         {
             _characters = characters;
             RebuildCharacterCards();
@@ -183,7 +183,7 @@ namespace FlyAgain.UI.Screens
             _selectedIndex = 0;
         }
 
-        private void CreateCharacterCard(Transform parent, CharacterInfo characterInfo, int index)
+        private void CreateCharacterCard(Transform parent, FlyAgain.Proto.CharacterInfo characterInfo, int index)
         {
             // Create button container
             var cardGo = new GameObject($"CharacterCard_{index}");

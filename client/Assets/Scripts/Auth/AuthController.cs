@@ -25,7 +25,7 @@ namespace FlyAgain.Auth
         private RegisterScreen _registerScreen;
         private CharacterSelectScreen _characterSelectScreen;
         private CharacterCreateScreen _characterCreateScreen;
-        private CharacterInfo[] _currentCharacters;
+        private FlyAgain.Proto.CharacterInfo[] _currentCharacters;
         private bool _isSubscribedToScreenEvents;
         private bool _isWaitingForLoginResponse;
         private float _loginRequestTime;
@@ -267,7 +267,7 @@ namespace FlyAgain.Auth
                     _network.SetSessionData(response.Jwt, response.HmacSecret);
 
                     // Store characters
-                    _currentCharacters = new CharacterInfo[response.Characters.Count];
+                    _currentCharacters = new FlyAgain.Proto.CharacterInfo[response.Characters.Count];
                     response.Characters.CopyTo(_currentCharacters, 0);
 
                     Debug.Log($"[AuthController] Login successful! JWT: {response.Jwt?.Substring(0, Math.Min(20, response.Jwt.Length))}...");
