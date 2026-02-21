@@ -18,7 +18,6 @@ namespace FlyAgain.Auth
 
         [Header("Connection Settings")]
         [SerializeField] private float _connectionTimeout = 5f;
-        [SerializeField] private bool _autoReconnectOnLogin = true;
 
         private NetworkManager _network;
         private LoginScreen _loginScreen;

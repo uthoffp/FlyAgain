@@ -74,7 +74,7 @@ namespace FlyAgain.UI.Screens
             var toggleGroupGo = new GameObject("ClassToggleGroup");
             toggleGroupGo.transform.SetParent(window.ContentArea, false);
             var toggleGroup = toggleGroupGo.AddComponent<ToggleGroup>();
-            var toggleGroupLayout = UIFactory.AddVerticalLayout(toggleGroupGo.GetComponent<RectTransform>(), 4, 4);
+            var toggleGroupLayout = UIFactory.AddVerticalLayout(toggleGroupGo, 4);
             var toggleGroupLayoutElement = toggleGroupGo.AddComponent<LayoutElement>();
             toggleGroupLayoutElement.preferredHeight = 240f;
 
@@ -124,7 +124,8 @@ namespace FlyAgain.UI.Screens
             toggleLayout.minHeight = 56f;
 
             // Add vertical layout for content
-            var verticalLayout = UIFactory.AddVerticalLayout(toggleRect, 8, 8);
+            var verticalLayout = UIFactory.AddVerticalLayout(toggleGo, 8);
+            verticalLayout.padding = new RectOffset(8, 8, 8, 8);
 
             // Create toggle component
             var toggle = toggleGo.AddComponent<Toggle>();

@@ -58,12 +58,9 @@ namespace FlyAgain.UI.Screens
             var characterListContainer = new GameObject("CharacterListContainer");
             characterListContainer.transform.SetParent(window.ContentArea, false);
             var containerRect = characterListContainer.AddComponent<RectTransform>();
-            UIFactory.AddVerticalLayout(containerRect, 8, 8);
+            UIFactory.AddVerticalLayout(characterListContainer, 8);
             var containerLayout = characterListContainer.AddComponent<LayoutElement>();
             containerLayout.flexibleHeight = 1;
-
-            // Store reference for later use
-            characterListContainer.name = "CharacterListContainer";
 
             // Flexible spacer
             UIFactory.CreateSpacer(window.ContentArea, flexibleHeight: 0.5f);
@@ -212,7 +209,8 @@ namespace FlyAgain.UI.Screens
             button.onClick.AddListener(() => HandleCharacterSelected(characterId));
 
             // Add vertical layout for content
-            var verticalLayout = UIFactory.AddVerticalLayout(cardRect, 12, 12);
+            var verticalLayout = UIFactory.AddVerticalLayout(cardGo, 12);
+            verticalLayout.padding = new RectOffset(12, 12, 12, 12);
 
             // Character name
             var nameText = UIFactory.CreateText(
