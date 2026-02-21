@@ -4,9 +4,12 @@ Manual setup instructions for the FlyAgain Unity client.
 
 ## Prerequisites
 
-- Unity Hub installed
+- Unity Hub installed ([Download](https://unity.com/download))
 - Unity 2022.3 LTS (install via Unity Hub)
-- `protoc` installed (`brew install protobuf`)
+- `protoc` (Protocol Buffers compiler) installed:
+  - **Windows:** `choco install protobuf` or [download binary](https://github.com/protocolbuffers/protobuf/releases)
+  - **macOS:** `brew install protobuf`
+  - **Linux:** `apt install protobuf-compiler` (Debian/Ubuntu) or `yum install protobuf-compiler` (RHEL/CentOS)
 
 ## 1. Create Unity Project
 
@@ -47,8 +50,18 @@ Option B — Manual DLL:
 
 From the monorepo root, run:
 
+**Windows (Command Prompt/PowerShell):**
+```powershell
+scripts\generate-csharp-protos.bat
+# OR using PowerShell (cross-platform)
+pwsh scripts/generate-csharp-protos.ps1
+```
+
+**macOS/Linux:**
 ```bash
 ./scripts/generate-csharp-protos.sh
+# OR using PowerShell (if installed)
+pwsh scripts/generate-csharp-protos.ps1
 ```
 
 This generates C# classes from `shared/proto/*.proto` into `client/Assets/Scripts/Generated/Proto/`.

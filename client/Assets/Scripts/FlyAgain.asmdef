@@ -1,7 +1,9 @@
 {
     "name": "FlyAgain",
     "rootNamespace": "FlyAgain",
-    "references": [],
+    "references": [
+        "Unity.InputSystem"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
