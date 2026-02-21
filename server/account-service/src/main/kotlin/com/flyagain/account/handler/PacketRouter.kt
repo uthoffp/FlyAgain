@@ -56,12 +56,21 @@ class PacketRouter(
         }
 
         // For all other opcodes, require authentication
-        val authenticated = ctx.channel().attr(AUTHENTICATED_KEY).get() ?: false
+        var authenticated = ctx.channel().attr(AUTHENTICATED_KEY).get() ?: false
 
+        // If not yet authenticated, try to extract JWT from the first packet
         if (!authenticated) {
-            logger.warn("Unauthenticated packet (opcode=0x{}) from {}", opcode.toString(16), ctx.channel().remoteAddress())
-            sendError(ctx, opcode, 401, "Not authenticated. Send AUTH_TOKEN first.")
-            return
+            val jwtToken = extractJwt(opcode, packet)
+            if (jwtToken.isNullOrBlank()) {
+                logger.warn("Unauthenticated packet (opcode=0x{}) without JWT from {}", opcode.toString(16), ctx.channel().remoteAddress())
+                sendError(ctx, opcode, 401, "Not authenticated. Include JWT in request.")
+                return
+            }
+            if (!authenticateChannel(ctx, jwtToken)) {
+                sendError(ctx, opcode, 401, "JWT validation failed.")
+                return
+            }
+            authenticated = true
         }
 
         val accountId = ctx.channel().attr(ACCOUNT_ID_KEY).get()
@@ -115,6 +124,29 @@ class PacketRouter(
 
         logger.info("Authenticated account {} (session {}) from {}", claims.accountId, claims.sessionId, ctx.channel().remoteAddress())
         return true
+    }
+
+    /**
+     * Extracts JWT from CHARACTER_SELECT or CHARACTER_CREATE packets.
+     * Returns null if the opcode is not supported or parsing fails.
+     */
+    private fun extractJwt(opcode: Int, packet: Packet): String? {
+        return try {
+            when (opcode) {
+                Opcode.CHARACTER_SELECT_VALUE -> {
+                    val request = com.flyagain.common.proto.CharacterSelectRequest.parseFrom(packet.payload)
+                    request.jwt.ifBlank { null }
+                }
+                Opcode.CHARACTER_CREATE_VALUE -> {
+                    val request = com.flyagain.common.proto.CharacterCreateRequest.parseFrom(packet.payload)
+                    request.jwt.ifBlank { null }
+                }
+                else -> null
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to extract JWT from packet (opcode=0x{}): {}", opcode.toString(16), e.message)
+            null
+        }
     }
 
     private fun handleHeartbeat(ctx: ChannelHandlerContext, packet: Packet) {

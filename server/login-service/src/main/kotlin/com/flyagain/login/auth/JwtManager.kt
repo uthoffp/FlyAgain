@@ -18,7 +18,7 @@ class JwtManager(
 
     private val logger = LoggerFactory.getLogger(JwtManager::class.java)
     private val algorithm = Algorithm.HMAC256(secret)
-    private val issuer = "flyagain-login-service"
+    private val issuer = "flyagain-login"
 
     private val verifier = JWT.require(algorithm)
         .withIssuer(issuer)
@@ -43,7 +43,7 @@ class JwtManager(
             .withIssuer(issuer)
             .withSubject(accountId.toString())
             .withClaim("username", username)
-            .withClaim("sessionId", sessionId)
+            .withClaim("sid", sessionId)
             .withIssuedAt(now)
             .withExpiresAt(expiry)
             .sign(algorithm)
@@ -78,6 +78,6 @@ class JwtManager(
      * @return The session ID from the claims.
      */
     fun getSessionId(jwt: DecodedJWT): String {
-        return jwt.getClaim("sessionId").asString()
+        return jwt.getClaim("sid").asString()
     }
 }

@@ -86,6 +86,42 @@ namespace FlyAgain.UI.Core
                 { "register.error.connection", "Verbindung zum Server fehlgeschlagen." },
                 { "register.error.failed", "Registrierung fehlgeschlagen." },
                 { "register.success", "Registrierung erfolgreich! Du kannst dich jetzt anmelden." },
+
+                // Character Select Screen
+                { "character.select.title", "Charakterauswahl" },
+                { "character.select.create", "Charakter erstellen" },
+                { "character.select.logout", "Ausloggen" },
+                { "character.select.empty_slot", "Leerer Slot" },
+                { "character.select.level", "Level" },
+                { "character.error.select", "Fehler beim Auswählen des Charakters." },
+                { "character.error.world_service", "Verbindung zum Spielserver fehlgeschlagen." },
+                { "character.error.enter_world", "Fehler beim Betreten der Welt." },
+                { "character.error.account_service", "Verbindung zum Account-Server fehlgeschlagen." },
+
+                // Character Create Screen
+                { "character.create.title", "Charakter erstellen" },
+                { "character.create.name", "Charaktername" },
+                { "character.create.name.placeholder", "Name eingeben (2-16 Zeichen)..." },
+                { "character.create.class", "Klasse auswählen" },
+                { "character.create.button", "Erstellen" },
+                { "character.create.back", "Zurück" },
+                { "character.create.success", "Charakter erfolgreich erstellt!" },
+                { "character.error.create", "Fehler beim Erstellen des Charakters." },
+                { "character.error.name_empty", "Bitte Charakternamen eingeben." },
+                { "character.error.name_length", "Name muss zwischen 2 und 16 Zeichen lang sein." },
+                { "character.error.class_empty", "Bitte Klasse auswählen." },
+
+                // Class Names
+                { "class.krieger", "Krieger" },
+                { "class.magier", "Magier" },
+                { "class.assassine", "Assassine" },
+                { "class.kleriker", "Kleriker" },
+
+                // Class Descriptions
+                { "class.krieger.desc", "Tank: Hohe HP und Stärke" },
+                { "class.magier.desc", "Fernkampf-DPS: Hohe MP und Intelligenz" },
+                { "class.assassine.desc", "Nahkampf-DPS: Hohe Geschicklichkeit" },
+                { "class.kleriker.desc", "Heiler: Heilung und Unterstützung" },
             };
         }
 
@@ -127,6 +163,42 @@ namespace FlyAgain.UI.Core
                 { "register.error.connection", "Failed to connect to server." },
                 { "register.error.failed", "Registration failed." },
                 { "register.success", "Registration successful! You can now log in." },
+
+                // Character Select Screen
+                { "character.select.title", "Character Selection" },
+                { "character.select.create", "Create Character" },
+                { "character.select.logout", "Logout" },
+                { "character.select.empty_slot", "Empty Slot" },
+                { "character.select.level", "Level" },
+                { "character.error.select", "Failed to select character." },
+                { "character.error.world_service", "Failed to connect to game server." },
+                { "character.error.enter_world", "Failed to enter world." },
+                { "character.error.account_service", "Failed to connect to account server." },
+
+                // Character Create Screen
+                { "character.create.title", "Create Character" },
+                { "character.create.name", "Character Name" },
+                { "character.create.name.placeholder", "Enter name (2-16 characters)..." },
+                { "character.create.class", "Select Class" },
+                { "character.create.button", "Create" },
+                { "character.create.back", "Back" },
+                { "character.create.success", "Character created successfully!" },
+                { "character.error.create", "Failed to create character." },
+                { "character.error.name_empty", "Please enter a character name." },
+                { "character.error.name_length", "Name must be between 2 and 16 characters." },
+                { "character.error.class_empty", "Please select a class." },
+
+                // Class Names
+                { "class.krieger", "Krieger" },
+                { "class.magier", "Magier" },
+                { "class.assassine", "Assassine" },
+                { "class.kleriker", "Kleriker" },
+
+                // Class Descriptions
+                { "class.krieger.desc", "Tank: High HP and strength" },
+                { "class.magier.desc", "Ranged DPS: High MP and intelligence" },
+                { "class.assassine.desc", "Melee DPS: High dexterity" },
+                { "class.kleriker.desc", "Healer: Healing and support" },
             };
         }
     }
