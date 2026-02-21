@@ -175,15 +175,20 @@ namespace FlyAgain.Auth
                 return;
             }
 
-            // Connect to login server if not already connected
-            if (_network.State != ConnectionState.Connected)
+            // Always disconnect existing connections before a new login attempt.
+            // The previous connection may be to the account-service, not login-service.
+            if (_network.State != ConnectionState.Disconnected)
+            {
+                Debug.Log("[AuthController] Disconnecting existing connection before re-login");
+                _network.Disconnect();
+            }
+
+            // Connect to login server
+            if (!_network.ConnectToLogin())
             {
                 _loginScreen?.ShowError(LocalizationManager.Get("login.error.connection"));
-                if (!_network.ConnectToLogin())
-                {
-                    Debug.LogError("[AuthController] Failed to connect to login server");
-                    return;
-                }
+                Debug.LogError("[AuthController] Failed to connect to login server");
+                return;
             }
 
             try
@@ -212,15 +217,18 @@ namespace FlyAgain.Auth
         {
             Debug.Log($"[AuthController] Registration requested for user: {username}, email: {email}");
 
-            // Connect to login server if not already connected
-            if (_network.State != ConnectionState.Connected)
+            // Always disconnect existing connections before registration
+            if (_network.State != ConnectionState.Disconnected)
+            {
+                _network.Disconnect();
+            }
+
+            // Connect to login server
+            if (!_network.ConnectToLogin())
             {
                 _registerScreen?.ShowError(LocalizationManager.Get("register.error.connection"));
-                if (!_network.ConnectToLogin())
-                {
-                    Debug.LogError("[AuthController] Failed to connect to login server");
-                    return;
-                }
+                Debug.LogError("[AuthController] Failed to connect to login server");
+                return;
             }
 
             try
@@ -350,7 +358,8 @@ namespace FlyAgain.Auth
             {
                 var request = new CharacterSelectRequest
                 {
-                    CharacterId = characterId
+                    CharacterId = characterId,
+                    Jwt = _network.Jwt ?? ""
                 };
 
                 _network.SendTcp((int)Opcode.CharacterSelect, request);
@@ -372,7 +381,8 @@ namespace FlyAgain.Auth
                 var request = new CharacterCreateRequest
                 {
                     Name = name,
-                    CharacterClass = characterClass  // lowercase: "krieger", "magier", etc.
+                    CharacterClass = characterClass,  // lowercase: "krieger", "magier", etc.
+                    Jwt = _network.Jwt ?? ""
                 };
 
                 _network.SendTcp((int)Opcode.CharacterCreate, request);

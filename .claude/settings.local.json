@@ -42,7 +42,12 @@
       "Bash(lsof:*)",
       "Bash(timeout 2 bash -c 'echo \"\"test\"\" | nc -v localhost 7777')",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(bash /Users/puthoff/Development/vibe-coding/FlyAgain/scripts/generate-csharp-protos.sh)"
     ]
   }
 }

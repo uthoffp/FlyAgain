@@ -235,7 +235,8 @@ namespace FlyAgain.Network
             DisconnectTcp();
             DisconnectUdp();
             State = ConnectionState.Disconnected;
-            _packetHandler.Clear();
+            // Note: Do NOT clear packet handlers here. They are registered once
+            // by AuthController and must persist across disconnect/reconnect cycles.
         }
 
         private void DisconnectTcp()

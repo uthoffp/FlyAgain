@@ -117,11 +117,13 @@ message RegisterResponse {
 
 message CharacterSelectRequest {
     int64 character_id = 1;
+    string jwt = 2;
 }
 
 message CharacterCreateRequest {
     string name = 1;
     string character_class = 2;
+    string jwt = 3;
 }
 
 message EnterWorldResponse {
