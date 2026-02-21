@@ -29,6 +29,8 @@ namespace FlyAgain.UI.Core
 
             manager.RegisterScreen<LoginScreen>();
             manager.RegisterScreen<RegisterScreen>();
+            manager.RegisterScreen<CharacterSelectScreen>();
+            manager.RegisterScreen<CharacterCreateScreen>();
             manager.ShowScreen<LoginScreen>();
 
             // Initialize authentication controller

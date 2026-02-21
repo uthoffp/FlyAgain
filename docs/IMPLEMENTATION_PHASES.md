@@ -114,11 +114,11 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
 
 **Client:**
-- [ ] Login-Screen: Username + Passwort Eingabefelder, Login-Button
-- [ ] Registrierungs-Screen: Username + E-Mail + Passwort + Bestaetigung
-- [ ] Character-Select-Screen: Liste der Charaktere, Erstellen-Button
-- [ ] Character-Create-Screen: Name eingeben (Klasse fix Krieger im MVP)
-- [ ] Error-Handling: Fehlermeldungen vom Server anzeigen (ErrorResponse `0x0603`)
+- [x] Login-Screen: Username + Passwort Eingabefelder, Login-Button
+- [x] Registrierungs-Screen: Username + E-Mail + Passwort + Bestaetigung
+- [x] Character-Select-Screen: Liste der Charaktere, Erstellen-Button
+- [x] Character-Create-Screen: Name eingeben (Klasse: Krieger, Magier, Assassine, Kleriker)
+- [x] Error-Handling: Fehlermeldungen vom Server anzeigen (ErrorResponse `0x0603`)
 
 **Akzeptanzkriterien:**
 - Account erstellen, einloggen, Character erstellen, Character auswaehlen
@@ -646,9 +646,13 @@ miteinander zu interagieren und gegeneinander anzutreten.
 **Schritt 1.2** (Netzwerk) ist vollstaendig abgeschlossen (Server + Client).
   - Server: TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker
   - Client: NetworkManager, TcpConnection, UdpConnection, PacketHandler, Heartbeat (5s), Reconnect (3 Versuche)
-**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung, DB-Migrationen V1-V8 vorhanden — Session-Lifecycle fehlt).
+**Schritt 1.3** (Auth/DB) ist vollstaendig abgeschlossen (Server + Client).
+  - Server: Login, Register, CharacterCreate, CharacterSelect Handler mit Redis + DB
+  - Client: Login, Register, CharacterSelect, CharacterCreate UI mit Fehlerbehandlung
+  - DB-Migrationen: V1-V8 (alle Tabellen: accounts, characters, items, inventory, equipment, skills, monsters, loot)
+  - Service-Transitions: Login :7777 → Account :7779 → World :7780/:7781
 
 **Naechste Prioritaeten:**
-1. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup) (Schritt 1.3)
-2. Client Auth-UI: Login, Register, CharSelect, CharCreate Screens (Schritt 1.3)
-3. DB-Migrationen fuer restliche Tabellen (Schritt 1.3)
+1. Welt, Bewegung und Zone-System (Schritt 1.4)
+2. ZoneManager, SpatialGrid, Entity-Tracking
+3. Bewegungs-Handler (UDP 0x0101), Client-Side Prediction
