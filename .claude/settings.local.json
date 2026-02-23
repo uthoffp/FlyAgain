@@ -47,7 +47,8 @@
       "Bash(docker-compose down:*)",
       "Bash(kill:*)",
       "Bash(pkill:*)",
-      "Bash(bash /Users/puthoff/Development/vibe-coding/FlyAgain/scripts/generate-csharp-protos.sh)"
+      "Bash(bash /Users/puthoff/Development/vibe-coding/FlyAgain/scripts/generate-csharp-protos.sh)",
+      "Bash(wc:*)"
     ]
   }
 }

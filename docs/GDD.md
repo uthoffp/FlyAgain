@@ -73,8 +73,8 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 ## 6. Technische Anforderungen
 
 ### 6.0 Technologie-Stack
-- **Client:** Unity (C#) mit Universal Render Pipeline (URP)
-- **Server:** Kotlin (Ktor/Netty) - Authoritative Game Server
+- **Client:** Godot 4 (GDScript)
+- **Server:** Kotlin (Netty) - Authoritative Game Server
 - **Datenbank:** PostgreSQL + Redis
 - **Erwartete Last:** max. 10.000 Spieler gesamt, max. 5.000 gleichzeitig
 
@@ -84,8 +84,8 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 - **Datenbank:** PostgreSQL für Spielerdaten, Redis für Sessions/Cache
 - **Instanzen:** Dungeons als separate Instanzen
 
-### 6.2 Client (Unity / C#)
-- **3D-Grafik:** Third-Person-Kamera mit freier Rotation, URP
+### 6.2 Client (Godot 4 / GDScript)
+- **3D-Grafik:** Third-Person-Kamera mit freier Rotation
 - **UI-System:** Chat, Inventar, Skilltree, Map, Party/Guild-Management
 - **Netzwerk:** TCP/UDP Kommunikation mit Kotlin-Server, Client-Side Prediction
 

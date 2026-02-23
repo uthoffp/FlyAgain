@@ -4,8 +4,8 @@
 
 ```
 ┌──────────────────────────────────────┐
-│         Client: Unity (C#)           │
-│  - 3D Rendering (URP)                │
+│         Client: Godot 4 (GDScript)   │
+│  - 3D Rendering                      │
 │  - Input, UI, Audio                  │
 │  - Client-Side Prediction            │
 └──┬───────────────┬──────────────┬────┘
@@ -49,7 +49,7 @@
 
 ### 1.2 Serialisierung: Protocol Buffers (Protobuf)
 
-- Generiert Kotlin- **und** C#-Code aus einer `.proto`-Datei
+- Generiert Kotlin-Code aus einer `.proto`-Datei; Godot-Client nutzt manuelle GDScript-Implementierung (`ProtoEncoder.gd` / `ProtoDecoder.gd`)
 - Kompaktes Binaerformat (kleiner als JSON, schneller als XML)
 - Versionierbar (neue Felder ohne Breaking Changes)
 - Single-Source-of-Truth: `shared/proto/flyagain.proto` (Client-facing) + `shared/proto/internal.proto` (gRPC inter-service)

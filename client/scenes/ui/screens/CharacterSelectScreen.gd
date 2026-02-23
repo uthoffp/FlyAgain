@@ -1,0 +1,185 @@
+## CharacterSelectScreen.gd
+## Shows the list of characters belonging to the logged-in account.
+## Characters are loaded from GameState.characters (populated during login).
+## The visual structure is defined in CharacterSelectScreen.tscn.
+extends Control
+
+# ---- Node references ----
+
+@onready var _char_slots: HBoxContainer  = $CenterContainer/OuterVBox/CharSlots
+@onready var _create_btn: FlyButton      = $CenterContainer/OuterVBox/CreateButton
+@onready var _logout_btn: FlyButton      = $CenterContainer/OuterVBox/LogoutButton
+@onready var _status: StatusLabel        = $CenterContainer/OuterVBox/StatusLabel
+
+const MAX_CHARACTERS := 3
+
+# Class descriptions shown in each slot
+const CLASS_DESCRIPTIONS: Dictionary = {
+	"Krieger":   "Tank / Nahkampf\nHohe HP und starke Angriffe",
+	"Magier":    "Ranged DPS\nElementarmagie mit hohem Schaden",
+	"Assassine": "Melee DPS\nSchnell, kritische Treffer",
+	"Kleriker":  "Heiler / Support\nHeilung und Buffs für die Gruppe",
+}
+
+
+# ---- Lifecycle ----
+
+func _ready() -> void:
+	theme = ThemeFactory.create_main_theme()
+	_connect_signals()
+	_build_character_slots()
+
+
+func _exit_tree() -> void:
+	_disconnect_signals()
+
+
+# ---- Signals ----
+
+func _connect_signals() -> void:
+	_create_btn.pressed.connect(_on_create_pressed)
+	_logout_btn.pressed.connect(_on_logout_pressed)
+
+	NetworkManager.error_response.connect(_on_error_response)
+
+
+func _disconnect_signals() -> void:
+	if NetworkManager.error_response.is_connected(_on_error_response):
+		NetworkManager.error_response.disconnect(_on_error_response)
+
+
+# ---- Character slot building ----
+
+func _build_character_slots() -> void:
+	# Clear any existing slots
+	for child in _char_slots.get_children():
+		child.queue_free()
+
+	var characters := GameState.characters
+	var slot_count: int = maxi(characters.size(), 1)  # Always show at least one slot
+	slot_count          = mini(slot_count, MAX_CHARACTERS)
+
+	# Fill existing character slots
+	for i in range(characters.size()):
+		var char_data: Dictionary = characters[i]
+		_char_slots.add_child(_make_character_slot(char_data))
+
+	# Fill empty placeholder slots up to MAX_CHARACTERS
+	for i in range(characters.size(), MAX_CHARACTERS):
+		_char_slots.add_child(_make_empty_slot())
+
+	# Hide create button if already at max
+	_create_btn.visible = characters.size() < MAX_CHARACTERS
+
+
+func _make_character_slot(char_data: Dictionary) -> PanelContainer:
+	var panel       := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	# Character name
+	var name_label := Label.new()
+	name_label.text                = char_data.get("name", "?")
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.add_theme_color_override("font_color", Colors.TEXT_TITLE)
+	vbox.add_child(name_label)
+
+	# Class and level
+	var char_class: String = char_data.get("character_class", "")
+	var level: int         = char_data.get("level", 1)
+	var info_label := Label.new()
+	info_label.text                = "%s  •  Lv. %d" % [char_class, level]
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_label.add_theme_font_size_override("font_size", 13)
+	info_label.add_theme_color_override("font_color", Colors.TEXT_SECONDARY)
+	vbox.add_child(info_label)
+
+	# Class description
+	var desc_label := Label.new()
+	desc_label.text                = CLASS_DESCRIPTIONS.get(char_class, "")
+	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_label.autowrap_mode        = TextServer.AUTOWRAP_WORD_SMART
+	desc_label.add_theme_font_size_override("font_size", 12)
+	desc_label.add_theme_color_override("font_color", Colors.TEXT_SECONDARY)
+	vbox.add_child(desc_label)
+
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, 8)
+	vbox.add_child(spacer)
+
+	# Select button
+	var select_btn := preload("res://scenes/ui/components/FlyButton.tscn").instantiate() as FlyButton
+	select_btn.label_text = "Spielen"
+	var char_id: int = char_data.get("id", 0)
+	select_btn.pressed.connect(func(): _on_character_selected(char_id))
+	vbox.add_child(select_btn)
+
+	return panel
+
+
+func _make_empty_slot() -> PanelContainer:
+	var panel       := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(vbox)
+
+	var empty_label := Label.new()
+	empty_label.text                = "— Freier Slot —"
+	empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty_label.add_theme_color_override("font_color", Colors.TEXT_SECONDARY)
+	vbox.add_child(empty_label)
+
+	return panel
+
+
+# ---- Button / event handlers ----
+
+func _on_character_selected(character_id: int) -> void:
+	GameState.selected_character_id = character_id
+	_status.show_info("Lade Charakter...")
+	_set_interactive(false)
+
+	NetworkManager.send_character_select(character_id)
+	# World scene transition will be triggered by EnterWorld response (Phase 1.4)
+	# For now we just show a placeholder message
+	_status.show_info("Welt-Loading folgt in Phase 1.4…")
+
+
+func _on_create_pressed() -> void:
+	UIManager.push_screen("char_create")
+
+
+func _on_logout_pressed() -> void:
+	GameState.reset()
+	NetworkManager.disconnect_from_server()
+	UIManager.replace_screen("login")
+
+
+func _on_error_response(data: Dictionary) -> void:
+	_set_interactive(true)
+	_status.show_error(data.get("message", "Serverfehler."))
+
+
+# ---- Helpers ----
+
+func _set_interactive(enabled: bool) -> void:
+	_create_btn.disabled = not enabled
+	_logout_btn.disabled = not enabled
+	for slot in _char_slots.get_children():
+		for btn in _get_buttons_recursive(slot):
+			btn.disabled = not enabled
+
+
+func _get_buttons_recursive(node: Node) -> Array[Button]:
+	var buttons: Array[Button] = []
+	for child in node.get_children():
+		if child is Button:
+			buttons.append(child)
+		buttons.append_array(_get_buttons_recursive(child))
+	return buttons

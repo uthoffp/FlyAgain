@@ -25,6 +25,12 @@ fun main() {
     val tcpServer = koin.get<TcpServer>()
     tcpServer.start()
 
+    // Eagerly initiate gRPC connection to database-service so the first
+    // character-create/select request does not pay the full HTTP/2 handshake
+    // latency (which can exceed the 10-second client timeout if the
+    // database-service is still starting up).
+    koin.get<ManagedChannel>().getState(true)
+
     // Shutdown hook for graceful cleanup
     Runtime.getRuntime().addShutdownHook(Thread {
         logger.info("FlyAgain Account Service shutting down...")

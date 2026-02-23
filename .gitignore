@@ -1,25 +1,8 @@
-# ===== Unity =====
-Library/
-Temp/
-Obj/
-Build/
-Builds/
-Logs/
-UserSettings/
-MemoryCaptures/
-*.csproj
-*.sln
-*.slnx
-*.suo
-*.user
-*.pidb
-*.booproj
-*.svd
-*.pdb
-*.mdb
-*.opendb
-*.VC.db
-.signature.p7s
+# ===== Godot =====
+# Godot editor cache and generated files (auto-regenerated, not needed in version control)
+.godot/
+# Godot export templates (large binaries, downloaded per-developer)
+export_presets.cfg
 
 # ===== Kotlin / Gradle =====
 build/
@@ -55,7 +38,6 @@ docker-volumes/
 
 # ===== Generated Code =====
 server/src/main/generated/
-**/Scripts/Generated/
 
 # ===== Environment =====
 .env

@@ -23,9 +23,11 @@ Complete setup instructions for Windows and macOS developers.
    - macOS: [Download Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/)
    - Verify installation: `docker --version` and `docker compose version`
 
-3. **Unity Hub & Unity 2022.3 LTS**
-   - Download [Unity Hub](https://unity.com/download)
-   - Install Unity 2022.3 LTS via Unity Hub (include "Windows Build Support" on Windows, "Mac Build Support" on macOS)
+3. **Godot 4**
+   - Download [Godot 4](https://godotengine.org/download/) (Standard version, not .NET/Mono)
+   - Windows: `winget install GodotEngine.GodotEngine` or download the `.exe` manually
+   - macOS: `brew install --cask godot` or download the `.dmg` manually
+   - Verify: Open Godot Editor and check the version in the title bar (4.x)
 
 ### Platform-Specific Requirements
 
@@ -41,18 +43,7 @@ Complete setup instructions for Windows and macOS developers.
    ```
    Verify: `java -version` (should show version 21.x.x)
 
-5. **Protocol Buffers Compiler**
-   ```powershell
-   # Using Chocolatey (recommended)
-   choco install protobuf
-
-   # OR download manually from:
-   # https://github.com/protocolbuffers/protobuf/releases
-   # Extract protoc.exe to a folder in your PATH
-   ```
-   Verify: `protoc --version`
-
-6. **PowerShell 7+** (optional but recommended for better cross-platform scripting)
+5. **PowerShell 7+** (optional but recommended for better cross-platform scripting)
    ```powershell
    winget install Microsoft.PowerShell
    ```
@@ -68,12 +59,6 @@ Complete setup instructions for Windows and macOS developers.
    source ~/.zshrc
    ```
    Verify: `java -version` (should show version 21.x.x)
-
-5. **Protocol Buffers Compiler**
-   ```bash
-   brew install protobuf
-   ```
-   Verify: `protoc --version`
 
 ---
 
@@ -94,27 +79,7 @@ docker compose up -d postgres redis
 docker compose ps
 ```
 
-### 3. Generate Protocol Buffer Files
-
-**Windows (Command Prompt/PowerShell):**
-```powershell
-# Using batch script
-scripts\generate-csharp-protos.bat
-
-# OR using PowerShell script (cross-platform)
-pwsh scripts/generate-csharp-protos.ps1
-```
-
-**macOS/Linux:**
-```bash
-# Using bash script
-./scripts/generate-csharp-protos.sh
-
-# OR using PowerShell script (if pwsh installed)
-pwsh scripts/generate-csharp-protos.ps1
-```
-
-### 4. Build and Run Server
+### 3. Build and Run Server
 
 **Windows (PowerShell/Command Prompt):**
 ```powershell
@@ -138,11 +103,13 @@ cd server
 ./gradlew :login-service:run
 ```
 
-### 5. Open Unity Project
-1. Open Unity Hub
-2. Click "Add" and select the `client/` folder
-3. Open the project with Unity 2022.3 LTS
-4. Wait for import to complete (first time may take 5-10 minutes)
+### 4. Open Godot Project
+1. Open the Godot Editor
+2. Click "Import" and select the `client/` folder (or `client/project.godot` directly)
+3. Click "Import & Edit"
+4. The Login screen should be configured as the main scene
+
+For a detailed Godot setup guide, see [docs/godot-setup.md](docs/godot-setup.md).
 
 ---
 
@@ -166,16 +133,6 @@ docker compose down
 # Stop and remove volumes (fresh start)
 docker compose down -v
 ```
-
-### Setting Up the Unity Client
-
-See [docs/unity-setup.md](docs/unity-setup.md) for detailed Unity configuration instructions.
-
-**Quick summary:**
-1. Open Unity Hub → Add Project → select `client/` folder
-2. Install Google.Protobuf package (via NuGetForUnity or manually)
-3. Generate protobuf classes (see step 3 in Quick Start)
-4. Verify no errors in Unity Console
 
 ### Development Workflow
 
@@ -211,10 +168,7 @@ cd server
 
 When you modify `.proto` files in `shared/proto/`:
 
-1. Regenerate C# files:
-   - **Windows:** `scripts\generate-csharp-protos.bat`
-   - **macOS:** `./scripts/generate-csharp-protos.sh`
-   - **Cross-platform:** `pwsh scripts/generate-csharp-protos.ps1`
+1. The Godot client uses a hand-written `ProtoEncoder.gd` / `ProtoDecoder.gd` — update these manually to match the new message fields.
 
 2. Rebuild Kotlin services:
    ```bash
@@ -223,29 +177,11 @@ When you modify `.proto` files in `shared/proto/`:
    .\gradlew.bat build # Windows
    ```
 
-3. Restart Unity or reload C# scripts
-
 ---
 
 ## Troubleshooting
 
 ### Common Issues
-
-#### "protoc: command not found" or "protoc is not recognized"
-
-**Windows:**
-```powershell
-# Install via Chocolatey
-choco install protobuf
-
-# OR download from https://github.com/protocolbuffers/protobuf/releases
-# Extract and add to PATH
-```
-
-**macOS:**
-```bash
-brew install protobuf
-```
 
 #### "java: command not found" or Java version mismatch
 
@@ -302,12 +238,11 @@ cd server
 java -version  # Should be 21.x.x
 ```
 
-#### Unity "Assembly Definition" errors
+#### Godot "Script class not found" or missing autoload errors
 
-1. Close Unity
-2. Delete `client/Library` folder
-3. Delete `client/Temp` folder
-4. Reopen project in Unity
+1. In the Godot Editor, go to **Project → Project Settings → Autoloads**
+2. Verify `NetworkManager` and `GameState` are listed and point to the correct `.gd` files
+3. If the `.godot/` cache is corrupt: Close Godot, delete `client/.godot/`, reopen the project
 
 #### Line ending issues (Windows ↔ macOS collaboration)
 
@@ -352,7 +287,6 @@ git --version
 docker --version
 docker compose version
 java -version
-protoc --version
 
 # Check Docker services
 docker compose ps
@@ -369,7 +303,6 @@ git --version
 docker --version
 docker compose version
 java -version
-protoc --version
 
 # Check Docker services
 docker compose ps
@@ -386,7 +319,7 @@ All commands should execute without errors and show the correct versions.
 ## Additional Resources
 
 - [Server README](server/README.md) - Detailed server documentation
-- [Unity Setup Guide](docs/unity-setup.md) - Unity-specific setup
+- [Godot Setup Guide](docs/godot-setup.md) - Godot-specific setup
 - [Architecture Documentation](docs/ARCHITECTURE.md) - Technical architecture details
 - [Implementation Phases](docs/IMPLEMENTATION_PHASES.md) - Development roadmap
 - [Game Design Document](docs/GDD.md) - Game design overview

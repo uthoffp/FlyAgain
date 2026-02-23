@@ -1,0 +1,60 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/screens/CharacterSelectScreen.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/FlyButton.tscn" id="2_button"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/StatusLabel.tscn" id="3_status"]
+
+[node name="CharacterSelectScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.047, 0.055, 0.094, 1.0)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="OuterVBox" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(720, 0)
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+text = "CHARAKTER WÄHLEN"
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.941, 0.820, 0.471, 1.0)
+
+[node name="TitleSeparator" type="HSeparator" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CharSlots" type="HBoxContainer" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="BottomSpacer" type="Control" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 8)
+
+[node name="CreateButton" parent="CenterContainer/OuterVBox" instance=ExtResource("2_button")]
+label_text = "Neuen Charakter erstellen"
+
+[node name="LogoutButton" parent="CenterContainer/OuterVBox" instance=ExtResource("2_button")]
+label_text = "Abmelden"
+variant = 1
+
+[node name="StatusLabel" parent="CenterContainer/OuterVBox" instance=ExtResource("3_status")]

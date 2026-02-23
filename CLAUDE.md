@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) microservice server, and PostgreSQL + Redis persistence. The project is currently in early development (Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
+FlyAgain is a Flyff-inspired MMORPG with a Godot 4 (GDScript) client, Kotlin (Netty) microservice server, and PostgreSQL + Redis persistence. The project is currently in early development (Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
 
 ## Tech Stack
 
-- **Client:** Unity 2022 LTS with URP (C#)
+- **Client:** Godot 4 (GDScript)
 - **Server:** Kotlin with Netty (TCP/TLS 1.3 + UDP), Gradle multi-project build
 - **DI:** Koin 4.0 (module per service, verified via tests)
 - **Inter-Service:** gRPC (protobuf-based)
@@ -16,14 +16,19 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) mic
 - **Serialization:** Protocol Buffers (shared `.proto` definitions)
 - **DB Migrations:** Flyway
 
-## Unity Client Guidelines
+## Godot Client Guidelines
 
-- **Input System:** ALWAYS use Unity's new Input System (`UnityEngine.InputSystem`), NOT the legacy Input Manager (`UnityEngine.Input`)
-  - Use `Keyboard.current` to access keyboard input (e.g., `Keyboard.current.tabKey.wasPressedThisFrame`)
-  - Use `Mouse.current` for mouse input
-  - Never use `Input.GetKeyDown()`, `Input.GetKey()`, etc. - these will throw `InvalidOperationException`
-  - Input actions are defined in `client/Assets/Settings/FlyAgainInputActions.inputactions`
-  - Generated C# class: `FlyAgain.Input.FlyAgainInputActions`
+- **Engine:** Godot 4 (GDScript), project root at `client/`
+- **Scenes:** UI-Szenen unter `client/scenes/ui/`, zukünftige Game-Szenen unter `client/scenes/game/`
+- **Autoloads:** Globale Singletons unter `client/autoloads/` (NetworkManager, GameState)
+- **Scripts:** Logik-Scripts unter `client/scripts/` (network/, proto/)
+- **Themes:** UI-Themes und Farben unter `client/themes/`
+- **Input:** Godot's `Input`-Singleton und `InputMap` für alle Eingaben verwenden
+  - `Input.is_action_pressed("ui_accept")` für gedrückte Tasten
+  - `Input.is_action_just_pressed(...)` für einmalige Aktionen
+  - Actions werden in Godot-Projekteinstellungen (Input Map) definiert
+- **Protobuf:** Kein Codegen – manuelle Implementierung via `ProtoEncoder.gd` / `ProtoDecoder.gd` unter `client/scripts/proto/`
+- **Netzwerk:** `NetworkManager.gd` verwaltet TCP + UDP Verbindungen; `PacketProtocol.gd` definiert Opcode-Konstanten und Serialisierung
 
 ## MMO Development Best Practices
 
@@ -94,7 +99,7 @@ server/                    # Kotlin multi-project Gradle build
   world-service/           # TCP :7780 + UDP :7781 — gameplay, 20Hz loop, zones, combat, AI
     src/.../di/            #   Koin DI module
   gradle/libs.versions.toml # Central version catalog (incl. Koin 4.0)
-client/                    # Unity client project (URP)
+client/                    # Godot 4 client (GDScript)
 shared/proto/              # Shared Protocol Buffer definitions (.proto)
   flyagain.proto           # Client-facing messages and opcodes
   internal.proto           # gRPC service definitions for inter-service communication

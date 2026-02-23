@@ -44,6 +44,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # Verify the gRPC port is accepting TCP connections before dependants start.
+      # Uses nc (netcat via busybox) – available in eclipse-temurin:*-alpine images.
+      test: ["CMD-SHELL", "nc -z localhost 9090 && echo OK || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
     environment:
       FLYAGAIN_DB_URL: jdbc:postgresql://postgres:5432/flyagain
       FLYAGAIN_DB_USERNAME: flyagain
@@ -60,7 +68,7 @@ services:
       - flyagain-net
     depends_on:
       database-service:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
@@ -82,7 +90,7 @@ services:
       - flyagain-net
     depends_on:
       database-service:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
@@ -106,7 +114,7 @@ services:
       - flyagain-net
     depends_on:
       database-service:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
     environment:

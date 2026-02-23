@@ -1,0 +1,134 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/screens/CharacterCreateScreen.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/FlyLineEdit.tscn" id="2_lineedit"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/FlyButton.tscn" id="3_button"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/StatusLabel.tscn" id="4_status"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/LoadingSpinner.tscn" id="5_spinner"]
+
+[node name="CharacterCreateScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.047, 0.055, 0.094, 1.0)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="OuterVBox" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(500, 0)
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+text = "CHARAKTER ERSTELLEN"
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.941, 0.820, 0.471, 1.0)
+
+[node name="TitleSpacer" type="Control" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+
+[node name="CreatePanel" type="PanelContainer" parent="CenterContainer/OuterVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PanelVBox" type="VBoxContainer" parent="CenterContainer/OuterVBox/CreatePanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PanelTitle" type="Label" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+text = "NEUER CHARAKTER"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.941, 0.820, 0.471, 1.0)
+
+[node name="PanelSeparator" type="HSeparator" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FieldSpacer" type="Control" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 4)
+
+[node name="NameField" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox" instance=ExtResource("2_lineedit")]
+label_text = "Charaktername"
+placeholder_text = "3–16 Zeichen (a–z, A–Z, 0–9, Bindestrich)"
+max_length = 16
+
+[node name="ClassLabel" type="Label" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+text = "Klasse wählen"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.600, 0.576, 0.502, 1.0)
+
+[node name="ClassGrid" type="GridContainer" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+columns = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+
+[node name="KriegerButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Krieger"
+
+[node name="MagierButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Magier"
+variant = 1
+
+[node name="AssassineButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Assassine"
+variant = 1
+
+[node name="KlerikerButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Kleriker"
+variant = 1
+
+[node name="ClassDescription" type="Label" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 1
+autowrap_mode = 3
+text = "Wähle eine Klasse aus."
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.600, 0.576, 0.502, 1.0)
+custom_minimum_size = Vector2(0, 36)
+
+[node name="ButtonSpacer" type="Control" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 8)
+
+[node name="CreateButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox" instance=ExtResource("3_button")]
+label_text = "Charakter erstellen"
+
+[node name="BackSpacer" type="Control" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 4)
+
+[node name="BackButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox" instance=ExtResource("3_button")]
+label_text = "Zurück"
+variant = 1
+
+[node name="StatusSpacer" type="Control" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 4)
+
+[node name="StatusLabel" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox" instance=ExtResource("4_status")]
+
+[node name="SpinnerContainer" type="CenterContainer" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
+layout_mode = 2
+
+[node name="Spinner" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/SpinnerContainer" instance=ExtResource("5_spinner")]

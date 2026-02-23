@@ -58,11 +58,11 @@ class CharacterCreateHandler(
         }
 
         val classId = when (characterClass) {
-            "krieger" -> 1
-            "magier" -> 2
-            "assassine" -> 3
-            "kleriker" -> 4
-            else -> 0
+            "krieger"   -> 0
+            "magier"    -> 1
+            "assassine" -> 2
+            "kleriker"  -> 3
+            else        -> -1 // unreachable: already validated against VALID_CLASSES
         }
 
         // Create character via gRPC

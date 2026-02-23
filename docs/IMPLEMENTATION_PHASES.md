@@ -22,16 +22,16 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Flyway oder Liquibase fuer DB-Migrationen einrichten
 - [x] Erste Migration: `accounts` Tabelle erstellen
 
-**Client (Unity):**
-- [x] Unity-Projekt erstellen (`client/`) mit URP Template
-- [x] Ordnerstruktur: `Scripts/Network/`, `Scripts/UI/`, `Scripts/Game/`, `Scripts/Entity/`
-- [x] NuGet/Unity Protobuf-Package einbinden (Google.Protobuf)
-- [x] Build-Targets: Windows, macOS, Linux konfigurieren
+**Client (Godot):**
+- [x] Godot 4-Projekt erstellen (`client/`) mit GDScript
+- [x] Ordnerstruktur: `scenes/`, `scripts/network/`, `scripts/proto/`, `autoloads/`, `themes/`
+- [x] Protobuf-Handling: Manuelle Implementierung via `ProtoEncoder.gd` / `ProtoDecoder.gd`
+- [x] Export-Targets: Windows, macOS, Linux konfigurierbar über Godot Export-Templates
 
 **Shared:**
 - [x] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
 - [x] Protobuf-Codegen fuer Kotlin und C# einrichten
-- [x] Git-Repository initialisieren, `.gitignore` fuer Unity + Kotlin + IDE-Dateien
+- [x] Git-Repository initialisieren, `.gitignore` fuer Godot + Kotlin + IDE-Dateien
 
 **Zusaetzlich implementiert (nicht im Original-Plan):**
 - [x] Koin Dependency Injection in allen Services
@@ -44,9 +44,9 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 
 **Akzeptanzkriterien:**
 - `./gradlew build` kompiliert fehlerfrei
-- Unity-Projekt oeffnet sich, leere Scene mit URP-Rendering
+- Godot-Projekt oeffnet sich, LoginScreen als Hauptszene
 - `docker-compose up` startet PostgreSQL + Redis
-- Protobuf-Codegen generiert Kotlin- und C#-Klassen
+- Protobuf-Codegen generiert Kotlin-Klassen (Godot nutzt manuelle GDScript-Impl.)
 
 ---
 
@@ -65,10 +65,10 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Heartbeat-System (Opcode `0x0601`, 15s Timeout) — `common/network/HeartbeatTracker.kt`, integriert in Login- und Account-Service
 - [x] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
 
-**Client:**
-- [x] `NetworkManager`: TCP + UDP Verbindung zum Server
-- [x] `PacketSender`: Serialisierung + Senden (TCP/UDP je nach Opcode)
-- [x] `PacketReceiver`: Empfangen + Deserialisierung + Event-Dispatch
+**Client (Godot):**
+- [x] `NetworkManager.gd`: TCP + UDP Verbindung zum Server (Autoload)
+- [x] `PacketProtocol.gd`: Opcode-Konstanten + Serialisierung/Deserialisierung
+- [x] `ProtoEncoder.gd` / `ProtoDecoder.gd`: Manuelle Protobuf-Implementierung
 - [x] Heartbeat senden (alle 5 Sekunden)
 - [x] Reconnect-Logik (3 Versuche, dann Disconnect-Screen)
 
@@ -113,8 +113,8 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - Zur Zone hinzufuegen (naechster Schritt)
 - [x] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
 
-**Client:**
-- [x] Login-Screen: Username + Passwort Eingabefelder, Login-Button
+**Client (Godot):**
+- [x] Login-Screen (`LoginScreen.tscn`): Username + Passwort Eingabefelder, Login-Button
 - [x] Registrierungs-Screen: Username + E-Mail + Passwort + Bestaetigung
 - [x] Character-Select-Screen: Liste der Charaktere, Erstellen-Button
 - [x] Character-Create-Screen: Name eingeben (Klasse: Krieger, Magier, Assassine, Kleriker)
@@ -153,16 +153,16 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [ ] Flugmechanik: `isFlying`-Flag, andere Geschwindigkeit, Y-Achsen-Bewegung
 - [ ] Zone-Wechsel: Character aus Zone A entfernen, in Zone B einfuegen, Ladescreen-Trigger
 
-**Client:**
-- [ ] Third-Person-Kamera: Freie Rotation, Zoom
-- [ ] Spieler-Bewegung: WASD + Maus, Click-to-Move
+**Client (Godot):**
+- [ ] Third-Person-Kamera: Freie Rotation, Zoom (Camera3D + SpringArm3D)
+- [ ] Spieler-Bewegung: WASD + Maus, Click-to-Move (CharacterBody3D)
 - [ ] Client-Side Prediction: Lokale Bewegung sofort anwenden
 - [ ] Server-Reconciliation: PositionCorrection verarbeiten, Snap-Back
 - [ ] Entity-Interpolation: Andere Spieler smooth bewegen (100ms Buffer)
 - [ ] Flugmechanik: Leertaste zum Abheben/Landen, Steigen/Sinken
 - [ ] Terrain: Einfache Heightmap (Gruene Ebene = flaches Grasland)
 - [ ] Aerheim: Einfache Stadt-Geometrie (Platzhalter-Assets)
-- [ ] Remote-Spieler: EntitySpawn empfangen -> Charakter-Modell instanziieren
+- [ ] Remote-Spieler: EntitySpawn empfangen -> Charakter-Node instanziieren
 - [ ] Zone-Wechsel: Ladescreen bei ZoneData-Empfang
 
 **Akzeptanzkriterien:**
@@ -351,8 +351,8 @@ Items (Krieger, Gruene Ebene):
 ```
 Schritt  | Abhaengigkeit | Server                              | Client
 ---------|---------------|-------------------------------------|----------------------------------
-1.1      | -             | Gradle, Docker, DB-Migrationen      | Unity-Projekt, Protobuf
-1.2      | 1.1           | Netty TCP/UDP, PacketRouter          | NetworkManager, Heartbeat
+1.1      | -             | Gradle, Docker, DB-Migrationen      | Godot-Projekt, Proto-GDScript
+1.2      | 1.1           | Netty TCP/UDP, PacketRouter          | NetworkManager.gd, Heartbeat
 1.3      | 1.2           | Auth, DB, Redis, Sessions            | Login/Register/CharSelect UI
 1.4      | 1.3           | Zonen, SpatialGrid, Game-Loop        | Bewegung, Kamera, Flug, Entities
 1.5      | 1.4           | Combat, Skills, Monster-AI, Loot     | Targeting, Skillbar, Damage-Zahlen
@@ -594,7 +594,7 @@ miteinander zu interagieren und gegeneinander anzutreten.
 - [ ] Automatische Ban-Systeme (10x Cheat-Versuch -> Temp-Ban)
 - [ ] GM-Tools: Spieler beobachten, Inventar pruefen, Teleportieren, Bannen
 - [ ] Logging: Verdaechtige Aktionen in DB loggen fuer manuelle Pruefung
-- [ ] Client-Side: Basis Obfuscation (IL2CPP), Memory-Scan-Erkennung
+- [ ] Client-Side: Basis Obfuscation (GDScript-Export verschleiert), Memory-Scan-Erkennung
 
 ### 5.3 Performance-Optimierung
 
