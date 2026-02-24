@@ -53,8 +53,7 @@ jobs:
       - name: Run gdUnit4 tests
         uses: godot-gdunit-labs/gdUnit4-action@v1
         with:
-          godot-version: '4.4'
-          version: 'v5.1.1'
+          godot-version: '4.6'
           project_dir: './client/'
           paths: 'res://tests'
           timeout: 5
