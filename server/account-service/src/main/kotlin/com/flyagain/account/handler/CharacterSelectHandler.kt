@@ -77,7 +77,7 @@ class CharacterSelectHandler(
         // Cache character data in Redis for world-service
         try {
             val redis = redisConnection.sync()
-            val key = "char:$characterId"
+            val key = "character:$characterId"
             redis.hset(key, mapOf(
                 "account_id" to accountId,
                 "name" to character.name,

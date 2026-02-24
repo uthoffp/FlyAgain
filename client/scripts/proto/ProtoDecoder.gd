@@ -21,7 +21,8 @@ func _init(data: PackedByteArray) -> void:
 ## Returns a Dictionary with keys:
 ##   success (bool), jwt (String), characters (Array[Dict]),
 ##   error_message (String), hmac_secret (String),
-##   account_service_host (String), account_service_port (int)
+##   account_service_host (String), account_service_port (int),
+##   session_id (String), session_token (int)
 func decode_login_response() -> Dictionary:
 	var result := {
 		"success":              false,
@@ -31,6 +32,8 @@ func decode_login_response() -> Dictionary:
 		"hmac_secret":          "",
 		"account_service_host": "",
 		"account_service_port": 0,
+		"session_id":           "",
+		"session_token":        0,
 	}
 	while _has_bytes():
 		var pair := _next_tag()
@@ -48,6 +51,8 @@ func decode_login_response() -> Dictionary:
 			5: result["hmac_secret"]          = _read_string()
 			6: result["account_service_host"] = _read_string()
 			7: result["account_service_port"] = _read_varint()
+			8: result["session_id"]           = _read_string()
+			9: result["session_token"]        = _read_varint()
 			_: _skip(wt)
 	return result
 
@@ -124,12 +129,15 @@ func decode_heartbeat() -> Dictionary:
 
 
 ## Decodes an EnterWorldResponse message.
-## Returns: { success (bool), error_message (String), world_service_host (String),
+## Returns: { success (bool), position (Dict), stats (Dict),
+##            error_message (String), world_service_host (String),
 ##            world_service_tcp_port (int), world_service_udp_port (int) }
 ## Used as the response for both CHARACTER_CREATE and CHARACTER_SELECT.
 func decode_enter_world_response() -> Dictionary:
 	var result := {
 		"success":              false,
+		"position":             {"x": 0.0, "y": 0.0, "z": 0.0},
+		"stats":                {},
 		"error_message":        "",
 		"world_service_host":   "",
 		"world_service_tcp_port": 0,
@@ -143,6 +151,12 @@ func decode_enter_world_response() -> Dictionary:
 		var wt: int = pair[1]
 		match fn:
 			1: result["success"]                = _read_varint() != 0
+			2:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["position"] = sub.decode_position()
+			3:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["stats"] = sub.decode_character_stats()
 			4: result["error_message"]          = _read_string()
 			5: result["world_service_host"]     = _read_string()
 			6: result["world_service_tcp_port"] = _read_varint()
@@ -202,6 +216,35 @@ func decode_position() -> Dictionary:
 			2: result["y"] = _read_float32()
 			3: result["z"] = _read_float32()
 			_: _skip(wt)
+	return result
+
+
+## Decodes a CharacterStats sub-message.
+## Returns: { level, hp, max_hp, mp, max_mp, str, sta, dex, int_, xp, xp_to_next_level }
+func decode_character_stats() -> Dictionary:
+	var result := {
+		"level": 0, "hp": 0, "max_hp": 0, "mp": 0, "max_mp": 0,
+		"str": 0, "sta": 0, "dex": 0, "int_": 0, "xp": 0, "xp_to_next_level": 0,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:  result["level"]            = _read_varint()
+			2:  result["hp"]               = _read_varint()
+			3:  result["max_hp"]           = _read_varint()
+			4:  result["mp"]               = _read_varint()
+			5:  result["max_mp"]           = _read_varint()
+			6:  result["str"]              = _read_varint()
+			7:  result["sta"]              = _read_varint()
+			8:  result["dex"]              = _read_varint()
+			9:  result["int_"]             = _read_varint()
+			10: result["xp"]              = _read_varint()
+			11: result["xp_to_next_level"] = _read_varint()
+			_:  _skip(wt)
 	return result
 
 

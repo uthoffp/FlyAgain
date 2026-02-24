@@ -17,6 +17,7 @@ object SessionSecretGenerator {
      */
     data class SessionCredentials(
         val sessionId: String,
+        val sessionToken: Long,
         val hmacSecret: String
     )
 
@@ -45,9 +46,22 @@ object SessionSecretGenerator {
      * Generate both a session ID and HMAC secret as a pair.
      * @return A SessionCredentials containing both values.
      */
+    /**
+     * Generate a random 64-bit session token for UDP packet identification.
+     * @return A non-zero random Long.
+     */
+    fun generateSessionToken(): Long {
+        var token: Long
+        do {
+            token = secureRandom.nextLong()
+        } while (token == 0L)
+        return token
+    }
+
     fun generate(): SessionCredentials {
         return SessionCredentials(
             sessionId = generateSessionId(),
+            sessionToken = generateSessionToken(),
             hmacSecret = generateHmacSecret()
         )
     }

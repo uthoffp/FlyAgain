@@ -104,6 +104,8 @@ message LoginResponse {
     string hmac_secret = 5;
     string account_service_host = 6;
     int32 account_service_port = 7;
+    string session_id = 8;
+    int64 session_token = 9;
 }
 
 message RegisterRequest {

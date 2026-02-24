@@ -127,6 +127,7 @@ class LoginHandler(
         // Step 7: Create session in Redis
         val sessionCreated = sessionManager.createSession(
             sessionId = credentials.sessionId,
+            sessionToken = credentials.sessionToken,
             accountId = accountId,
             ip = ip,
             hmacSecret = credentials.hmacSecret
@@ -180,6 +181,8 @@ class LoginHandler(
             .setHmacSecret(credentials.hmacSecret)
             .setAccountServiceHost(accountServiceHost)
             .setAccountServicePort(accountServicePort)
+            .setSessionId(credentials.sessionId)
+            .setSessionToken(credentials.sessionToken)
             .build()
 
         ctx.writeAndFlush(Packet(Opcode.LOGIN_RESPONSE_VALUE, response.toByteArray()))

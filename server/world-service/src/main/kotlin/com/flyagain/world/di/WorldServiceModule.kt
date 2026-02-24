@@ -75,7 +75,8 @@ val worldServiceModule = module {
             zoneManager = get(),
             redisConnection = get(),
             characterDataStub = get(),
-            broadcastService = get()
+            broadcastService = get(),
+            sessionSecretProvider = get()
         )
     }
 
@@ -85,7 +86,8 @@ val worldServiceModule = module {
             entityManager = get(),
             zoneManager = get(),
             redisConnection = get(),
-            jwtSecret = get<Config>().getString("flyagain.auth.jwt-secret")
+            jwtSecret = get<Config>().getString("flyagain.auth.jwt-secret"),
+            sessionSecretProvider = get()
         )
     }
     single { MovementHandler(get(), get(), get()) }

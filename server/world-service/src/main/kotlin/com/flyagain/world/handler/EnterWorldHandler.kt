@@ -5,6 +5,7 @@ import com.flyagain.common.proto.*
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
 import io.lettuce.core.api.StatefulRedisConnection
 import io.netty.channel.ChannelHandlerContext
@@ -26,7 +27,8 @@ class EnterWorldHandler(
     private val entityManager: EntityManager,
     private val zoneManager: ZoneManager,
     private val redisConnection: StatefulRedisConnection<String, String>,
-    private val jwtSecret: String
+    private val jwtSecret: String,
+    private val sessionSecretProvider: RedisSessionSecretProvider
 ) {
 
     private val logger = LoggerFactory.getLogger(EnterWorldHandler::class.java)
@@ -59,6 +61,23 @@ class EnterWorldHandler(
             return null
         }
 
+        // Load session data from Redis to get session token and HMAC secret
+        val sessionData = loadSessionFromRedis(sessionId)
+        if (sessionData == null) {
+            logger.warn("Session {} not found in Redis for account {}", sessionId, accountId)
+            sendError(ctx, "Session expired. Please re-login.")
+            return null
+        }
+
+        val sessionTokenLong = sessionData["sessionToken"]?.toLongOrNull() ?: 0L
+        val hmacSecret = sessionData["hmacSecret"] ?: ""
+
+        if (sessionTokenLong == 0L || hmacSecret.isEmpty()) {
+            logger.warn("Session {} missing token or HMAC secret for account {}", sessionId, accountId)
+            sendError(ctx, "Session invalid. Please re-login.")
+            return null
+        }
+
         // Create PlayerEntity
         val entityId = entityManager.nextPlayerId()
         val mapId = charData["map_id"]?.toIntOrNull() ?: ZoneManager.ZONE_AERHEIM
@@ -85,7 +104,9 @@ class EnterWorldHandler(
             xp = charData["xp"]?.toLongOrNull() ?: 0L,
             gold = charData["gold"]?.toLongOrNull() ?: 0L,
             tcpChannel = ctx.channel(),
-            sessionId = sessionId
+            sessionId = sessionId,
+            sessionTokenLong = sessionTokenLong,
+            hmacSecret = hmacSecret
         )
 
         // Atomically add to entity manager (rejects if account already has a player in world)
@@ -104,6 +125,9 @@ class EnterWorldHandler(
             sendError(ctx, "Failed to enter zone. Please try again.")
             return null
         }
+
+        // Register HMAC secret for UDP packet validation
+        sessionSecretProvider.registerSecret(sessionTokenLong, hmacSecret.toByteArray(Charsets.UTF_8))
 
         // Add to online players in Redis
         try {
@@ -137,6 +161,13 @@ class EnterWorldHandler(
             logger.debug("JWT validation failed: {}", e.message)
             null
         }
+    }
+
+    private fun loadSessionFromRedis(sessionId: String): Map<String, String>? {
+        val redis = redisConnection.sync()
+        val key = "session:$sessionId"
+        val data = redis.hgetall(key)
+        return if (data.isNullOrEmpty()) null else data
     }
 
     private suspend fun loadCharacterFromRedis(characterId: String): Map<String, String>? {

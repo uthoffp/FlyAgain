@@ -159,6 +159,24 @@ func _on_character_selected(character_id: String) -> void:
 	GameState.world_service_tcp_port = response.get("world_service_tcp_port", 0)
 	GameState.world_service_udp_port = response.get("world_service_udp_port", 0)
 
+	# Store spawn position from server (persisted last logout location)
+	var pos: Dictionary = response.get("position", {})
+	GameState.player_position = Vector3(
+		pos.get("x", 0.0), pos.get("y", 0.0), pos.get("z", 0.0))
+
+	# Store character stats
+	var stats: Dictionary = response.get("stats", {})
+	GameState.player_level   = stats.get("level", 1)
+	GameState.player_hp      = stats.get("hp", 100)
+	GameState.player_max_hp  = stats.get("max_hp", 100)
+	GameState.player_mp      = stats.get("mp", 50)
+	GameState.player_max_mp  = stats.get("max_mp", 50)
+	GameState.player_str     = stats.get("str", 0)
+	GameState.player_sta     = stats.get("sta", 0)
+	GameState.player_dex     = stats.get("dex", 0)
+	GameState.player_int     = stats.get("int_", 0)
+	GameState.player_xp      = stats.get("xp", 0)
+
 	_status.show_info("Verbinde mit Welt-Server...")
 
 	# Determine connection parameters
