@@ -29,16 +29,16 @@ class ZoneManagerTest {
     fun `initialize creates all three zones`() {
         zoneManager.initialize()
         assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_AERHEIM))
-        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_GRUENE_EBENE))
-        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_DUNKLER_WALD))
+        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_GREEN_PLAINS))
+        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_DARK_FOREST))
     }
 
     @Test
     fun `initialize creates one channel per zone`() {
         zoneManager.initialize()
         assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_AERHEIM).size)
-        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_GRUENE_EBENE).size)
-        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_DUNKLER_WALD).size)
+        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_GREEN_PLAINS).size)
+        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_DARK_FOREST).size)
     }
 
     @Test
@@ -56,8 +56,8 @@ class ZoneManagerTest {
     @Test
     fun `getZoneName returns correct names`() {
         assertEquals("Aerheim", zoneManager.getZoneName(ZoneManager.ZONE_AERHEIM))
-        assertEquals("Gruene Ebene", zoneManager.getZoneName(ZoneManager.ZONE_GRUENE_EBENE))
-        assertEquals("Dunkler Wald", zoneManager.getZoneName(ZoneManager.ZONE_DUNKLER_WALD))
+        assertEquals("Green Plains", zoneManager.getZoneName(ZoneManager.ZONE_GREEN_PLAINS))
+        assertEquals("Dark Forest", zoneManager.getZoneName(ZoneManager.ZONE_DARK_FOREST))
     }
 
     @Test

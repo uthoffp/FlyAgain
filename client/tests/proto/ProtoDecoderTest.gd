@@ -118,13 +118,13 @@ func test_decode_error_response_empty() -> void:
 func test_decode_character_info() -> void:
 	var data := PackedByteArray()
 	data.append_array(_string_field(1, "550e8400-e29b-41d4-a716-446655440000"))  # id (UUID string)
-	data.append_array(_string_field(2, "Krieger"))       # name
+	data.append_array(_string_field(2, "TestWarrior"))   # name
 	data.append_array(_string_field(3, "WARRIOR"))       # character_class
 	data.append_array(_varint_field(4, 10))              # level
 	var decoder := ProtoDecoder.new(data)
 	var result := decoder.decode_character_info()
 	assert_str(result["id"]).is_equal("550e8400-e29b-41d4-a716-446655440000")
-	assert_str(result["name"]).is_equal("Krieger")
+	assert_str(result["name"]).is_equal("TestWarrior")
 	assert_str(result["character_class"]).is_equal("WARRIOR")
 	assert_int(result["level"]).is_equal(10)
 
@@ -182,7 +182,7 @@ func test_decode_login_response_full() -> void:
 	# Build a CharacterInfo sub-message
 	var char_data := PackedByteArray()
 	char_data.append_array(_string_field(1, "a1b2c3d4-e5f6-7890-abcd-ef1234567890"))  # id (UUID)
-	char_data.append_array(_string_field(2, "Magier"))     # name
+	char_data.append_array(_string_field(2, "TestMage"))   # name
 	char_data.append_array(_string_field(3, "MAGE"))       # class
 	char_data.append_array(_varint_field(4, 25))           # level
 
@@ -205,7 +205,7 @@ func test_decode_login_response_full() -> void:
 	assert_array(result["characters"]).has_size(1)
 	var char_info: Dictionary = result["characters"][0]
 	assert_str(char_info["id"]).is_equal("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-	assert_str(char_info["name"]).is_equal("Magier")
+	assert_str(char_info["name"]).is_equal("TestMage")
 	assert_str(char_info["character_class"]).is_equal("MAGE")
 	assert_int(char_info["level"]).is_equal(25)
 
@@ -213,13 +213,13 @@ func test_decode_login_response_full() -> void:
 func test_decode_login_response_multiple_characters() -> void:
 	var char1 := PackedByteArray()
 	char1.append_array(_string_field(1, "11111111-1111-1111-1111-111111111111"))
-	char1.append_array(_string_field(2, "Krieger"))
+	char1.append_array(_string_field(2, "TestWarrior"))
 	char1.append_array(_string_field(3, "WARRIOR"))
 	char1.append_array(_varint_field(4, 10))
 
 	var char2 := PackedByteArray()
 	char2.append_array(_string_field(1, "22222222-2222-2222-2222-222222222222"))
-	char2.append_array(_string_field(2, "Magier"))
+	char2.append_array(_string_field(2, "TestMage"))
 	char2.append_array(_string_field(3, "MAGE"))
 	char2.append_array(_varint_field(4, 5))
 
@@ -232,8 +232,8 @@ func test_decode_login_response_multiple_characters() -> void:
 	var decoder := ProtoDecoder.new(data)
 	var result := decoder.decode_login_response()
 	assert_array(result["characters"]).has_size(2)
-	assert_str(result["characters"][0]["name"]).is_equal("Krieger")
-	assert_str(result["characters"][1]["name"]).is_equal("Magier")
+	assert_str(result["characters"][0]["name"]).is_equal("TestWarrior")
+	assert_str(result["characters"][1]["name"]).is_equal("TestMage")
 
 
 # ---- Unknown field skipping ----

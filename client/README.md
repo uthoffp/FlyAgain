@@ -132,7 +132,7 @@ Call `ThemeFactory.create_main_theme()` once and assign it. Themed controls: `Pa
 
 ### Character Create
 
-- Name input (3–16 chars) + class picker grid (Krieger, Magier, Assassine, Kleriker)
+- Name input (3–16 chars) + class picker grid (Warrior, Mage, Assassin, Cleric)
 - Selected class shows description; 10-second server response timeout
 - On success: returns to Character Select
 

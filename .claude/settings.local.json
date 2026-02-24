@@ -52,7 +52,9 @@
       "WebFetch(domain:godot-gdunit-labs.github.io)",
       "WebFetch(domain:deepwiki.com)",
       "WebFetch(domain:www.dlab.ninja)",
-      "WebFetch(domain:mikeschulze.github.io)"
+      "WebFetch(domain:mikeschulze.github.io)",
+      "Bash(/Applications/Godot.app/Contents/MacOS/Godot:*)",
+      "Bash(git status:*)"
     ]
   }
 }

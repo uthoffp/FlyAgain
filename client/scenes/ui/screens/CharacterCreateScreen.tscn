@@ -1,10 +1,26 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/screens/CharacterCreateScreen.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/FlyLineEdit.tscn" id="2_lineedit"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/FlyButton.tscn" id="3_button"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/StatusLabel.tscn" id="4_status"]
 [ext_resource type="PackedScene" path="res://scenes/ui/components/LoadingSpinner.tscn" id="5_spinner"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+bg_color = Color(0.082, 0.094, 0.157, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.263, 0.188, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="CharacterCreateScreen" type="Control"]
 layout_mode = 3
@@ -21,7 +37,7 @@ anchor_bottom = 1.0
 
 [node name="OuterVBox" type="VBoxContainer" parent="CenterContainer"]
 layout_mode = 2
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(440, 0)
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/OuterVBox"]
 layout_mode = 2
@@ -38,10 +54,11 @@ custom_minimum_size = Vector2(0, 20)
 [node name="CreatePanel" type="PanelContainer" parent="CenterContainer/OuterVBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="PanelVBox" type="VBoxContainer" parent="CenterContainer/OuterVBox/CreatePanel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="PanelTitle" type="Label" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]
 layout_mode = 2
@@ -75,19 +92,19 @@ size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="KriegerButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
-label_text = "Krieger"
+[node name="WarriorButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Warrior"
 
-[node name="MagierButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
-label_text = "Magier"
+[node name="MageButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Mage"
 variant = 1
 
-[node name="AssassineButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
-label_text = "Assassine"
+[node name="AssassinButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Assassin"
 variant = 1
 
-[node name="KlerikerButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
-label_text = "Kleriker"
+[node name="ClericButton" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox/ClassGrid" instance=ExtResource("3_button")]
+label_text = "Cleric"
 variant = 1
 
 [node name="ClassDescription" type="Label" parent="CenterContainer/OuterVBox/CreatePanel/PanelVBox"]

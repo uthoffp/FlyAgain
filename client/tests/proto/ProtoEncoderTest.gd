@@ -122,7 +122,7 @@ func test_encode_character_select_empty_id_omitted() -> void:
 # ---- CharacterCreate ----
 
 func test_encode_character_create() -> void:
-	var buf := ProtoEncoder.encode_character_create("Krieger", "WARRIOR", "jwt.tok")
+	var buf := ProtoEncoder.encode_character_create("TestWarrior", "WARRIOR", "jwt.tok")
 	assert_int(buf[0]).is_equal(0x0A)  # Field 1 tag
 	assert_that(buf.size()).is_greater(0)
 

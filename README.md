@@ -64,7 +64,7 @@ See [docs/godot-setup.md](docs/godot-setup.md) for Godot project setup instructi
 ## Game Features
 
 - Classic tab-target combat with a meditative grinding loop
-- German-themed world and class naming (Krieger, Magier, Assassine, Kleriker)
+- Four distinct classes: Warrior, Mage, Assassin, Cleric
 - Flight system as core traversal mechanic
 - Equipment enhancement, dungeons, and quest systems
 - Guild wars, open-world PvP, and seasonal rankings (post-MVP)

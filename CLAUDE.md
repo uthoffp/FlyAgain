@@ -104,7 +104,7 @@ Build all services: `cd server && ./gradlew build`. Single service: `./gradlew :
 ## Key Design Principles
 
 - **NO Pay-to-Win** — fair play, skill and time investment only
-- **German-themed naming** — classes (Krieger, Magier, Assassine, Kleriker), zones (Aerheim, Grüne Ebene, Dunkler Wald)
+- **English naming in code** — classes (Warrior, Mage, Assassin, Cleric), zones, items, skills all use English identifiers in code
 - **Security-first** — bcrypt (cost 12), JWT + session tokens, HMAC-SHA256 for UDP, rate limiting, multi-login prevention
 - **Original IP** — FlyAgain is its own game; no references to other titles in any project artifact
 - **Bilingual** — English and German localization for all user-facing content

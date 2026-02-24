@@ -6,19 +6,19 @@ extends Control
 
 # ---- Node references ----
 
-@onready var _char_slots: HBoxContainer  = $CenterContainer/OuterVBox/CharSlots
-@onready var _create_btn: FlyButton      = $CenterContainer/OuterVBox/CreateButton
-@onready var _logout_btn: FlyButton      = $CenterContainer/OuterVBox/LogoutButton
-@onready var _status: StatusLabel        = $CenterContainer/OuterVBox/StatusLabel
+@onready var _char_slots: HBoxContainer  = $CenterContainer/OuterVBox/SelectPanel/PanelVBox/CharSlots
+@onready var _create_btn: FlyButton      = $CenterContainer/OuterVBox/SelectPanel/PanelVBox/CreateButton
+@onready var _logout_btn: FlyButton      = $CenterContainer/OuterVBox/SelectPanel/PanelVBox/LogoutButton
+@onready var _status: StatusLabel        = $CenterContainer/OuterVBox/SelectPanel/PanelVBox/StatusLabel
 
 const MAX_CHARACTERS := 3
 
 # Class descriptions shown in each slot
 const CLASS_DESCRIPTIONS: Dictionary = {
-	"Krieger":   "Tank / Nahkampf\nHohe HP und starke Angriffe",
-	"Magier":    "Ranged DPS\nElementarmagie mit hohem Schaden",
-	"Assassine": "Melee DPS\nSchnell, kritische Treffer",
-	"Kleriker":  "Heiler / Support\nHeilung und Buffs für die Gruppe",
+	"Warrior":  "Tank / Melee\nHigh HP and strong attacks",
+	"Mage":     "Ranged DPS\nElemental magic with high damage",
+	"Assassin": "Melee DPS\nFast, critical hits",
+	"Cleric":   "Healer / Support\nHealing and buffs for the group",
 }
 
 

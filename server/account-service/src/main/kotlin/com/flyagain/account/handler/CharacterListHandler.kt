@@ -24,10 +24,10 @@ class CharacterListHandler(
 
     companion object {
         private val CLASS_NAMES = mapOf(
-            0 to "Krieger",
-            1 to "Magier",
-            2 to "Assassine",
-            3 to "Kleriker"
+            0 to "Warrior",
+            1 to "Mage",
+            2 to "Assassin",
+            3 to "Cleric"
         )
     }
 

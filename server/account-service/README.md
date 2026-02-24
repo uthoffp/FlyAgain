@@ -5,7 +5,7 @@ Character management gateway — clients connect here after authenticating with 
 ## Responsibilities
 
 - **JWT validation** — Verifies tokens issued by login-service (HMAC-SHA256, issuer `flyagain-login`).
-- **Character creation** — Validates name (2–16 chars, German-letter-friendly regex) and class (krieger, magier, assassine, kleriker), then delegates to database-service via gRPC.
+- **Character creation** — Validates name (2–16 chars, alphanumeric + hyphens) and class (warrior, mage, assassin, cleric), then delegates to database-service via gRPC.
 - **Character selection** — Loads character data from database-service, caches it in Redis for world-service pickup, and responds with the world-service endpoint.
 
 ## Architecture

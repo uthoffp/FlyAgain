@@ -5,19 +5,19 @@
 - Engine-Auswahl und Projektsetup
 - Grundbewegung + Flugmechanik
 - Basis-Kampfsystem (Tab-Target, Auto-Attack, Skills)
-- Eine Klasse (Krieger)
-- Eine Zone (Grüne Ebene) + Stadt (Aerheim)
+- Eine Klasse (Warrior)
+- Eine Zone (Green Plains) + Stadt (Aerheim)
 - Multiplayer-Grundgerüst (Spieler sehen sich, können chatten)
 - Level-System + Monster-Grinding
 - Basis-UI (HP/MP, Inventar, Chat)
 
 ## Phase 2: Core Gameplay
 
-- Weitere 3 Klassen (Magier, Assassine, Kleriker)
+- Weitere 3 Klassen (Mage, Assassin, Cleric)
 - Equipment-System mit Enhancement
 - Dungeon-System (1. Dungeon + Boss)
 - Quest-System (Daily/Weekly)
-- Zweite Zone (Dunkler Wald)
+- Zweite Zone (Dark Forest)
 
 ## Phase 3: PvP & Social
 

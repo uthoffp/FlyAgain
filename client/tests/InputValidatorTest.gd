@@ -122,7 +122,7 @@ func test_password_match_case_sensitive() -> void:
 # ==== Character name validation ====
 
 func test_char_name_valid() -> void:
-	assert_str(InputValidator.validate_character_name("Krieger")).is_empty()
+	assert_str(InputValidator.validate_character_name("Warrior")).is_empty()
 	assert_str(InputValidator.validate_character_name("My-Char")).is_empty()
 	assert_str(InputValidator.validate_character_name("abc")).is_empty()
 
@@ -150,8 +150,8 @@ func test_char_name_at_boundaries() -> void:
 # ==== Class selection validation ====
 
 func test_class_selection_valid() -> void:
-	assert_str(InputValidator.validate_class_selection("Krieger")).is_empty()
-	assert_str(InputValidator.validate_class_selection("Magier")).is_empty()
+	assert_str(InputValidator.validate_class_selection("Warrior")).is_empty()
+	assert_str(InputValidator.validate_class_selection("Mage")).is_empty()
 
 
 func test_class_selection_empty() -> void:

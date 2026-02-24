@@ -63,9 +63,9 @@ class JwtManagerTest {
 
     @Test
     fun `JWT contains correct username claim`() {
-        val token = jwtManager.createToken("1", "krieger-main", "sess")
+        val token = jwtManager.createToken("1", "warrior-main", "sess")
         val decoded = jwtManager.validateToken(token)!!
-        assertEquals("krieger-main", decoded.getClaim("username").asString())
+        assertEquals("warrior-main", decoded.getClaim("username").asString())
     }
 
     @Test

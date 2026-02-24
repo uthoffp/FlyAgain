@@ -39,10 +39,10 @@ interface CharacterRepository {
      *
      * Enforces a maximum of 3 characters per account. Initial stats vary
      * by class:
-     * - **0 (Krieger):** High HP/STR/STA, low INT
-     * - **1 (Magier):** High MP/INT, low HP/STR
-     * - **2 (Assassine):** High DEX, balanced HP/MP
-     * - **3 (Kleriker):** Balanced stats, moderate INT/STA
+     * - **0 (Warrior):** High HP/STR/STA, low INT
+     * - **1 (Mage):** High MP/INT, low HP/STR
+     * - **2 (Assassin):** High DEX, balanced HP/MP
+     * - **3 (Cleric):** Balanced stats, moderate INT/STA
      *
      * The character starts at level 1, map 1, position (0,0,0) with 0 gold.
      *

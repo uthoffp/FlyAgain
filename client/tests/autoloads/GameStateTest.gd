@@ -64,12 +64,12 @@ func test_reset_makes_unauthenticated() -> void:
 
 func test_characters_storage() -> void:
 	_state.characters = [
-		{"id": "11111111-1111-1111-1111-111111111111", "name": "Krieger", "character_class": "WARRIOR", "level": 10},
-		{"id": "22222222-2222-2222-2222-222222222222", "name": "Magier", "character_class": "MAGE", "level": 5},
+		{"id": "11111111-1111-1111-1111-111111111111", "name": "TestWarrior", "character_class": "WARRIOR", "level": 10},
+		{"id": "22222222-2222-2222-2222-222222222222", "name": "TestMage", "character_class": "MAGE", "level": 5},
 	]
 	assert_array(_state.characters).has_size(2)
-	assert_str(_state.characters[0]["name"]).is_equal("Krieger")
-	assert_str(_state.characters[1]["name"]).is_equal("Magier")
+	assert_str(_state.characters[0]["name"]).is_equal("TestWarrior")
+	assert_str(_state.characters[1]["name"]).is_equal("TestMage")
 
 
 func test_selected_character_id() -> void:

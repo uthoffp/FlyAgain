@@ -59,14 +59,14 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             throw IllegalStateException("Maximum 3 characters per account")
         }
 
-        // Base stats by class: 0=Krieger, 1=Magier, 2=Assassine, 3=Kleriker
+        // Base stats by class: 0=Warrior, 1=Mage, 2=Assassin, 3=Cleric
         data class BaseStats(val hp: Int, val mp: Int, val maxHp: Int, val maxMp: Int,
                              val str: Int, val sta: Int, val dex: Int, val intStat: Int)
         val stats = when (characterClass) {
-            0 -> BaseStats(150, 50, 150, 50, 15, 15, 10, 5)   // Krieger
-            1 -> BaseStats(80, 150, 80, 150, 5, 8, 10, 20)    // Magier
-            2 -> BaseStats(100, 80, 100, 80, 10, 8, 20, 5)    // Assassine
-            3 -> BaseStats(120, 120, 120, 120, 8, 12, 8, 15)  // Kleriker
+            0 -> BaseStats(150, 50, 150, 50, 15, 15, 10, 5)   // Warrior
+            1 -> BaseStats(80, 150, 80, 150, 5, 8, 10, 20)    // Mage
+            2 -> BaseStats(100, 80, 100, 80, 10, 8, 20, 5)    // Assassin
+            3 -> BaseStats(120, 120, 120, 120, 8, 12, 8, 15)  // Cleric
             else -> throw IllegalArgumentException("Invalid class: $characterClass")
         }
 

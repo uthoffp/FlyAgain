@@ -37,10 +37,10 @@
 
 | Klasse     | Rolle       | Beschreibung                              |
 |------------|-------------|-------------------------------------------|
-| Krieger    | Tank/Melee  | Hohe HP, starke Nahkampf-Angriffe         |
-| Magier     | Ranged DPS  | Elementarmagie, hoher Schaden, niedrige HP |
-| Assassine  | Melee DPS   | Schnelle Angriffe, Ausweichen, Kritisch   |
-| Kleriker   | Healer/Buff | Heilung, Buffs, Support-Fähigkeiten       |
+| Warrior    | Tank/Melee  | Hohe HP, starke Nahkampf-Angriffe         |
+| Mage       | Ranged DPS  | Elementarmagie, hoher Schaden, niedrige HP |
+| Assassin   | Melee DPS   | Schnelle Angriffe, Ausweichen, Kritisch   |
+| Cleric     | Healer/Buff | Heilung, Buffs, Support-Fähigkeiten       |
 
 Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 
@@ -50,8 +50,8 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 
 ### 4.1 Startgebiet
 - **Stadt Aerheim:** Hub-Stadt mit NPCs (Händler, Quest-Geber)
-- **Grüne Ebene:** Level 1-15 Grinding-Zone mit schwachen Monstern
-- **Dunkler Wald:** Level 15-30 Zone mit stärkeren Monstern
+- **Green Plains:** Level 1-15 Grinding-Zone mit schwachen Monstern
+- **Dark Forest:** Level 15-30 Zone mit stärkeren Monstern
 
 ### 4.2 Monster
 - 10-15 verschiedene Monstertypen für den MVP
@@ -90,7 +90,7 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 - **Netzwerk:** TCP/UDP Kommunikation mit Kotlin-Server, Client-Side Prediction
 
 ### 6.3 Minimal MVP Scope
-- 1 spielbare Klasse (Krieger)
+- 1 spielbare Klasse (Warrior)
 - 1 offene Zone + 1 Stadt
 - Grundbewegung (Laufen + Fliegen)
 - Basis-Kampfsystem (Auto-Attack + 3-4 Skills)

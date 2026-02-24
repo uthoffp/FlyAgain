@@ -14,13 +14,13 @@ extends Control
 @onready var _spinner: LoadingSpinner   = $CenterContainer/OuterVBox/CreatePanel/PanelVBox/SpinnerContainer/Spinner
 
 const CLASS_DESCRIPTIONS: Dictionary = {
-	"Krieger":   "Tank / Nahkampf — Hohe HP, starke Nahkampfangriffe. Ideal für das Frontline-Fighting.",
-	"Magier":    "Ranged DPS — Elementarmagie mit hohem Schaden, jedoch niedrige HP.",
-	"Assassine": "Melee DPS — Schnelle Angriffe, hohe Ausweichrate, kritische Treffer.",
-	"Kleriker":  "Heiler / Support — Heilung und Buffs für die Gruppe. Unverzichtbar in Dungeons.",
+	"Warrior":  "Tank / Melee — High HP, strong melee attacks. Ideal for frontline fighting.",
+	"Mage":     "Ranged DPS — Elemental magic with high damage, but low HP.",
+	"Assassin": "Melee DPS — Fast attacks, high evasion, critical hits.",
+	"Cleric":   "Healer / Support — Healing and buffs for the group. Essential in dungeons.",
 }
 
-var _selected_class: String = "Krieger"
+var _selected_class: String = "Warrior"
 
 # Shared state for character creation response (avoids closure capture issues)
 var _create_pending: bool = false
@@ -32,7 +32,7 @@ var _create_result: Dictionary = {}
 func _ready() -> void:
 	theme = ThemeFactory.create_main_theme()
 	_connect_signals()
-	_select_class("Krieger")  # Default selection
+	_select_class("Warrior")  # Default selection
 
 
 func _exit_tree() -> void:

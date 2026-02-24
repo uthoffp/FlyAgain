@@ -26,7 +26,7 @@ class CharacterCreateHandler(
         private const val MIN_NAME_LENGTH = 2
         private const val MAX_NAME_LENGTH = 16
         private val NAME_REGEX = Regex("^[a-zA-ZäöüÄÖÜß][a-zA-ZäöüÄÖÜß0-9]*$")
-        private val VALID_CLASSES = setOf("krieger", "magier", "assassine", "kleriker")
+        private val VALID_CLASSES = setOf("warrior", "mage", "assassin", "cleric")
     }
 
     suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: String) {
@@ -58,11 +58,11 @@ class CharacterCreateHandler(
         }
 
         val classId = when (characterClass) {
-            "krieger"   -> 0
-            "magier"    -> 1
-            "assassine" -> 2
-            "kleriker"  -> 3
-            else        -> -1 // unreachable: already validated against VALID_CLASSES
+            "warrior"  -> 0
+            "mage"     -> 1
+            "assassin" -> 2
+            "cleric"   -> 3
+            else       -> -1 // unreachable: already validated against VALID_CLASSES
         }
 
         // Create character via gRPC
