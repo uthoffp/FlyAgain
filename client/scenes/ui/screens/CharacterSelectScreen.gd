@@ -146,9 +146,38 @@ func _on_character_selected(character_id: String) -> void:
 	_set_interactive(false)
 
 	NetworkManager.send_character_select(character_id)
-	# World scene transition will be triggered by EnterWorld response (Phase 1.4)
-	# For now we just show a placeholder message
-	_status.show_info("Welt-Loading folgt in Phase 1.4…")
+
+	# Wait for EnterWorldResponse from account-service
+	var response: Dictionary = await NetworkManager.enter_world_response
+	if not response.get("success", false):
+		_set_interactive(true)
+		_status.show_error(response.get("error_message", "Serverfehler."))
+		return
+
+	# Store world service connection info
+	GameState.world_service_host = response.get("world_service_host", "")
+	GameState.world_service_tcp_port = response.get("world_service_tcp_port", 0)
+	GameState.world_service_udp_port = response.get("world_service_udp_port", 0)
+
+	_status.show_info("Verbinde mit Welt-Server...")
+
+	# Determine connection parameters
+	var host: String = GameState.world_service_host
+	if host.is_empty():
+		host = NetworkManager.DEFAULT_HOST
+	var tcp_port: int = GameState.world_service_tcp_port
+	if tcp_port == 0:
+		tcp_port = 7780
+	var udp_port: int = GameState.world_service_udp_port
+	if udp_port == 0:
+		udp_port = 7781
+
+	# Connect to world service (TCP + UDP)
+	NetworkManager.connect_to_world(host, tcp_port, udp_port, GameState.session_token)
+	await NetworkManager.world_connected
+
+	# Transition to the 3D game world
+	UIManager.enter_game_world()
 
 
 func _on_create_pressed() -> void:

@@ -16,6 +16,7 @@ extends Control
 # ---- Lifecycle ----
 
 func _ready() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	theme = ThemeFactory.create_main_theme()
 	UIManager.set_initial_screen("login")
 	_connect_signals()

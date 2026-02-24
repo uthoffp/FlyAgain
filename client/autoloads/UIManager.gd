@@ -16,6 +16,8 @@ const SCREENS: Dictionary = {
 	"register":    "res://scenes/ui/screens/RegisterScreen.tscn",
 	"char_select": "res://scenes/ui/screens/CharacterSelectScreen.tscn",
 	"char_create": "res://scenes/ui/screens/CharacterCreateScreen.tscn",
+	"game_world":  "res://scenes/game/GameWorld.tscn",
+	"loading":     "res://scenes/ui/screens/LoadingScreen.tscn",
 }
 
 const FADE_DURATION := 0.2
@@ -96,6 +98,30 @@ func current_screen() -> String:
 	if _stack.is_empty():
 		return ""
 	return _stack.back()
+
+
+## Transitions to the 3D game world scene.
+## Hides the UI background and replaces the entire navigation stack.
+func enter_game_world() -> void:
+	if _transitioning:
+		return
+	_transitioning = true
+	_bg_layer.visible = false
+	_stack.clear()
+	_stack.push_back("game_world")
+	get_tree().change_scene_to_file(SCREENS["game_world"])
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_transitioning = false
+
+
+## Returns from the game world back to a UI screen.
+## Restores the UI background and replaces the navigation stack.
+func leave_game_world(target_screen: String = "login") -> void:
+	if _transitioning:
+		return
+	_bg_layer.visible = true
+	replace_screen(target_screen)
 
 
 # ---- Internal ----
