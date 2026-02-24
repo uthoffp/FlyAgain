@@ -86,10 +86,10 @@ func test_interpolation_at_exact_end() -> void:
 func test_rotation_interpolated() -> void:
 	var interp := EntityInterpolator.new()
 	interp.push_snapshot_at(Vector3.ZERO, 0.0, true, false, 1000.0)
-	interp.push_snapshot_at(Vector3.ZERO, PI, true, false, 1100.0)
+	interp.push_snapshot_at(Vector3.ZERO, PI / 2.0, true, false, 1100.0)
 	var result := interp.sample_at(1050.0)
-	# lerp_angle at midpoint between 0 and PI should be approximately PI/2
-	assert_float(result["rotation"]).is_equal_approx(PI / 2.0, 0.1)
+	# lerp_angle at midpoint between 0 and PI/2 should be approximately PI/4
+	assert_float(result["rotation"]).is_equal_approx(PI / 4.0, 0.1)
 
 
 # ---- Before all snapshots ----
