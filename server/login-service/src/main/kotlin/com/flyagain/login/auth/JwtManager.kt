@@ -35,13 +35,13 @@ class JwtManager(
      * @param sessionId The session ID bound to this token.
      * @return A signed JWT string.
      */
-    fun createToken(accountId: Long, username: String, sessionId: String): String {
+    fun createToken(accountId: String, username: String, sessionId: String): String {
         val now = Date()
         val expiry = Date(now.time + expiryHours * 3600 * 1000)
 
         return JWT.create()
             .withIssuer(issuer)
-            .withSubject(accountId.toString())
+            .withSubject(accountId)
             .withClaim("username", username)
             .withClaim("sid", sessionId)
             .withIssuedAt(now)
@@ -68,8 +68,8 @@ class JwtManager(
      * @param jwt The decoded JWT.
      * @return The account ID from the subject claim.
      */
-    fun getAccountId(jwt: DecodedJWT): Long {
-        return jwt.subject.toLong()
+    fun getAccountId(jwt: DecodedJWT): String {
+        return jwt.subject
     }
 
     /**

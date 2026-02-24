@@ -20,7 +20,7 @@ CREATE TABLE skill_definitions (
 );
 
 CREATE TABLE character_skills (
-    character_id    BIGINT NOT NULL REFERENCES characters(id),
+    character_id    UUID NOT NULL REFERENCES characters(id),
     skill_id        INT NOT NULL REFERENCES skill_definitions(id),
     skill_level     SMALLINT NOT NULL DEFAULT 1,
     PRIMARY KEY (character_id, skill_id),

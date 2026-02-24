@@ -60,11 +60,11 @@ func _on_login_pressed() -> void:
 	var username := _username.text.strip_edges()
 	var password := _password.text
 
-	if username.length() < 3:
-		_status.show_error("Benutzername muss mindestens 3 Zeichen lang sein.")
-		return
-	if password.length() < 8:
-		_status.show_error("Passwort muss mindestens 8 Zeichen lang sein.")
+	var err := InputValidator.validate_login_username(username)
+	if err.is_empty():
+		err = InputValidator.validate_password(password)
+	if not err.is_empty():
+		_status.show_error(err)
 		return
 
 	_status.clear()

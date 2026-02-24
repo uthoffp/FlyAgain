@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 
 class InputQueueTest {
 
-    private fun makePacket(accountId: Long = 1L, opcode: Int = 0x0101): QueuedPacket {
+    private fun makePacket(accountId: String = "1", opcode: Int = 0x0101): QueuedPacket {
         return QueuedPacket(
             accountId = accountId,
             opcode = opcode,
@@ -31,25 +31,25 @@ class InputQueueTest {
         val queue = InputQueue()
         queue.enqueue(makePacket())
         assertEquals(1, queue.size())
-        queue.enqueue(makePacket(accountId = 2L))
+        queue.enqueue(makePacket(accountId = "2"))
         assertEquals(2, queue.size())
     }
 
     @Test
     fun `dequeue returns packet in FIFO order`() {
         val queue = InputQueue()
-        val p1 = makePacket(accountId = 1L)
-        val p2 = makePacket(accountId = 2L)
+        val p1 = makePacket(accountId = "1")
+        val p2 = makePacket(accountId = "2")
         queue.enqueue(p1)
         queue.enqueue(p2)
 
         val first = queue.dequeue()
         assertNotNull(first)
-        assertEquals(1L, first.accountId)
+        assertEquals("1", first.accountId)
 
         val second = queue.dequeue()
         assertNotNull(second)
-        assertEquals(2L, second.accountId)
+        assertEquals("2", second.accountId)
     }
 
     @Test
@@ -61,15 +61,15 @@ class InputQueueTest {
     @Test
     fun `drainAll returns all packets and empties the queue`() {
         val queue = InputQueue()
-        queue.enqueue(makePacket(accountId = 1L))
-        queue.enqueue(makePacket(accountId = 2L))
-        queue.enqueue(makePacket(accountId = 3L))
+        queue.enqueue(makePacket(accountId = "1"))
+        queue.enqueue(makePacket(accountId = "2"))
+        queue.enqueue(makePacket(accountId = "3"))
 
         val packets = queue.drainAll()
         assertEquals(3, packets.size)
-        assertEquals(1L, packets[0].accountId)
-        assertEquals(2L, packets[1].accountId)
-        assertEquals(3L, packets[2].accountId)
+        assertEquals("1", packets[0].accountId)
+        assertEquals("2", packets[1].accountId)
+        assertEquals("3", packets[2].accountId)
         assertTrue(queue.isEmpty())
     }
 
@@ -91,7 +91,7 @@ class InputQueueTest {
     fun `size decreases after dequeue`() {
         val queue = InputQueue()
         queue.enqueue(makePacket())
-        queue.enqueue(makePacket(accountId = 2L))
+        queue.enqueue(makePacket(accountId = "2"))
         assertEquals(2, queue.size())
         queue.dequeue()
         assertEquals(1, queue.size())

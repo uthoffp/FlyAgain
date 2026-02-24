@@ -14,8 +14,6 @@ extends Control
 @onready var _status: StatusLabel     = $CenterContainer/OuterVBox/RegisterPanel/PanelVBox/StatusLabel
 @onready var _spinner: LoadingSpinner = $CenterContainer/OuterVBox/RegisterPanel/PanelVBox/SpinnerContainer/Spinner
 
-const _EMAIL_REGEX := "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
-
 
 # ---- Lifecycle ----
 
@@ -61,20 +59,15 @@ func _on_register_pressed() -> void:
 	var password := _password.text
 	var confirm  := _confirm.text
 
-	if username.length() < 3 or username.length() > 16:
-		_status.show_error("Benutzername muss 3–16 Zeichen lang sein.")
-		return
-	if not _is_valid_username(username):
-		_status.show_error("Benutzername darf nur Buchstaben, Ziffern und Bindestriche enthalten.")
-		return
-	if not _is_valid_email(email):
-		_status.show_error("Bitte eine gültige E-Mail-Adresse eingeben.")
-		return
-	if password.length() < 8:
-		_status.show_error("Passwort muss mindestens 8 Zeichen lang sein.")
-		return
-	if password != confirm:
-		_status.show_error("Die Passwörter stimmen nicht überein.")
+	var err := InputValidator.validate_username(username)
+	if err.is_empty():
+		err = InputValidator.validate_email(email)
+	if err.is_empty():
+		err = InputValidator.validate_password(password)
+	if err.is_empty():
+		err = InputValidator.validate_password_match(password, confirm)
+	if not err.is_empty():
+		_status.show_error(err)
 		return
 
 	_status.clear()
@@ -129,13 +122,3 @@ func _set_interactive(enabled: bool) -> void:
 		field.get_node("Input").editable = enabled
 
 
-func _is_valid_email(email: String) -> bool:
-	var rx := RegEx.new()
-	rx.compile(_EMAIL_REGEX)
-	return rx.search(email) != null
-
-
-func _is_valid_username(username: String) -> bool:
-	var rx := RegEx.new()
-	rx.compile("^[a-zA-Z0-9\\-]+$")
-	return rx.search(username) != null

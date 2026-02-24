@@ -24,10 +24,10 @@ class EntityManager {
     private val monsters = ConcurrentHashMap<Long, MonsterEntity>()
 
     // Lookup by account ID for quick session-based access
-    private val playersByAccount = ConcurrentHashMap<Long, PlayerEntity>()
+    private val playersByAccount = ConcurrentHashMap<String, PlayerEntity>()
 
     // Lookup by character ID
-    private val playersByCharacter = ConcurrentHashMap<Long, PlayerEntity>()
+    private val playersByCharacter = ConcurrentHashMap<String, PlayerEntity>()
 
     // Lookup by session token (Long) for fast UDP packet routing
     private val playersBySessionToken = ConcurrentHashMap<Long, PlayerEntity>()
@@ -98,12 +98,12 @@ class EntityManager {
     /**
      * Get a player by account ID.
      */
-    fun getPlayerByAccount(accountId: Long): PlayerEntity? = playersByAccount[accountId]
+    fun getPlayerByAccount(accountId: String): PlayerEntity? = playersByAccount[accountId]
 
     /**
      * Get a player by character ID.
      */
-    fun getPlayerByCharacter(characterId: Long): PlayerEntity? = playersByCharacter[characterId]
+    fun getPlayerByCharacter(characterId: String): PlayerEntity? = playersByCharacter[characterId]
 
     /**
      * Get a player by UDP session token.

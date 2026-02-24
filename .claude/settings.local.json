@@ -48,7 +48,11 @@
       "Bash(kill:*)",
       "Bash(pkill:*)",
       "Bash(bash /Users/puthoff/Development/vibe-coding/FlyAgain/scripts/generate-csharp-protos.sh)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebFetch(domain:godot-gdunit-labs.github.io)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:www.dlab.ninja)",
+      "WebFetch(domain:mikeschulze.github.io)"
     ]
   }
 }

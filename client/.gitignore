@@ -1,3 +1,21 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Third-party addons (installed via asset library / plugin manager)
+addons/
+
+# gdUnit4 test reports and temp files
+reports/
+.gdunit4/
+
+# Godot export artifacts
+*.pck
+*.exe
+*.x86_64
+*.apk
+*.aab
+export_presets.cfg
+
+# Godot crash dumps
+*.dmp

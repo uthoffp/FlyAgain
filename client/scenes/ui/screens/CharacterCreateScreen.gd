@@ -22,6 +22,10 @@ const CLASS_DESCRIPTIONS: Dictionary = {
 
 var _selected_class: String = "Krieger"
 
+# Shared state for character creation response (avoids closure capture issues)
+var _create_pending: bool = false
+var _create_result: Dictionary = {}
+
 
 # ---- Lifecycle ----
 
@@ -76,14 +80,11 @@ func _select_class(class_name_str: String) -> void:
 func _on_create_pressed() -> void:
 	var char_name := _name_field.text.strip_edges()
 
-	if char_name.length() < 3 or char_name.length() > 16:
-		_status.show_error("Name muss 3–16 Zeichen lang sein.")
-		return
-	if not _is_valid_char_name(char_name):
-		_status.show_error("Name darf nur Buchstaben, Ziffern und Bindestriche enthalten.")
-		return
-	if _selected_class.is_empty():
-		_status.show_error("Bitte eine Klasse auswählen.")
+	var err := InputValidator.validate_character_name(char_name)
+	if err.is_empty():
+		err = InputValidator.validate_class_selection(_selected_class)
+	if not err.is_empty():
+		_status.show_error(err)
 		return
 
 	_status.clear()
@@ -97,7 +98,11 @@ func _on_create_pressed() -> void:
 
 	if response.get("success", false):
 		_status.show_success("Charakter erstellt!")
-		await get_tree().create_timer(1.0).timeout
+		_spinner.start("Lade Charaktere")
+		var char_list := await _fetch_character_list()
+		_spinner.stop()
+		if not char_list.is_empty():
+			GameState.characters = char_list
 		UIManager.pop_screen()
 	else:
 		_set_interactive(true)
@@ -116,6 +121,25 @@ func _on_error_response(data: Dictionary) -> void:
 	_status.show_error(data.get("message", "Serverfehler."))
 
 
+## ENTER_WORLD response callback for character creation.
+func _on_create_enter_world(data: Dictionary) -> void:
+	if not _create_pending:
+		return
+	_create_pending = false
+	if data.get("success", false):
+		_create_result = {"success": true}
+	else:
+		_create_result = {"success": false, "message": data.get("error_message", "Erstellung fehlgeschlagen.")}
+
+
+## ERROR_RESPONSE callback for character creation (e.g. JWT failure).
+func _on_create_error(data: Dictionary) -> void:
+	if not _create_pending:
+		return
+	_create_pending = false
+	_create_result = {"success": false, "message": data.get("message", "Serverfehler.")}
+
+
 # ---- Helpers ----
 
 ## Waits for character create response (enter_world_response or error_response).
@@ -125,42 +149,65 @@ func _on_error_response(data: Dictionary) -> void:
 ##   - ENTER_WORLD (0x0004) via CharacterCreateHandler: success=true/false, error_message
 ##   - ERROR_RESPONSE (0x0603) via PacketRouter: authentication failure (JWT missing/invalid)
 func _wait_for_char_create_response() -> Dictionary:
-	var result := {}
-	var done   := false
+	_create_pending = true
+	_create_result = {}
 
-	# ENTER_WORLD response: sent by CharacterCreateHandler for both success and validation errors
-	var on_enter_world := func(data: Dictionary) -> void:
-		if not done:
-			done = true
-			if data.get("success", false):
-				result = {"success": true}
-			else:
-				result = {"success": false, "message": data.get("error_message", "Erstellung fehlgeschlagen.")}
-
-	# ERROR_RESPONSE: sent by PacketRouter for authentication failures
-	var on_error := func(data: Dictionary) -> void:
-		if not done:
-			done   = true
-			result = {"success": false, "message": data.get("message", "Serverfehler.")}
-
-	NetworkManager.enter_world_response.connect(on_enter_world, CONNECT_ONE_SHOT)
-	NetworkManager.error_response.connect(on_error, CONNECT_ONE_SHOT)
+	NetworkManager.enter_world_response.connect(_on_create_enter_world, CONNECT_ONE_SHOT)
+	NetworkManager.error_response.connect(_on_create_error, CONNECT_ONE_SHOT)
 
 	# Poll until we get a result (timeout after 10 seconds)
 	var elapsed := 0.0
-	while not done and elapsed < 10.0:
+	while _create_pending and elapsed < 10.0:
 		await get_tree().process_frame
 		elapsed += get_process_delta_time()
 
-	if not done:
-		if NetworkManager.enter_world_response.is_connected(on_enter_world):
-			NetworkManager.enter_world_response.disconnect(on_enter_world)
-		if NetworkManager.error_response.is_connected(on_error):
-			NetworkManager.error_response.disconnect(on_error)
-		# Timeout — assume failure (server took too long)
+	# Clean up any remaining one-shot connections
+	if NetworkManager.enter_world_response.is_connected(_on_create_enter_world):
+		NetworkManager.enter_world_response.disconnect(_on_create_enter_world)
+	if NetworkManager.error_response.is_connected(_on_create_error):
+		NetworkManager.error_response.disconnect(_on_create_error)
+
+	if _create_pending:
+		_create_pending = false
 		return {"success": false, "message": "Zeitüberschreitung. Bitte erneut versuchen."}
 
-	return result
+	return _create_result
+
+
+## Requests the updated character list from the server.
+## Returns the characters array, or an empty array on failure/timeout.
+func _fetch_character_list() -> Array:
+	_create_pending = true
+	_create_result = {}
+
+	NetworkManager.character_list_response.connect(_on_char_list_response, CONNECT_ONE_SHOT)
+	NetworkManager.error_response.connect(_on_create_error, CONNECT_ONE_SHOT)
+
+	NetworkManager.send_character_list_request()
+
+	var elapsed := 0.0
+	while _create_pending and elapsed < 10.0:
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+
+	# Clean up any remaining one-shot connections
+	if NetworkManager.character_list_response.is_connected(_on_char_list_response):
+		NetworkManager.character_list_response.disconnect(_on_char_list_response)
+	if NetworkManager.error_response.is_connected(_on_create_error):
+		NetworkManager.error_response.disconnect(_on_create_error)
+
+	if _create_pending:
+		_create_pending = false
+		return []
+
+	return _create_result.get("characters", [])
+
+
+func _on_char_list_response(data: Dictionary) -> void:
+	if not _create_pending:
+		return
+	_create_pending = false
+	_create_result = data
 
 
 func _set_interactive(enabled: bool) -> void:
@@ -170,9 +217,3 @@ func _set_interactive(enabled: bool) -> void:
 	for btn in _class_grid.get_children():
 		if btn is Button:
 			btn.disabled = not enabled
-
-
-func _is_valid_char_name(name_str: String) -> bool:
-	var rx := RegEx.new()
-	rx.compile("^[a-zA-Z0-9\\-]+$")
-	return rx.search(name_str) != null

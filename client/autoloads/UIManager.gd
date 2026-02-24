@@ -19,34 +19,38 @@ const SCREENS: Dictionary = {
 }
 
 const FADE_DURATION := 0.2
+const BG_TEXTURE_PATH := "res://assets/ui/title_screen_background.png"
 
 # ---- Internal state ----
 
 var _stack:         Array[String] = []
-var _fade_layer:    CanvasLayer
-var _fade_rect:     ColorRect
+var _bg_layer:      CanvasLayer
+var _bg_rect:       TextureRect
 var _transitioning: bool = false
 
 
 # ---- Lifecycle ----
 
 func _ready() -> void:
-	_setup_fade_overlay()
+	_setup_background()
 
 
-func _setup_fade_overlay() -> void:
-	_fade_layer       = CanvasLayer.new()
-	_fade_layer.layer = 128
-	_fade_layer.name  = "FadeLayer"
-	add_child(_fade_layer)
+func _setup_background() -> void:
+	_bg_layer       = CanvasLayer.new()
+	_bg_layer.layer = -1
+	_bg_layer.name  = "BackgroundLayer"
+	add_child(_bg_layer)
 
-	_fade_rect              = ColorRect.new()
-	_fade_rect.name         = "FadeRect"
-	_fade_rect.color        = Color.BLACK
-	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_fade_rect.modulate.a   = 0.0
-	_fade_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_fade_layer.add_child(_fade_rect)
+	_bg_rect              = TextureRect.new()
+	_bg_rect.name         = "Background"
+	_bg_rect.texture      = load(BG_TEXTURE_PATH)
+	_bg_rect.expand_mode  = TextureRect.EXPAND_IGNORE_SIZE
+	_bg_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bg_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_bg_layer.add_child(_bg_rect)
+	get_tree().root.size_changed.connect(_resize_bg_rect)
+	_resize_bg_rect()
 
 
 # ---- Public API ----
@@ -102,29 +106,31 @@ func _transition_to(screen_name: String) -> void:
 		return
 
 	_transitioning = true
-	_resize_fade_rect()
 
-	# Fade out
-	var tween := create_tween()
-	tween.tween_property(_fade_rect, "modulate:a", 1.0, FADE_DURATION)
-	await tween.finished
+	# Fade out current scene content (background stays visible)
+	var current := get_tree().current_scene
+	if current:
+		var tween := create_tween()
+		tween.tween_property(current, "modulate:a", 0.0, FADE_DURATION)
+		await tween.finished
 
 	# Change scene
 	get_tree().change_scene_to_file(SCREENS[screen_name])
 	await get_tree().process_frame
 	await get_tree().process_frame  # Wait two frames for scene to settle
 
-	_resize_fade_rect()
-
-	# Fade in
-	tween = create_tween()
-	tween.tween_property(_fade_rect, "modulate:a", 0.0, FADE_DURATION)
-	await tween.finished
+	# Fade in new scene content
+	var new_scene := get_tree().current_scene
+	if new_scene:
+		new_scene.modulate.a = 0.0
+		var tween := create_tween()
+		tween.tween_property(new_scene, "modulate:a", 1.0, FADE_DURATION)
+		await tween.finished
 
 	_transitioning = false
 
 
-func _resize_fade_rect() -> void:
+func _resize_bg_rect() -> void:
 	var size := get_viewport().get_visible_rect().size
-	_fade_rect.size     = size
-	_fade_rect.position = Vector2.ZERO
+	_bg_rect.size     = size
+	_bg_rect.position = Vector2.ZERO

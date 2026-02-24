@@ -2,7 +2,7 @@
 
 ## 1. Vision
 
-**FlyAgain** ist ein MMORPG inspiriert von Flyff (Fly For Fun), das sich auf faires Gameplay ohne Pay-to-Win konzentriert. Alle spielrelevanten Items und Fortschritte müssen im Spiel erarbeitet werden.
+**FlyAgain** ist ein originales MMORPG, das sich auf faires Gameplay ohne Pay-to-Win konzentriert. Alle spielrelevanten Items und Fortschritte müssen im Spiel erarbeitet werden.
 
 **Kernphilosophie:** Skill und Zeitinvestment bestimmen den Fortschritt - nicht die Geldbörse.
 
@@ -15,7 +15,7 @@
 - Fliegen ist ein zentrales Fortbewegungsmittel in der offenen Welt
 
 ### 2.2 Kampfsystem
-- **Tab-Target:** Klassisches Targeting - Monster anklicken, Auto-Attack + Skills einsetzen. Das monotone, meditative Grinding-Feeling von Flyff soll bewusst beibehalten werden. Zielgruppe sind Spieler, die diesen Loop schätzen.
+- **Tab-Target:** Klassisches Targeting - Monster anklicken, Auto-Attack + Skills einsetzen. Das monotone, meditative Grinding-Feeling soll bewusst beibehalten werden. Zielgruppe sind Spieler, die diesen Loop schätzen.
 - **Klassen-basiert:** Verschiedene Klassen mit einzigartigen Fähigkeitenbäumen
 - **Skills:** Rudimentäres Skill-System mit grundlegenden Fähigkeiten pro Klasse
 

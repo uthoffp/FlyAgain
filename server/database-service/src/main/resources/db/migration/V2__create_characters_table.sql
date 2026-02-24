@@ -1,6 +1,6 @@
 CREATE TABLE characters (
-    id              BIGSERIAL PRIMARY KEY,
-    account_id      BIGINT NOT NULL REFERENCES accounts(id),
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id      UUID NOT NULL REFERENCES accounts(id),
     name            VARCHAR(32) UNIQUE NOT NULL,
     class           SMALLINT NOT NULL,
     level           SMALLINT NOT NULL DEFAULT 1,

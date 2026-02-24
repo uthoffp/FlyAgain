@@ -114,7 +114,7 @@ func _make_character_slot(char_data: Dictionary) -> PanelContainer:
 	# Select button
 	var select_btn := preload("res://scenes/ui/components/FlyButton.tscn").instantiate() as FlyButton
 	select_btn.label_text = "Spielen"
-	var char_id: int = char_data.get("id", 0)
+	var char_id: String = char_data.get("id", "")
 	select_btn.pressed.connect(func(): _on_character_selected(char_id))
 	vbox.add_child(select_btn)
 
@@ -140,7 +140,7 @@ func _make_empty_slot() -> PanelContainer:
 
 # ---- Button / event handlers ----
 
-func _on_character_selected(character_id: int) -> void:
+func _on_character_selected(character_id: String) -> void:
 	GameState.selected_character_id = character_id
 	_status.show_info("Lade Charakter...")
 	_set_interactive(false)

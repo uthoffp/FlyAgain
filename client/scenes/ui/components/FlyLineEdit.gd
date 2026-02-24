@@ -90,7 +90,9 @@ func _update_label() -> void:
 func _update_input() -> void:
 	if not is_node_ready() or not _input:
 		return
-	_input.placeholder_text = placeholder_text
-	_input.secret           = secret
-	_input.max_length       = max_length
+	_input.placeholder_text    = placeholder_text
+	_input.secret              = secret
+	_input.max_length          = max_length
+	_input.caret_blink         = true
+	_input.caret_blink_interval = 0.5
 	_input.custom_minimum_size = Vector2(0, 40)

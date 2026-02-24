@@ -14,13 +14,13 @@ class JwtValidatorTest {
     private val secret = "test-jwt-secret"
     private val validator = JwtValidator(secret)
 
-    private fun createValidToken(accountId: Long = 1L, sessionId: String = "test-session"): String {
+    private fun createValidToken(accountId: String = "1", sessionId: String = "test-session"): String {
         val algorithm = Algorithm.HMAC256(secret)
         val now = Date()
         val expiry = Date(now.time + 3600_000) // 1 hour from now
         return JWT.create()
             .withIssuer("flyagain-login")
-            .withSubject(accountId.toString())
+            .withSubject(accountId)
             .withClaim("sid", sessionId)
             .withIssuedAt(now)
             .withExpiresAt(expiry)
@@ -29,10 +29,10 @@ class JwtValidatorTest {
 
     @Test
     fun `validate returns claims for valid token`() {
-        val token = createValidToken(accountId = 42L, sessionId = "sess-abc")
+        val token = createValidToken(accountId = "42", sessionId = "sess-abc")
         val claims = validator.validate(token)
         assertNotNull(claims)
-        assertEquals(42L, claims.accountId)
+        assertEquals("42", claims.accountId)
         assertEquals("sess-abc", claims.sessionId)
     }
 
@@ -102,14 +102,16 @@ class JwtValidatorTest {
     }
 
     @Test
-    fun `validate returns null for token with non-numeric subject`() {
+    fun `validate accepts token with non-numeric subject (UUID)`() {
         val algorithm = Algorithm.HMAC256(secret)
         val token = JWT.create()
             .withIssuer("flyagain-login")
-            .withSubject("not-a-number")
+            .withSubject("550e8400-e29b-41d4-a716-446655440000")
             .withClaim("sid", "sess")
             .withExpiresAt(Date(System.currentTimeMillis() + 3600_000))
             .sign(algorithm)
-        assertNull(validator.validate(token))
+        val claims = validator.validate(token)
+        assertNotNull(claims)
+        assertEquals("550e8400-e29b-41d4-a716-446655440000", claims.accountId)
     }
 }

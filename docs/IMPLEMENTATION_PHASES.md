@@ -30,7 +30,7 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 
 **Shared:**
 - [x] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
-- [x] Protobuf-Codegen fuer Kotlin und C# einrichten
+- [x] Protobuf-Codegen fuer Kotlin einrichten (Godot nutzt manuelle GDScript-Implementierung)
 - [x] Git-Repository initialisieren, `.gitignore` fuer Godot + Kotlin + IDE-Dateien
 
 **Zusaetzlich implementiert (nicht im Original-Plan):**

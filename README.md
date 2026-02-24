@@ -1,6 +1,6 @@
 # FlyAgain
 
-A Flyff-inspired MMORPG focused on fair gameplay with no pay-to-win mechanics. Built with a Godot 4 client, Kotlin server, and PostgreSQL + Redis persistence.
+An original MMORPG focused on fair gameplay with no pay-to-win mechanics. Built with a Godot 4 client, Kotlin server, and PostgreSQL + Redis persistence.
 
 ## Tech Stack
 

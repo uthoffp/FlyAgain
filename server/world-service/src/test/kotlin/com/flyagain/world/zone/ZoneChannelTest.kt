@@ -12,10 +12,10 @@ import kotlin.test.assertTrue
 
 class ZoneChannelTest {
 
-    private fun makePlayer(entityId: Long = 1L, accountId: Long = 100L): PlayerEntity {
+    private fun makePlayer(entityId: Long = 1L, accountId: String = "100"): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = entityId + 100,
+            characterId = "${entityId + 100}",
             accountId = accountId,
             name = "Player$entityId",
             characterClass = 1,
@@ -50,9 +50,9 @@ class ZoneChannelTest {
     @Test
     fun `addPlayer rejects when channel is full`() {
         val channel = ZoneChannel(zoneId = 1, channelId = 0, maxPlayers = 2)
-        assertTrue(channel.addPlayer(makePlayer(entityId = 1L, accountId = 1L)))
-        assertTrue(channel.addPlayer(makePlayer(entityId = 2L, accountId = 2L)))
-        assertFalse(channel.addPlayer(makePlayer(entityId = 3L, accountId = 3L)))
+        assertTrue(channel.addPlayer(makePlayer(entityId = 1L, accountId = "1")))
+        assertTrue(channel.addPlayer(makePlayer(entityId = 2L, accountId = "2")))
+        assertFalse(channel.addPlayer(makePlayer(entityId = 3L, accountId = "3")))
         assertEquals(2, channel.getPlayerCount())
     }
 
@@ -120,8 +120,8 @@ class ZoneChannelTest {
     @Test
     fun `getAllPlayers returns all added players`() {
         val channel = ZoneChannel(zoneId = 1, channelId = 0)
-        channel.addPlayer(makePlayer(entityId = 1L, accountId = 1L))
-        channel.addPlayer(makePlayer(entityId = 2L, accountId = 2L))
+        channel.addPlayer(makePlayer(entityId = 1L, accountId = "1"))
+        channel.addPlayer(makePlayer(entityId = 2L, accountId = "2"))
         assertEquals(2, channel.getAllPlayers().size)
     }
 

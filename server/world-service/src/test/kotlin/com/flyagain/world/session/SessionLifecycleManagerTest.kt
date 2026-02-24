@@ -72,8 +72,8 @@ class SessionLifecycleManagerTest {
 
     private fun makePlayer(
         entityId: Long = 1L,
-        characterId: Long = 101L,
-        accountId: Long = 201L
+        characterId: String = "101",
+        accountId: String = "201"
     ): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
@@ -325,7 +325,7 @@ class SessionLifecycleManagerTest {
     fun `saveSnapshotToRedis pipelines all commands`() = runTest {
         val fields = mapOf("hp" to "500", "level" to "10")
 
-        manager.saveSnapshotToRedis(42L, fields)
+        manager.saveSnapshotToRedis("42", fields)
 
         // Verify pipelining was used
         verify(exactly = 1) { redisConnection.setAutoFlushCommands(false) }

@@ -53,9 +53,9 @@ func decode_login_response() -> Dictionary:
 
 
 ## Decodes a CharacterInfo sub-message.
-## Returns a Dictionary with keys: id (int), name (String), character_class (String), level (int)
+## Returns a Dictionary with keys: id (String), name (String), character_class (String), level (int)
 func decode_character_info() -> Dictionary:
-	var result := {"id": 0, "name": "", "character_class": "", "level": 0}
+	var result := {"id": "", "name": "", "character_class": "", "level": 0}
 	while _has_bytes():
 		var pair := _next_tag()
 		if pair.is_empty():
@@ -63,7 +63,7 @@ func decode_character_info() -> Dictionary:
 		var fn: int = pair[0]
 		var wt: int = pair[1]
 		match fn:
-			1: result["id"]              = _read_varint()
+			1: result["id"]              = _read_string()
 			2: result["name"]            = _read_string()
 			3: result["character_class"] = _read_string()
 			4: result["level"]           = _read_varint()
@@ -147,6 +147,24 @@ func decode_enter_world_response() -> Dictionary:
 			5: result["world_service_host"]     = _read_string()
 			6: result["world_service_tcp_port"] = _read_varint()
 			7: result["world_service_udp_port"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a CharacterListResponse { characters=1 (repeated CharacterInfo) }.
+## Returns: { characters: Array[Dict] }
+func decode_character_list_response() -> Dictionary:
+	var result := {"characters": []}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["characters"].append(sub.decode_character_info())
 			_: _skip(wt)
 	return result
 

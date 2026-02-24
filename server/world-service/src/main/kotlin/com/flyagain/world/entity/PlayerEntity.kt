@@ -8,8 +8,8 @@ import io.netty.channel.Channel
  */
 data class PlayerEntity(
     val entityId: Long,
-    val characterId: Long,
-    val accountId: Long,
+    val characterId: String,
+    val accountId: String,
     val name: String,
     val characterClass: Int,
 

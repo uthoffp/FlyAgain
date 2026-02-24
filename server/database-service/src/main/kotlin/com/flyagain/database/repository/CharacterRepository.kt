@@ -21,18 +21,18 @@ interface CharacterRepository {
      * @param accountId the owning account's ID
      * @return list of [CharacterRecord] for the account (may be empty)
      */
-    suspend fun getByAccount(accountId: Long): List<CharacterRecord>
+    suspend fun getByAccount(accountId: String): List<CharacterRecord>
 
     /**
      * Retrieves a single character by ID, scoped to the owning account.
      *
      * The account check prevents unauthorized access to another player's character.
      *
-     * @param characterId the character's database ID
-     * @param accountId the expected owning account ID (authorization check)
+     * @param characterId the character's UUID
+     * @param accountId the expected owning account UUID (authorization check)
      * @return the [CharacterRecord] if found and owned by the account, or `null`
      */
-    suspend fun getById(characterId: Long, accountId: Long): CharacterRecord?
+    suspend fun getById(characterId: String, accountId: String): CharacterRecord?
 
     /**
      * Creates a new character with class-specific base stats.
@@ -46,14 +46,14 @@ interface CharacterRepository {
      *
      * The character starts at level 1, map 1, position (0,0,0) with 0 gold.
      *
-     * @param accountId the owning account's ID
+     * @param accountId the owning account's UUID
      * @param name the character name (must be unique — enforced by DB constraint)
      * @param characterClass class index (0-3)
-     * @return the auto-generated character ID
+     * @return the generated UUID character ID
      * @throws IllegalStateException if the account already has 3 characters
      * @throws IllegalArgumentException if [characterClass] is not in 0-3
      */
-    suspend fun create(accountId: Long, name: String, characterClass: Int): Long
+    suspend fun create(accountId: String, name: String, characterClass: Int): String
 
     /**
      * Persists a character's mutable state (HP, MP, XP, position, stats, etc.).
@@ -75,5 +75,5 @@ interface CharacterRepository {
      * @param characterId the character to mark as deleted
      * @param accountId the owning account ID (authorization check)
      */
-    suspend fun softDelete(characterId: Long, accountId: Long)
+    suspend fun softDelete(characterId: String, accountId: String)
 }

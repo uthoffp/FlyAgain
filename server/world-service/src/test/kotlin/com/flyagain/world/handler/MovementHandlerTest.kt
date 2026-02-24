@@ -23,14 +23,14 @@ class MovementHandlerTest {
 
     private fun makePlayer(
         entityId: Long = 1L,
-        accountId: Long = 100L,
+        accountId: String = "100",
         x: Float = 500f,
         y: Float = 0f,
         z: Float = 500f
     ): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = entityId + 100,
+            characterId = "${entityId + 100}",
             accountId = accountId,
             name = "Player$entityId",
             characterClass = 1,
@@ -39,7 +39,7 @@ class MovementHandlerTest {
     }
 
     private fun makeMovementPacket(
-        accountId: Long,
+        accountId: String,
         dx: Float = 1f,
         dy: Float = 0f,
         dz: Float = 0f,
@@ -68,10 +68,10 @@ class MovementHandlerTest {
 
     @Test
     fun `handleMovementInput sets player movement state`() {
-        val player = makePlayer(accountId = 100L)
+        val player = makePlayer(accountId = "100")
         entityManager.tryAddPlayer(player)
 
-        val packet = makeMovementPacket(accountId = 100L, dx = 1f, dz = 0f, isMoving = true, rotation = 1.5f)
+        val packet = makeMovementPacket(accountId = "100", dx = 1f, dz = 0f, isMoving = true, rotation = 1.5f)
         handler.handleMovementInput(packet)
 
         assertEquals(1f, player.inputDx)
@@ -82,11 +82,11 @@ class MovementHandlerTest {
 
     @Test
     fun `handleMovementInput normalizes direction vector over length 1`() {
-        val player = makePlayer(accountId = 100L)
+        val player = makePlayer(accountId = "100")
         entityManager.tryAddPlayer(player)
 
         // Vector (3, 0, 4) has length 5 — should be normalized to (0.6, 0, 0.8)
-        val packet = makeMovementPacket(accountId = 100L, dx = 3f, dy = 0f, dz = 4f)
+        val packet = makeMovementPacket(accountId = "100", dx = 3f, dy = 0f, dz = 4f)
         handler.handleMovementInput(packet)
 
         assertTrue(player.inputDx < 1f, "dx should be normalized, got ${player.inputDx}")
@@ -96,14 +96,14 @@ class MovementHandlerTest {
     @Test
     fun `handleMovementInput ignores unknown account`() {
         // No player with accountId = 999
-        val packet = makeMovementPacket(accountId = 999L)
+        val packet = makeMovementPacket(accountId = "999")
         handler.handleMovementInput(packet)
         // Should not throw
     }
 
     @Test
     fun `handleMovementInput rejects NaN input`() {
-        val player = makePlayer(accountId = 100L)
+        val player = makePlayer(accountId = "100")
         entityManager.tryAddPlayer(player)
 
         val input = MovementInput.newBuilder()
@@ -115,7 +115,7 @@ class MovementHandlerTest {
             .build()
 
         val packet = QueuedPacket(
-            accountId = 100L,
+            accountId = "100",
             opcode = 0x0101,
             payload = input.toByteArray(),
             tcpChannel = null
@@ -129,11 +129,11 @@ class MovementHandlerTest {
 
     @Test
     fun `handleMovementInput toggles flight mode and marks dirty`() {
-        val player = makePlayer(accountId = 100L)
+        val player = makePlayer(accountId = "100")
         entityManager.tryAddPlayer(player)
         assertFalse(player.isFlying)
 
-        val packet = makeMovementPacket(accountId = 100L, isFlying = true, isMoving = true)
+        val packet = makeMovementPacket(accountId = "100", isFlying = true, isMoving = true)
         handler.handleMovementInput(packet)
 
         assertTrue(player.isFlying)
@@ -206,8 +206,8 @@ class MovementHandlerTest {
     @Test
     fun `applyMovement uses fly speed when flying`() {
         val channel = ZoneChannel(zoneId = 1, channelId = 0)
-        val groundPlayer = makePlayer(entityId = 1L, accountId = 1L, x = 500f, z = 500f)
-        val flyPlayer = makePlayer(entityId = 2L, accountId = 2L, x = 500f, z = 500f)
+        val groundPlayer = makePlayer(entityId = 1L, accountId = "1", x = 500f, z = 500f)
+        val flyPlayer = makePlayer(entityId = 2L, accountId = "2", x = 500f, z = 500f)
         channel.addPlayer(groundPlayer)
         channel.addPlayer(flyPlayer)
 

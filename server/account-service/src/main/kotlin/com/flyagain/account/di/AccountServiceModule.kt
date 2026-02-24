@@ -1,6 +1,7 @@
 package com.flyagain.account.di
 
 import com.flyagain.account.handler.CharacterCreateHandler
+import com.flyagain.account.handler.CharacterListHandler
 import com.flyagain.account.handler.CharacterSelectHandler
 import com.flyagain.account.handler.JwtValidator
 import com.flyagain.account.handler.PacketRouter
@@ -40,6 +41,7 @@ val accountServiceModule = module {
     // Handlers
     single { JwtValidator(get<Config>().getString("flyagain.auth.jwt-secret")) }
     single { CharacterCreateHandler(get()) }
+    single { CharacterListHandler(get()) }
     single {
         val config = get<Config>()
         CharacterSelectHandler(
@@ -55,7 +57,7 @@ val accountServiceModule = module {
     single { HeartbeatTracker() }
 
     // Packet router
-    single { PacketRouter(get(), get(), get(), get()) }
+    single { PacketRouter(get(), get(), get(), get(), get()) }
 
     // TCP server
     single {

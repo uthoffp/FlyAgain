@@ -1,6 +1,6 @@
 CREATE TABLE inventory (
-    id              BIGSERIAL PRIMARY KEY,
-    character_id    BIGINT NOT NULL REFERENCES characters(id),
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    character_id    UUID NOT NULL REFERENCES characters(id),
     slot            SMALLINT NOT NULL,
     item_id         INT NOT NULL REFERENCES item_definitions(id),
     amount          SMALLINT NOT NULL DEFAULT 1,

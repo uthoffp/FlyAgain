@@ -3,6 +3,27 @@
 .godot/
 # Godot export templates (large binaries, downloaded per-developer)
 export_presets.cfg
+# Godot exported builds
+*.pck
+*.exe
+*.x86_64
+*.apk
+*.aab
+# Godot crash logs
+*.dmp
+# Godot Android build directory
+/android/
+
+# ===== Godot Addons (third-party, installed via asset library / plugin manager) =====
+client/addons/
+
+# ===== Leftover Unity project (not part of Godot client) =====
+client/My project/
+
+# ===== Testing (gdUnit4) =====
+# gdUnit4 reports and temporary files
+reports/
+.gdunit4/
 
 # ===== Kotlin / Gradle =====
 build/

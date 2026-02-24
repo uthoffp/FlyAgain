@@ -42,9 +42,9 @@ static func encode_heartbeat(client_time_ms: int) -> PackedByteArray:
 
 
 ## Encodes a CharacterSelectRequest { character_id=1, jwt=2 }.
-static func encode_character_select(character_id: int, jwt: String) -> PackedByteArray:
+static func encode_character_select(character_id: String, jwt: String) -> PackedByteArray:
 	var buf := PackedByteArray()
-	buf.append_array(_int64_field(1, character_id))
+	buf.append_array(_string_field(1, character_id))
 	buf.append_array(_string_field(2, jwt))
 	return buf
 
@@ -59,6 +59,13 @@ static func encode_character_create(
 	buf.append_array(_string_field(1, name))
 	buf.append_array(_string_field(2, character_class))
 	buf.append_array(_string_field(3, jwt))
+	return buf
+
+
+## Encodes a CharacterListRequest { jwt=1 }.
+static func encode_character_list_request(jwt: String) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_string_field(1, jwt))
 	return buf
 
 

@@ -28,12 +28,14 @@ import org.slf4j.LoggerFactory
  * - HEARTBEAT (0x0601) -- echoes back with server timestamp
  * - CHARACTER_SELECT (0x0003) -- selects a character and enters the world
  * - CHARACTER_CREATE (0x0005) -- creates a new character
+ * - CHARACTER_LIST_REQUEST (0x0008) -- fetches current character list
  */
 @ChannelHandler.Sharable
 class PacketRouter(
     private val jwtValidator: JwtValidator,
     private val characterCreateHandler: CharacterCreateHandler,
     private val characterSelectHandler: CharacterSelectHandler,
+    private val characterListHandler: CharacterListHandler,
     private val heartbeatTracker: HeartbeatTracker
 ) : SimpleChannelInboundHandler<Packet>() {
 
@@ -41,7 +43,7 @@ class PacketRouter(
     private val routerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     companion object {
-        val ACCOUNT_ID_KEY: AttributeKey<Long> = AttributeKey.valueOf("accountId")
+        val ACCOUNT_ID_KEY: AttributeKey<String> = AttributeKey.valueOf("accountId")
         val SESSION_ID_KEY: AttributeKey<String> = AttributeKey.valueOf("sessionId")
         val AUTHENTICATED_KEY: AttributeKey<Boolean> = AttributeKey.valueOf("authenticated")
     }
@@ -98,6 +100,17 @@ class PacketRouter(
                 }
             }
 
+            Opcode.CHARACTER_LIST_REQUEST_VALUE -> {
+                routerScope.launch {
+                    try {
+                        characterListHandler.handle(ctx, accountId)
+                    } catch (e: Exception) {
+                        logger.error("Error handling CHARACTER_LIST_REQUEST for account {}", accountId, e)
+                        sendError(ctx, opcode, 500, "Internal server error")
+                    }
+                }
+            }
+
             else -> {
                 logger.warn("Unknown opcode 0x{} from {}", opcode.toString(16), ctx.channel().remoteAddress())
                 sendError(ctx, opcode, 400, "Unknown opcode")
@@ -139,6 +152,10 @@ class PacketRouter(
                 }
                 Opcode.CHARACTER_CREATE_VALUE -> {
                     val request = com.flyagain.common.proto.CharacterCreateRequest.parseFrom(packet.payload)
+                    request.jwt.ifBlank { null }
+                }
+                Opcode.CHARACTER_LIST_REQUEST_VALUE -> {
+                    val request = com.flyagain.common.proto.CharacterListRequest.parseFrom(packet.payload)
                     request.jwt.ifBlank { null }
                 }
                 else -> null

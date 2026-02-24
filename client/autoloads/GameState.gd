@@ -20,7 +20,7 @@ var world_service_udp_port: int  = 0
 ## Array of Dictionaries: { id, name, character_class, level }
 var characters: Array = []
 ## Selected character ID (set after CharacterSelect)
-var selected_character_id: int = 0
+var selected_character_id: String = ""
 
 
 ## Resets all session state. Call on logout or session expiry.
@@ -33,7 +33,7 @@ func reset() -> void:
 	world_service_tcp_port = 0
 	world_service_udp_port = 0
 	characters            = []
-	selected_character_id = 0
+	selected_character_id = ""
 
 
 ## Returns true if a valid session is active.

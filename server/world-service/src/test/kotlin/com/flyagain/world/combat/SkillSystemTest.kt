@@ -49,8 +49,8 @@ class SkillSystemTest {
     ): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = entityId + 100,
-            accountId = entityId + 200,
+            characterId = "${entityId + 100}",
+            accountId = "${entityId + 200}",
             name = "Player$entityId",
             characterClass = 1,
             x = x, y = 0f, z = z,

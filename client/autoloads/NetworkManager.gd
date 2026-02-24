@@ -29,6 +29,7 @@ signal register_response(data: Dictionary)
 signal error_response(data: Dictionary)
 signal server_message(data: Dictionary)
 signal enter_world_response(data: Dictionary)
+signal character_list_response(data: Dictionary)
 
 
 # ---- Configuration ----
@@ -121,7 +122,7 @@ func send_register(username: String, email: String, password: String) -> void:
 
 
 ## Sends a CharacterSelectRequest to the account-service.
-func send_character_select(character_id: int) -> void:
+func send_character_select(character_id: String) -> void:
 	_send(PacketProtocol.OPCODE_CHARACTER_SELECT,
 		ProtoEncoder.encode_character_select(character_id, GameState.jwt))
 
@@ -130,6 +131,12 @@ func send_character_select(character_id: int) -> void:
 func send_character_create(name: String, character_class: String) -> void:
 	_send(PacketProtocol.OPCODE_CHARACTER_CREATE,
 		ProtoEncoder.encode_character_create(name, character_class, GameState.jwt))
+
+
+## Sends a CharacterListRequest to the account-service.
+func send_character_list_request() -> void:
+	_send(PacketProtocol.OPCODE_CHARACTER_LIST_REQUEST,
+		ProtoEncoder.encode_character_list_request(GameState.jwt))
 
 
 # ---- Connection state handlers ----
@@ -269,6 +276,8 @@ func _dispatch_frame(frame: PackedByteArray) -> void:
 			server_message.emit(ProtoDecoder.new(payload).decode_server_message())
 		PacketProtocol.OPCODE_ENTER_WORLD:
 			enter_world_response.emit(ProtoDecoder.new(payload).decode_enter_world_response())
+		PacketProtocol.OPCODE_CHARACTER_LIST_RESPONSE:
+			character_list_response.emit(ProtoDecoder.new(payload).decode_character_list_response())
 		PacketProtocol.OPCODE_HEARTBEAT:
 			pass  # Server heartbeat echo — no action needed
 		_:

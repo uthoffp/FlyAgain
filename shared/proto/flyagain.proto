@@ -12,14 +12,16 @@ option csharp_namespace = "FlyAgain.Proto";
 enum Opcode {
     OPCODE_UNSPECIFIED = 0;
 
-    // Auth (0x0001 - 0x0007)
-    LOGIN_REQUEST         = 0x0001;
-    LOGIN_RESPONSE        = 0x0002;
-    CHARACTER_SELECT      = 0x0003;
-    ENTER_WORLD           = 0x0004;
-    CHARACTER_CREATE      = 0x0005;
-    REGISTER_REQUEST      = 0x0006;
-    REGISTER_RESPONSE     = 0x0007;
+    // Auth (0x0001 - 0x0009)
+    LOGIN_REQUEST           = 0x0001;
+    LOGIN_RESPONSE          = 0x0002;
+    CHARACTER_SELECT        = 0x0003;
+    ENTER_WORLD             = 0x0004;
+    CHARACTER_CREATE        = 0x0005;
+    REGISTER_REQUEST        = 0x0006;
+    REGISTER_RESPONSE       = 0x0007;
+    CHARACTER_LIST_REQUEST  = 0x0008;
+    CHARACTER_LIST_RESPONSE = 0x0009;
 
     // Movement (0x0101 - 0x0103)
     MOVEMENT_INPUT        = 0x0101;
@@ -116,7 +118,7 @@ message RegisterResponse {
 }
 
 message CharacterSelectRequest {
-    int64 character_id = 1;
+    string character_id = 1;
     string jwt = 2;
 }
 
@@ -137,10 +139,18 @@ message EnterWorldResponse {
 }
 
 message CharacterInfo {
-    int64 id = 1;
+    string id = 1;
     string name = 2;
     string character_class = 3;
     int32 level = 4;
+}
+
+message CharacterListRequest {
+    string jwt = 1;
+}
+
+message CharacterListResponse {
+    repeated CharacterInfo characters = 1;
 }
 
 // ============================================================
@@ -252,7 +262,7 @@ message ChannelInfo {
 // Client -> World Service: Initial connection with JWT and character ID
 message EnterWorldRequest {
     string jwt = 1;
-    int64 character_id = 2;
+    string character_id = 2;
     string session_id = 3;
 }
 

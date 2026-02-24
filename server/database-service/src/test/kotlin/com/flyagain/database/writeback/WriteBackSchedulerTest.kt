@@ -57,7 +57,7 @@ class WriteBackSchedulerTest {
 
         coVerify(exactly = 1) { characterRepo.save(any()) }
         val saved = savedSlot.captured
-        assertEquals(42L, saved.characterId)
+        assertEquals("42", saved.characterId)
         assertEquals(500, saved.hp)
         assertEquals(100, saved.mp)
         assertEquals(5000L, saved.xp)
@@ -106,23 +106,23 @@ class WriteBackSchedulerTest {
         )
         // First character: repo throws
         every { redisSync.hgetall("character:1") } returns mapOf("hp" to "100")
-        coEvery { characterRepo.save(match { it.characterId == 1L }) } throws RuntimeException("DB down")
+        coEvery { characterRepo.save(match { it.characterId == "1" }) } throws RuntimeException("DB down")
 
         // Second character: succeeds
         every { redisSync.hgetall("character:2") } returns mapOf("hp" to "200")
-        coEvery { characterRepo.save(match { it.characterId == 2L }) } just Runs
+        coEvery { characterRepo.save(match { it.characterId == "2" }) } just Runs
         every { redisSync.del("character:2:dirty") } returns 1L
 
         scheduler.flushDirtyCharacters()
 
         // Second character should still be saved despite first failing
-        coVerify(exactly = 1) { characterRepo.save(match { it.characterId == 2L }) }
+        coVerify(exactly = 1) { characterRepo.save(match { it.characterId == "2" }) }
         verify(exactly = 1) { redisSync.del("character:2:dirty") }
     }
 
     @Test
-    fun `flushDirtyCharacters skips keys with non-numeric character ID`() = runTest {
-        every { redisSync.keys("character:*:dirty") } returns listOf("character:abc:dirty")
+    fun `flushDirtyCharacters skips keys with blank character ID`() = runTest {
+        every { redisSync.keys("character:*:dirty") } returns listOf("character::dirty")
 
         scheduler.flushDirtyCharacters()
 
@@ -161,7 +161,7 @@ class WriteBackSchedulerTest {
         scheduler.flushDirtyCharacters()
 
         val saved = savedSlot.captured
-        assertEquals(5L, saved.characterId)
+        assertEquals("5", saved.characterId)
         assertEquals(250, saved.hp)
         assertEquals(0, saved.mp)       // default
         assertEquals(0L, saved.xp)      // default

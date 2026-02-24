@@ -29,7 +29,7 @@ class CharacterCreateHandler(
         private val VALID_CLASSES = setOf("krieger", "magier", "assassine", "kleriker")
     }
 
-    suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: Long) {
+    suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: String) {
         val request = try {
             CharacterCreateRequest.parseFrom(packet.payload)
         } catch (e: Exception) {

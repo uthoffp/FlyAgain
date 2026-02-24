@@ -64,8 +64,8 @@ class WriteBackScheduler(
 
         for (key in dirtyKeys) {
             try {
-                val charIdStr = key.removePrefix("character:").removeSuffix(":dirty")
-                val charId = charIdStr.toLongOrNull() ?: continue
+                val charId = key.removePrefix("character:").removeSuffix(":dirty")
+                if (charId.isBlank()) continue
 
                 val data = redis.hgetall("character:$charId")
                 if (data.isNotEmpty()) {

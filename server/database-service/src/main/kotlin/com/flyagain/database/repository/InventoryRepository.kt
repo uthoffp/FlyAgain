@@ -20,7 +20,7 @@ interface InventoryRepository {
      * @param characterId the character whose inventory to load
      * @return list of occupied [InventorySlot]s (empty slots are not stored)
      */
-    suspend fun getInventory(characterId: Long): List<InventorySlot>
+    suspend fun getInventory(characterId: String): List<InventorySlot>
 
     /**
      * Retrieves all currently equipped items for a character.
@@ -30,7 +30,7 @@ interface InventoryRepository {
      * @param characterId the character whose equipment to load
      * @return list of [EquipmentSlot]s (one per equipped slot type)
      */
-    suspend fun getEquipment(characterId: Long): List<EquipmentSlot>
+    suspend fun getEquipment(characterId: String): List<EquipmentSlot>
 
     /**
      * Moves an item from one inventory slot to another.
@@ -43,7 +43,7 @@ interface InventoryRepository {
      * @param toSlot destination slot index
      * @return `true` if the move succeeded, `false` if no item exists at [fromSlot]
      */
-    suspend fun moveItem(characterId: Long, fromSlot: Int, toSlot: Int): Boolean
+    suspend fun moveItem(characterId: String, fromSlot: Int, toSlot: Int): Boolean
 
     /**
      * Adds an item to the character's inventory in the first available slot.
@@ -56,7 +56,7 @@ interface InventoryRepository {
      * @return the slot index where the item was placed
      * @throws NoSuchElementException if the inventory is full (all 100 slots occupied)
      */
-    suspend fun addItem(characterId: Long, itemId: Int, amount: Int): Int
+    suspend fun addItem(characterId: String, itemId: Int, amount: Int): Int
 
     /**
      * Removes an item from the specified inventory slot.
@@ -68,7 +68,7 @@ interface InventoryRepository {
      * @param slot the inventory slot to clear
      * @param amount currently unused (full removal only)
      */
-    suspend fun removeItem(characterId: Long, slot: Int, amount: Int)
+    suspend fun removeItem(characterId: String, slot: Int, amount: Int)
 
     /**
      * Equips an item from the character's inventory into an equipment slot.
@@ -82,7 +82,7 @@ interface InventoryRepository {
      * @param equipSlotType the target equipment slot type (e.g. head, weapon, chest)
      * @return `true` if successful, `false` if no item exists at [inventorySlot]
      */
-    suspend fun equipItem(characterId: Long, inventorySlot: Int, equipSlotType: Int): Boolean
+    suspend fun equipItem(characterId: String, inventorySlot: Int, equipSlotType: Int): Boolean
 
     /**
      * Unequips an item from the specified equipment slot.
@@ -93,7 +93,7 @@ interface InventoryRepository {
      * @param equipSlotType the equipment slot to clear
      * @return `true` if an item was unequipped, `false` if the slot was already empty
      */
-    suspend fun unequipItem(characterId: Long, equipSlotType: Int): Boolean
+    suspend fun unequipItem(characterId: String, equipSlotType: Int): Boolean
 
     /**
      * Directly sets a character's gold amount.
@@ -103,7 +103,7 @@ interface InventoryRepository {
      * @param characterId the character whose gold to update
      * @param newGold the new gold total (must be >= 0)
      */
-    suspend fun updateGold(characterId: Long, newGold: Long)
+    suspend fun updateGold(characterId: String, newGold: Long)
 
     /**
      * Reads a character's current gold balance.
@@ -111,5 +111,5 @@ interface InventoryRepository {
      * @param characterId the character to query
      * @return the gold amount, or 0 if the character doesn't exist
      */
-    suspend fun getGold(characterId: Long): Long
+    suspend fun getGold(characterId: String): Long
 }
