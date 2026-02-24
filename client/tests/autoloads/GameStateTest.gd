@@ -3,11 +3,13 @@
 class_name GameStateTest
 extends GdUnitTestSuite
 
+const GameStateScript = preload("res://autoloads/GameState.gd")
+
 var _state: Node  # GameState extends Node
 
 
 func before_test() -> void:
-	_state = auto_free(GameState.new())
+	_state = auto_free(GameStateScript.new())
 
 
 # ---- Authentication ----

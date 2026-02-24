@@ -128,9 +128,9 @@ func send_character_select(character_id: String) -> void:
 
 
 ## Sends a CharacterCreateRequest to the account-service.
-func send_character_create(name: String, character_class: String) -> void:
+func send_character_create(char_name: String, character_class: String) -> void:
 	_send(PacketProtocol.OPCODE_CHARACTER_CREATE,
-		ProtoEncoder.encode_character_create(name, character_class, GameState.jwt))
+		ProtoEncoder.encode_character_create(char_name, character_class, GameState.jwt))
 
 
 ## Sends a CharacterListRequest to the account-service.

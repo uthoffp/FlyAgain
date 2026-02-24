@@ -7,11 +7,13 @@
 class_name NetworkManagerTest
 extends GdUnitTestSuite
 
+const NetworkManagerScript = preload("res://autoloads/NetworkManager.gd")
+
 var _nm: Node  # NetworkManager instance
 
 
 func before_test() -> void:
-	_nm = auto_free(NetworkManager.new())
+	_nm = auto_free(NetworkManagerScript.new())
 	# Prevent _process from polling a real TCP socket
 	_nm.set_process(false)
 
@@ -60,27 +62,27 @@ func test_is_server_connected_only_when_connected() -> void:
 	# IDLE
 	assert_bool(_nm.is_server_connected()).is_false()
 	# Simulate CONNECTED
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	assert_bool(_nm.is_server_connected()).is_true()
 	# Simulate CONNECTING
-	_nm._state = NetworkManager._State.CONNECTING
+	_nm._state = NetworkManagerScript._State.CONNECTING
 	assert_bool(_nm.is_server_connected()).is_false()
 	# Simulate RECONNECTING
-	_nm._state = NetworkManager._State.RECONNECTING
+	_nm._state = NetworkManagerScript._State.RECONNECTING
 	assert_bool(_nm.is_server_connected()).is_false()
 	# Simulate FAILED
-	_nm._state = NetworkManager._State.FAILED
+	_nm._state = NetworkManagerScript._State.FAILED
 	assert_bool(_nm.is_server_connected()).is_false()
 
 
 func test_disconnect_resets_state() -> void:
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	_nm._recv_buf = PackedByteArray([0x01, 0x02, 0x03])
 	_nm._frame_len = 42
 
 	_nm.disconnect_from_server()
 
-	assert_int(_nm._state).is_equal(NetworkManager._State.IDLE)
+	assert_int(_nm._state).is_equal(NetworkManagerScript._State.IDLE)
 	assert_array(_nm._recv_buf).is_empty()
 	assert_int(_nm._frame_len).is_equal(-1)
 
@@ -91,18 +93,18 @@ func test_on_connect_error_triggers_reconnect() -> void:
 	_nm._reconnect_count = 0
 	_nm._on_connect_error()
 	# Should transition to RECONNECTING (not FAILED) since count < MAX
-	assert_int(_nm._state).is_equal(NetworkManager._State.RECONNECTING)
+	assert_int(_nm._state).is_equal(NetworkManagerScript._State.RECONNECTING)
 	assert_int(_nm._reconnect_count).is_equal(1)
 
 
 func test_on_connect_error_exhausts_retries() -> void:
-	_nm._reconnect_count = NetworkManager.MAX_RECONNECT_ATTEMPTS - 1
+	_nm._reconnect_count = NetworkManagerScript.MAX_RECONNECT_ATTEMPTS - 1
 	# Monitor the connection_failed signal
 	monitor_signals(_nm)
 
 	_nm._on_connect_error()
 
-	assert_int(_nm._state).is_equal(NetworkManager._State.FAILED)
+	assert_int(_nm._state).is_equal(NetworkManagerScript._State.FAILED)
 	await assert_signal(_nm).is_emitted("connection_failed")
 
 
@@ -112,18 +114,18 @@ func test_on_connected_resets_reconnect_count() -> void:
 
 	_nm._on_connected()
 
-	assert_int(_nm._state).is_equal(NetworkManager._State.CONNECTED)
+	assert_int(_nm._state).is_equal(NetworkManagerScript._State.CONNECTED)
 	assert_int(_nm._reconnect_count).is_equal(0)
 	await assert_signal(_nm).is_emitted("connected_to_server")
 
 
 func test_on_disconnected_emits_signal() -> void:
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	monitor_signals(_nm)
 
 	_nm._on_disconnected()
 
-	assert_int(_nm._state).is_equal(NetworkManager._State.IDLE)
+	assert_int(_nm._state).is_equal(NetworkManagerScript._State.IDLE)
 	await assert_signal(_nm).is_emitted("disconnected_from_server")
 
 
@@ -136,7 +138,7 @@ func test_parse_single_complete_frame() -> void:
 	payload.append_array(_varint_field(2, 6000))   # server_time
 	var frame := _build_raw_frame(PacketProtocol.OPCODE_HEARTBEAT, payload)
 
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	_nm._recv_buf = frame
 	_nm._frame_len = -1
 
@@ -187,7 +189,7 @@ func test_parse_multiple_frames_in_one_buffer() -> void:
 	payload2.append_array(_varint_field(2, 200))
 	var frame2 := _build_raw_frame(PacketProtocol.OPCODE_HEARTBEAT, payload2)
 
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	_nm._recv_buf = PackedByteArray()
 	_nm._recv_buf.append_array(frame1)
 	_nm._recv_buf.append_array(frame2)
@@ -205,7 +207,7 @@ func test_parse_multiple_frames_in_one_buffer() -> void:
 
 func test_parse_invalid_frame_length_zero() -> void:
 	# frame_len = 0 is invalid (< 2 minimum for opcode)
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	_nm._recv_buf = PackedByteArray([0x00, 0x00, 0x00, 0x00])
 	_nm._frame_len = -1
 
@@ -218,7 +220,7 @@ func test_parse_invalid_frame_length_zero() -> void:
 
 func test_parse_oversized_frame_drops_connection() -> void:
 	# frame_len > MAX_FRAME_BYTES (65535)
-	_nm._state = NetworkManager._State.CONNECTED
+	_nm._state = NetworkManagerScript._State.CONNECTED
 	_nm._recv_buf = PackedByteArray([0x00, 0x01, 0x00, 0x00])  # 65536
 	_nm._frame_len = -1
 
@@ -351,7 +353,7 @@ func test_dispatch_empty_frame_ignored() -> void:
 # ==== Send guard ====
 
 func test_send_rejected_when_not_connected() -> void:
-	_nm._state = NetworkManager._State.IDLE
+	_nm._state = NetworkManagerScript._State.IDLE
 	# send_login internally calls _send() which checks state
 	# This should not crash; it just logs a warning
 	_nm.send_login("user", "pass")

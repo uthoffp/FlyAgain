@@ -58,10 +58,10 @@ static func validate_password_match(password: String, confirm: String) -> String
 
 
 ## Validates a character name. Returns an empty string on success, or an error message.
-static func validate_character_name(name: String) -> String:
-	if name.length() < CHAR_NAME_MIN_LENGTH or name.length() > CHAR_NAME_MAX_LENGTH:
+static func validate_character_name(char_name: String) -> String:
+	if char_name.length() < CHAR_NAME_MIN_LENGTH or char_name.length() > CHAR_NAME_MAX_LENGTH:
 		return "Name muss %d–%d Zeichen lang sein." % [CHAR_NAME_MIN_LENGTH, CHAR_NAME_MAX_LENGTH]
-	if not _matches_pattern(name, _USERNAME_PATTERN):
+	if not _matches_pattern(char_name, _USERNAME_PATTERN):
 		return "Name darf nur Buchstaben, Ziffern und Bindestriche enthalten."
 	return ""
 

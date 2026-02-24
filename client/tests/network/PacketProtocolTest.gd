@@ -68,6 +68,6 @@ func test_opcode_name_system() -> void:
 
 
 func test_opcode_name_unknown() -> void:
-	var name := PacketProtocol.opcode_name(0xFFFF)
-	assert_str(name).contains("UNKNOWN")
-	assert_str(name).contains("FFFF")
+	var opcode_str := PacketProtocol.opcode_name(0xFFFF)
+	assert_str(opcode_str).contains("UNKNOWN")
+	assert_str(opcode_str).contains("FFFF")
