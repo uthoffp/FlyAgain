@@ -115,7 +115,7 @@ class SessionLifecycleManager(
         val dirtyKey = "character:${player.characterId}:dirty"
 
         val fields = mapOf(
-            "account_id" to player.accountId.toString(),
+            "account_id" to player.accountId,
             "name" to player.name,
             "class" to player.characterClass.toString(),
             "level" to player.level.toString(),
@@ -191,9 +191,9 @@ class SessionLifecycleManager(
      * Create a thread-safe snapshot of player fields for async Redis persistence.
      * Must be called from the game loop thread.
      */
-    fun snapshotPlayer(player: PlayerEntity): Pair<Long, Map<String, String>> {
+    fun snapshotPlayer(player: PlayerEntity): Pair<String, Map<String, String>> {
         return player.characterId to mapOf(
-            "account_id" to player.accountId.toString(),
+            "account_id" to player.accountId,
             "name" to player.name,
             "class" to player.characterClass.toString(),
             "level" to player.level.toString(),
@@ -223,7 +223,7 @@ class SessionLifecycleManager(
      * Uses pipelining: all 4 commands are dispatched in a single batch
      * and awaited together (1 round-trip instead of 4 sequential ones).
      */
-    suspend fun saveSnapshotToRedis(characterId: Long, fields: Map<String, String>) {
+    suspend fun saveSnapshotToRedis(characterId: String, fields: Map<String, String>) {
         val async = redisConnection.async()
         val charKey = "character:$characterId"
         val dirtyKey = "character:$characterId:dirty"

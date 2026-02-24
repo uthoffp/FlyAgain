@@ -1,0 +1,47 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Fly-Again Client"
+run/main_scene="res://scenes/ui/screens/LoginScreen.tscn"
+config/features=PackedStringArray("4.6", "Forward Plus")
+config/icon="res://icon.svg"
+config/main_scene="res://scenes/ui/screens/LoginScreen.tscn"
+
+[autoload]
+
+NetworkManager="*res://autoloads/NetworkManager.gd"
+GameState="*res://autoloads/GameState.gd"
+UIManager="*res://autoloads/UIManager.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[debug]
+
+gdscript/warnings/directory_rules={
+"res://addons/gdUnit4/": 0
+}
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"

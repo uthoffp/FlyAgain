@@ -37,17 +37,16 @@ class JwtValidator(jwtSecret: String) {
         return try {
             val decoded: DecodedJWT = verifier.verify(token)
 
-            val accountIdStr = decoded.subject
+            val accountId = decoded.subject
                 ?: run {
                     logger.warn("JWT missing 'sub' claim")
                     return null
                 }
 
-            val accountId = accountIdStr.toLongOrNull()
-                ?: run {
-                    logger.warn("JWT 'sub' claim is not a valid Long: {}", accountIdStr)
-                    return null
-                }
+            if (accountId.isBlank()) {
+                logger.warn("JWT 'sub' claim is empty")
+                return null
+            }
 
             val sessionId = decoded.getClaim("sid").asString()
                 ?: run {
@@ -73,6 +72,6 @@ class JwtValidator(jwtSecret: String) {
  * @param sessionId The session ID (from the `sid` claim).
  */
 data class JwtClaims(
-    val accountId: Long,
+    val accountId: String,
     val sessionId: String
 )

@@ -2,7 +2,7 @@
 
 ## 1. Vision
 
-**FlyAgain** ist ein MMORPG inspiriert von Flyff (Fly For Fun), das sich auf faires Gameplay ohne Pay-to-Win konzentriert. Alle spielrelevanten Items und Fortschritte müssen im Spiel erarbeitet werden.
+**FlyAgain** ist ein originales MMORPG, das sich auf faires Gameplay ohne Pay-to-Win konzentriert. Alle spielrelevanten Items und Fortschritte müssen im Spiel erarbeitet werden.
 
 **Kernphilosophie:** Skill und Zeitinvestment bestimmen den Fortschritt - nicht die Geldbörse.
 
@@ -15,7 +15,7 @@
 - Fliegen ist ein zentrales Fortbewegungsmittel in der offenen Welt
 
 ### 2.2 Kampfsystem
-- **Tab-Target:** Klassisches Targeting - Monster anklicken, Auto-Attack + Skills einsetzen. Das monotone, meditative Grinding-Feeling von Flyff soll bewusst beibehalten werden. Zielgruppe sind Spieler, die diesen Loop schätzen.
+- **Tab-Target:** Klassisches Targeting - Monster anklicken, Auto-Attack + Skills einsetzen. Das monotone, meditative Grinding-Feeling soll bewusst beibehalten werden. Zielgruppe sind Spieler, die diesen Loop schätzen.
 - **Klassen-basiert:** Verschiedene Klassen mit einzigartigen Fähigkeitenbäumen
 - **Skills:** Rudimentäres Skill-System mit grundlegenden Fähigkeiten pro Klasse
 
@@ -37,10 +37,10 @@
 
 | Klasse     | Rolle       | Beschreibung                              |
 |------------|-------------|-------------------------------------------|
-| Krieger    | Tank/Melee  | Hohe HP, starke Nahkampf-Angriffe         |
-| Magier     | Ranged DPS  | Elementarmagie, hoher Schaden, niedrige HP |
-| Assassine  | Melee DPS   | Schnelle Angriffe, Ausweichen, Kritisch   |
-| Kleriker   | Healer/Buff | Heilung, Buffs, Support-Fähigkeiten       |
+| Warrior    | Tank/Melee  | Hohe HP, starke Nahkampf-Angriffe         |
+| Mage       | Ranged DPS  | Elementarmagie, hoher Schaden, niedrige HP |
+| Assassin   | Melee DPS   | Schnelle Angriffe, Ausweichen, Kritisch   |
+| Cleric     | Healer/Buff | Heilung, Buffs, Support-Fähigkeiten       |
 
 Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 
@@ -50,8 +50,8 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 
 ### 4.1 Startgebiet
 - **Stadt Aerheim:** Hub-Stadt mit NPCs (Händler, Quest-Geber)
-- **Grüne Ebene:** Level 1-15 Grinding-Zone mit schwachen Monstern
-- **Dunkler Wald:** Level 15-30 Zone mit stärkeren Monstern
+- **Green Plains:** Level 1-15 Grinding-Zone mit schwachen Monstern
+- **Dark Forest:** Level 15-30 Zone mit stärkeren Monstern
 
 ### 4.2 Monster
 - 10-15 verschiedene Monstertypen für den MVP
@@ -73,8 +73,8 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 ## 6. Technische Anforderungen
 
 ### 6.0 Technologie-Stack
-- **Client:** Unity (C#) mit Universal Render Pipeline (URP)
-- **Server:** Kotlin (Ktor/Netty) - Authoritative Game Server
+- **Client:** Godot 4 (GDScript)
+- **Server:** Kotlin (Netty) - Authoritative Game Server
 - **Datenbank:** PostgreSQL + Redis
 - **Erwartete Last:** max. 10.000 Spieler gesamt, max. 5.000 gleichzeitig
 
@@ -84,13 +84,13 @@ Jede Klasse erhält später (post-MVP) eine Spezialisierung (2nd Job).
 - **Datenbank:** PostgreSQL für Spielerdaten, Redis für Sessions/Cache
 - **Instanzen:** Dungeons als separate Instanzen
 
-### 6.2 Client (Unity / C#)
-- **3D-Grafik:** Third-Person-Kamera mit freier Rotation, URP
+### 6.2 Client (Godot 4 / GDScript)
+- **3D-Grafik:** Third-Person-Kamera mit freier Rotation
 - **UI-System:** Chat, Inventar, Skilltree, Map, Party/Guild-Management
 - **Netzwerk:** TCP/UDP Kommunikation mit Kotlin-Server, Client-Side Prediction
 
 ### 6.3 Minimal MVP Scope
-- 1 spielbare Klasse (Krieger)
+- 1 spielbare Klasse (Warrior)
 - 1 offene Zone + 1 Stadt
 - Grundbewegung (Laufen + Fliegen)
 - Basis-Kampfsystem (Auto-Attack + 3-4 Skills)

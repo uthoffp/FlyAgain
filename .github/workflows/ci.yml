@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
-  build:
-    name: Build & Test
+  build-server:
+    name: Build & Test Server
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,7 +38,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: server-test-reports
           path: |
             server/common/build/test-results/
             server/database-service/build/test-results/
@@ -42,3 +46,19 @@ jobs:
             server/account-service/build/test-results/
             server/world-service/build/test-results/
           retention-days: 14
+
+  test-client:
+    name: Test Client (gdUnit4)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gdUnit4 tests
+        uses: godot-gdunit-labs/gdUnit4-action@v1
+        with:
+          godot-version: '4.6'
+          project_dir: './client/'
+          paths: 'res://tests'
+          timeout: 5
+          retries: 1

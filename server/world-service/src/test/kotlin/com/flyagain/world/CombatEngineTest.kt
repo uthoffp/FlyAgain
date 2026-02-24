@@ -22,8 +22,8 @@ class CombatEngineTest {
     ): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = 100L,
-            accountId = 200L,
+            characterId = "100",
+            accountId = "200",
             name = "Warrior",
             characterClass = 1,
             x = 0f, y = 0f, z = 0f,

@@ -1,6 +1,7 @@
 package com.flyagain.database.repository
 
 import com.flyagain.common.grpc.*
+import java.util.UUID
 import javax.sql.DataSource
 
 /**
@@ -142,11 +143,11 @@ class GameDataRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource
         }
     }
 
-    override suspend fun getCharacterSkills(characterId: Long): List<CharacterSkillRecord> = withConnection { conn ->
+    override suspend fun getCharacterSkills(characterId: String): List<CharacterSkillRecord> = withConnection { conn ->
         conn.prepareStatement(
             "SELECT skill_id, skill_level FROM character_skills WHERE character_id = ?"
         ).use { stmt ->
-            stmt.setLong(1, characterId)
+            stmt.setObject(1, UUID.fromString(characterId))
             stmt.executeQuery().use { rs ->
                 val results = mutableListOf<CharacterSkillRecord>()
                 while (rs.next()) {

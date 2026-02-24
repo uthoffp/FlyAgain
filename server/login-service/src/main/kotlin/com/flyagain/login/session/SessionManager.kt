@@ -39,7 +39,7 @@ class SessionManager(
      */
     suspend fun createSession(
         sessionId: String,
-        accountId: Long,
+        accountId: String,
         ip: String,
         hmacSecret: String
     ): Boolean {
@@ -83,7 +83,7 @@ class SessionManager(
      * @param accountId The account ID to check.
      * @return The existing session ID, or null if no session exists.
      */
-    suspend fun getExistingSession(accountId: Long): String? {
+    suspend fun getExistingSession(accountId: String): String? {
         val async = redisConnection.async()
         val accountKey = "$ACCOUNT_SESSION_PREFIX$accountId"
         return try {
@@ -128,7 +128,7 @@ class SessionManager(
      * @param sessionId The session ID to update.
      * @param characterId The selected character ID.
      */
-    suspend fun updateCharacterId(sessionId: String, characterId: Long) {
+    suspend fun updateCharacterId(sessionId: String, characterId: String) {
         val async = redisConnection.async()
         val sessionKey = "$SESSION_PREFIX$sessionId"
         try {

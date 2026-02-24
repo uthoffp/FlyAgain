@@ -67,8 +67,8 @@ class GameLoopTest {
         zoneManager.initialize()
         val player = PlayerEntity(
             entityId = 1L,
-            characterId = 101L,
-            accountId = 201L,
+            characterId = "101",
+            accountId = "201",
             name = "Mover",
             characterClass = 1,
             x = 500f, y = 0f, z = 500f,
@@ -117,8 +117,8 @@ class GameLoopTest {
         zoneManager.initialize()
 
         // Enqueue some packets
-        inputQueue.enqueue(QueuedPacket(accountId = 1L, opcode = 0x0101, payload = byteArrayOf(), tcpChannel = null))
-        inputQueue.enqueue(QueuedPacket(accountId = 2L, opcode = 0x0101, payload = byteArrayOf(), tcpChannel = null))
+        inputQueue.enqueue(QueuedPacket(accountId = "1", opcode = 0x0101, payload = byteArrayOf(), tcpChannel = null))
+        inputQueue.enqueue(QueuedPacket(accountId = "2", opcode = 0x0101, payload = byteArrayOf(), tcpChannel = null))
 
         val loop = makeGameLoop()
         loop.start()

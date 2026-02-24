@@ -10,6 +10,7 @@ import io.lettuce.core.api.StatefulRedisConnection
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.slf4j.LoggerFactory
+import javax.sql.DataSource
 
 /**
  * Entry point for the FlyAgain Database Service.
@@ -32,7 +33,7 @@ fun main() {
     val koin = koinApp.koin
 
     // Run Flyway migrations (one-shot side-effect)
-    val dataSource = koin.get<HikariDataSource>()
+    val dataSource = koin.get<DataSource>()
     FlywayRunner.migrate(dataSource)
 
     // Start write-back scheduler
@@ -51,7 +52,7 @@ fun main() {
         grpcServer.shutdown()
         koin.get<StatefulRedisConnection<*, *>>().close()
         koin.get<RedisClient>().shutdown()
-        dataSource.close()
+        (dataSource as HikariDataSource).close()
         stopKoin()
         logger.info("Database Service stopped.")
     })

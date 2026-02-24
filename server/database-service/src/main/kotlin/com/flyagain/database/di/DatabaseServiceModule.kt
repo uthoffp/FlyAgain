@@ -15,7 +15,7 @@ val databaseServiceModule = module {
     single<Config> { ConfigFactory.load() }
 
     // DataSource
-    single { DatabaseConfig.createDataSource(get()) }
+    single<javax.sql.DataSource> { DatabaseConfig.createDataSource(get()) }
 
     // Repositories (interface -> implementation)
     single<AccountRepository> { AccountRepositoryImpl(get()) }

@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * by the game loop on the main game thread.
  */
 data class QueuedPacket(
-    val accountId: Long,
+    val accountId: String,
     val opcode: Int,
     val payload: ByteArray,
     val tcpChannel: Channel?,

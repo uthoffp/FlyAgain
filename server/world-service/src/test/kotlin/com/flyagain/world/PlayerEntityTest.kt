@@ -16,8 +16,8 @@ class PlayerEntityTest {
     ): PlayerEntity {
         return PlayerEntity(
             entityId = 1L,
-            characterId = 100L,
-            accountId = 200L,
+            characterId = "100",
+            accountId = "200",
             name = "TestPlayer",
             characterClass = 1,
             x = 0f, y = 0f, z = 0f,

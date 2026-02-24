@@ -3,6 +3,7 @@ package com.flyagain.database.repository
 import com.flyagain.common.grpc.AccountRecord
 import com.google.protobuf.Timestamp
 import java.time.Instant
+import java.util.UUID
 import javax.sql.DataSource
 
 /**
@@ -27,18 +28,18 @@ class AccountRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource)
         }
     }
 
-    override suspend fun getById(accountId: Long): AccountRecord? = withConnection { conn ->
+    override suspend fun getById(accountId: String): AccountRecord? = withConnection { conn ->
         conn.prepareStatement(
             "SELECT id, username, email, password_hash, is_banned, ban_reason, ban_until, created_at, last_login FROM accounts WHERE id = ?"
         ).use { stmt ->
-            stmt.setLong(1, accountId)
+            stmt.setObject(1, UUID.fromString(accountId))
             stmt.executeQuery().use { rs ->
                 if (rs.next()) mapToAccountRecord(rs) else null
             }
         }
     }
 
-    override suspend fun create(username: String, email: String, passwordHash: String): Long = withTransaction { conn ->
+    override suspend fun create(username: String, email: String, passwordHash: String): String = withTransaction { conn ->
         conn.prepareStatement(
             "INSERT INTO accounts (username, email, password_hash) VALUES (?, ?, ?) RETURNING id"
         ).use { stmt ->
@@ -47,16 +48,16 @@ class AccountRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource)
             stmt.setString(3, passwordHash)
             stmt.executeQuery().use { rs ->
                 rs.next()
-                rs.getLong("id")
+                rs.getString("id")
             }
         }
     }
 
-    override suspend fun updateLastLogin(accountId: Long) = withConnection { conn ->
+    override suspend fun updateLastLogin(accountId: String) = withConnection { conn ->
         conn.prepareStatement(
             "UPDATE accounts SET last_login = NOW() WHERE id = ?"
         ).use { stmt ->
-            stmt.setLong(1, accountId)
+            stmt.setObject(1, UUID.fromString(accountId))
             stmt.executeUpdate()
         }
         conn.commit()
@@ -70,7 +71,7 @@ class AccountRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource)
      */
     private fun mapToAccountRecord(rs: java.sql.ResultSet): AccountRecord {
         val builder = AccountRecord.newBuilder()
-            .setId(rs.getLong("id"))
+            .setId(rs.getString("id"))
             .setUsername(rs.getString("username"))
             .setEmail(rs.getString("email"))
             .setPasswordHash(rs.getString("password_hash"))

@@ -12,7 +12,7 @@ class JwtManagerTest {
 
     @Test
     fun `createToken produces a non-empty JWT string`() {
-        val token = jwtManager.createToken(1L, "testuser", "session-abc")
+        val token = jwtManager.createToken("1", "testuser", "session-abc")
         assertNotNull(token)
         // JWT has 3 dot-separated parts
         assertEquals(3, token.split(".").size, "JWT should have 3 parts separated by dots")
@@ -20,7 +20,7 @@ class JwtManagerTest {
 
     @Test
     fun `validateToken returns decoded JWT for valid token`() {
-        val token = jwtManager.createToken(42L, "player1", "sess-xyz")
+        val token = jwtManager.createToken("42", "player1", "sess-xyz")
         val decoded = jwtManager.validateToken(token)
         assertNotNull(decoded)
     }
@@ -34,7 +34,7 @@ class JwtManagerTest {
     @Test
     fun `validateToken returns null for token signed with different secret`() {
         val otherManager = JwtManager(secret = "different-secret", expiryHours = 24)
-        val token = otherManager.createToken(1L, "user", "sess")
+        val token = otherManager.createToken("1", "user", "sess")
         // Validating with the original manager (different secret) should fail
         val result = jwtManager.validateToken(token)
         assertNull(result)
@@ -42,36 +42,36 @@ class JwtManagerTest {
 
     @Test
     fun `getAccountId extracts correct account ID from JWT`() {
-        val token = jwtManager.createToken(99L, "admin", "sess-123")
+        val token = jwtManager.createToken("99", "admin", "sess-123")
         val decoded = jwtManager.validateToken(token)!!
-        assertEquals(99L, jwtManager.getAccountId(decoded))
+        assertEquals("99", jwtManager.getAccountId(decoded))
     }
 
     @Test
     fun `getSessionId extracts correct session ID from JWT`() {
-        val token = jwtManager.createToken(1L, "user", "my-session-id")
+        val token = jwtManager.createToken("1", "user", "my-session-id")
         val decoded = jwtManager.validateToken(token)!!
         assertEquals("my-session-id", jwtManager.getSessionId(decoded))
     }
 
     @Test
     fun `JWT contains correct subject claim`() {
-        val token = jwtManager.createToken(123L, "testplayer", "sess")
+        val token = jwtManager.createToken("123", "testplayer", "sess")
         val decoded = jwtManager.validateToken(token)!!
         assertEquals("123", decoded.subject)
     }
 
     @Test
     fun `JWT contains correct username claim`() {
-        val token = jwtManager.createToken(1L, "krieger-main", "sess")
+        val token = jwtManager.createToken("1", "warrior-main", "sess")
         val decoded = jwtManager.validateToken(token)!!
-        assertEquals("krieger-main", decoded.getClaim("username").asString())
+        assertEquals("warrior-main", decoded.getClaim("username").asString())
     }
 
     @Test
     fun `expired token is rejected`() {
         val shortLivedManager = JwtManager(secret = "test-secret-key-for-unit-tests", expiryHours = 0)
-        val token = shortLivedManager.createToken(1L, "user", "sess")
+        val token = shortLivedManager.createToken("1", "user", "sess")
         // Token with 0 hours expiry should be immediately expired
         val result = shortLivedManager.validateToken(token)
         assertNull(result, "Expired token should be rejected")

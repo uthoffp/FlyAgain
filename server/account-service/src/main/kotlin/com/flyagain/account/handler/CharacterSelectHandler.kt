@@ -33,7 +33,7 @@ class CharacterSelectHandler(
         private const val CHARACTER_CACHE_TTL_SECONDS = 300L // 5 minutes
     }
 
-    suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: Long) {
+    suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: String) {
         val request = try {
             CharacterSelectRequest.parseFrom(packet.payload)
         } catch (e: Exception) {
@@ -43,7 +43,7 @@ class CharacterSelectHandler(
         }
 
         val characterId = request.characterId
-        if (characterId <= 0) {
+        if (characterId.isBlank()) {
             sendError(ctx, "Invalid character ID")
             return
         }
@@ -79,7 +79,7 @@ class CharacterSelectHandler(
             val redis = redisConnection.sync()
             val key = "char:$characterId"
             redis.hset(key, mapOf(
-                "account_id" to accountId.toString(),
+                "account_id" to accountId,
                 "name" to character.name,
                 "class" to character.characterClass.toString(),
                 "level" to character.level.toString(),

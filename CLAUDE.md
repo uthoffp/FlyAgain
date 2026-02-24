@@ -4,11 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) microservice server, and PostgreSQL + Redis persistence. The project is currently in early development (Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
+FlyAgain is an original MMORPG with a Godot 4 (GDScript) client, Kotlin (Netty) microservice server, and PostgreSQL + Redis persistence. The project is currently in early development (Phase 1). See docs/GDD.md for game design, docs/ARCHITECTURE.md for full technical spec, and docs/IMPLEMENTATION_PHASES.md for the phased build plan.
+
+## General Rules
+
+- **No "Flyff" references** — The name "Flyff" must NEVER appear in code, comments, variable names, UI texts, documentation, or any other project file. FlyAgain is an original game.
+- **Localization:** All user-facing texts (UI labels, error messages, tooltips, etc.) must be localized in both **English (en)** and **German (de)**. No hardcoded strings in UI.
+- **Best practices always** — Apply industry best practices in every decision: clean architecture, SOLID principles, security-first, performance-aware, and maintainable code.
+- **Scalability & future-proofing** — Design every component to scale horizontally and to accommodate future requirements without major rewrites. Prefer extensible abstractions over quick fixes.
 
 ## Tech Stack
 
-- **Client:** Unity 2022 LTS with URP (C#)
+- **Client:** Godot 4 (GDScript)
 - **Server:** Kotlin with Netty (TCP/TLS 1.3 + UDP), Gradle multi-project build
 - **DI:** Koin 4.0 (module per service, verified via tests)
 - **Inter-Service:** gRPC (protobuf-based)
@@ -16,98 +23,23 @@ FlyAgain is a Flyff-inspired MMORPG with a Unity (C#) client, Kotlin (Netty) mic
 - **Serialization:** Protocol Buffers (shared `.proto` definitions)
 - **DB Migrations:** Flyway
 
-## Unity Client Guidelines
+## Godot Client Guidelines
 
-- **Input System:** ALWAYS use Unity's new Input System (`UnityEngine.InputSystem`), NOT the legacy Input Manager (`UnityEngine.Input`)
-  - Use `Keyboard.current` to access keyboard input (e.g., `Keyboard.current.tabKey.wasPressedThisFrame`)
-  - Use `Mouse.current` for mouse input
-  - Never use `Input.GetKeyDown()`, `Input.GetKey()`, etc. - these will throw `InvalidOperationException`
-  - Input actions are defined in `client/Assets/Settings/FlyAgainInputActions.inputactions`
-  - Generated C# class: `FlyAgain.Input.FlyAgainInputActions`
-
-## MMO Development Best Practices
-
-### Server-Side Authority
-- **NEVER trust client input** — validate ALL actions server-side (movement, combat, inventory, trading)
-- **Client is a dumb renderer** — all game logic and state management happens on the server
-- Client-side prediction for movement only (rollback on server correction)
-- Anti-cheat: validate timestamps, rate-limit actions, detect impossible movements/actions
-
-### Performance & Scalability
-- **Interest management:** Only send updates for entities within player's area of interest (use SpatialGrid)
-- **Network optimization:** Batch updates, compress data, use delta compression for state changes
-- **Async I/O:** Use Kotlin Coroutines for all I/O operations (database, network, Redis)
-- **Connection pooling:** Reuse database connections, maintain connection pools
-- **Lazy loading:** Load only necessary data (don't load entire character inventory on login)
-- **Horizontal scaling:** Design services to be stateless where possible for easy scaling
-
-### Security
-- **Input validation:** Sanitize and validate ALL client input (SQL injection, XSS, buffer overflows)
-- **Rate limiting:** Implement per-connection rate limits for all packet types
-- **Session management:** JWT tokens for auth, server-side session validation, detect multi-login
-- **Encryption:** TLS 1.3 for TCP, HMAC-SHA256 for UDP packet authentication
-- **Password security:** bcrypt with cost 12 minimum, never store plaintext passwords
-- **SQL injection prevention:** Use parameterized queries/prepared statements ONLY
-- **Logging:** Log suspicious activities (failed logins, unusual packet patterns, exploit attempts)
-
-### Network Protocol Design
-- **Opcodes:** Use clear, typed opcodes for all messages (see `shared/proto/flyagain.proto`)
-- **Protocol Buffers:** Use protobuf for serialization (compact, typed, versioned)
-- **TCP vs UDP:** TCP for reliable operations (auth, inventory, chat), UDP for real-time (movement, combat)
-- **Packet size:** Keep packets small (<1400 bytes for UDP to avoid fragmentation)
-- **Heartbeats:** Implement periodic heartbeats to detect disconnections
-
-### Database & Persistence
-- **Write-back caching:** RAM → Redis (60s) → PostgreSQL (5min + on logout/zone change)
-- **Batch writes:** Group database writes to reduce I/O load
-- **Transactions:** Use database transactions for multi-step operations (e.g., trading)
-- **Indexes:** Index frequently queried columns (player_id, zone_id, account_id)
-- **Connection pooling:** Use HikariCP or similar for connection management
-- **Migrations:** Use Flyway for versioned database schema changes
-
-### Code Quality
-- **Dependency Injection:** Use Koin 4.0 for all service dependencies, verify via tests
-- **Repository pattern:** Separate data access logic (interface + implementation)
-- **Error handling:** Graceful degradation, log errors, send meaningful error messages to client
-- **Testing:** Unit tests for business logic, integration tests for database/network operations
-- **Code organization:** Clear separation of concerns (network, business logic, persistence)
-
-### Game Loop & Timing
-- **Fixed tick rate:** 20 Hz server tick for consistent game state updates
-- **Single-threaded game loop:** Avoid concurrency issues in core game logic
-- **Delta time:** Use fixed delta time for game logic, variable for rendering (client)
-- **Tick budget:** Monitor tick execution time, warn if exceeding budget (50ms for 20 Hz)
-
-## Monorepo Structure
-
-```
-server/                    # Kotlin multi-project Gradle build
-  common/                  # Shared: network layer (TcpServer, Packet, Codec, ConnectionLimiter),
-                           #   Protobuf/gRPC stubs, Redis client, ConfigHelper
-  database-service/        # gRPC :9090 — Repository interfaces + impls, Flyway, write-back
-    src/.../di/            #   Koin DI module
-    src/.../repository/    #   Interface/Impl pattern + BaseRepository
-  login-service/           # TCP :7777 — auth, registration, JWT, sessions, rate-limiting
-    src/.../di/            #   Koin DI module
-  account-service/         # TCP :7779 — character CRUD, JWT validation
-    src/.../di/            #   Koin DI module
-  world-service/           # TCP :7780 + UDP :7781 — gameplay, 20Hz loop, zones, combat, AI
-    src/.../di/            #   Koin DI module
-  gradle/libs.versions.toml # Central version catalog (incl. Koin 4.0)
-client/                    # Unity client project (URP)
-shared/proto/              # Shared Protocol Buffer definitions (.proto)
-  flyagain.proto           # Client-facing messages and opcodes
-  internal.proto           # gRPC service definitions for inter-service communication
-scripts/                   # Build and codegen scripts
-docs/                      # Design docs, architecture, setup guides
-docker-compose.yml         # PostgreSQL + Redis + all 4 services
-```
-
-The server is a Gradle multi-project build. All Gradle files live inside `server/`. Build all services: `cd server && ./gradlew build`. Build a single service: `./gradlew :login-service:build`.
+- **Engine:** Godot 4 (GDScript), project root at `client/`
+- **Scenes:** UI scenes at `client/scenes/ui/`, game scenes at `client/scenes/game/`
+- **Autoloads:** Global singletons at `client/autoloads/` (NetworkManager, GameState)
+- **Scripts:** Logic scripts at `client/scripts/` (network/, proto/)
+- **Themes:** UI themes and colors at `client/themes/`
+- **Input:** Use Godot's `Input` singleton and `InputMap` for all input handling
+  - `Input.is_action_pressed("ui_accept")` for held keys
+  - `Input.is_action_just_pressed(...)` for one-shot actions
+  - Actions are defined in Godot Project Settings (Input Map)
+- **Protobuf:** No codegen — manual implementation via `ProtoEncoder.gd` / `ProtoDecoder.gd` at `client/scripts/proto/`
+- **Network:** `NetworkManager.gd` manages TCP + UDP connections; `PacketProtocol.gd` defines opcode constants and serialization
 
 ## Architecture Essentials
 
-- **Server-authoritative** — all game state validated server-side; client is a dumb renderer with prediction
+- **Server-authoritative** — all game state validated server-side; client is a dumb renderer with prediction only for movement
 - **Dual-stack networking:** TCP for reliable ops (auth, inventory, chat), UDP for real-time (movement, combat)
 - **20 Hz server tick** — single-threaded game loop with async I/O (Kotlin Coroutines)
 - **Write-back persistence:** RAM → Redis (60s) → PostgreSQL (5min + on logout/zone change)
@@ -116,18 +48,63 @@ The server is a Gradle multi-project build. All Gradle files live inside `server
 - **Monster AI:** State machine (IDLE → AGGRO → ATTACK → RETURN)
 - **Target scale:** 5,000 CCU, 10,000 accounts
 
-## Development Phases (Roadmap)
+## MMO Development Best Practices
 
-1. **Phase 1 — Minimal MVP:** Movement, basic combat, one class, multiplayer
-2. **Phase 2 — Core Gameplay:** 4 classes, equipment, dungeons, quests
-3. **Phase 3 — PvP & Social:** Guilds, arena, ranking, trading
-4. **Phase 4 — Expansion:** Job specializations, more zones, crafting
-5. **Phase 5 — Polish & Launch:** Balancing, anti-cheat hardening, beta
+### Server-Side Authority
+- **NEVER trust client input** — validate ALL actions server-side (movement, combat, inventory, trading)
+- Client-side prediction for movement only (rollback on server correction)
+- Anti-cheat: validate timestamps, rate-limit actions, detect impossible movements/actions
 
-Phase 1 is broken into 8 sub-phases in docs/IMPLEMENTATION_PHASES.md with detailed acceptance criteria.
+### Security
+- **Input validation:** Sanitize and validate ALL client input (SQL injection, buffer overflows)
+- **Rate limiting:** Implement per-connection rate limits for all packet types
+- **Session management:** JWT tokens for auth, server-side session validation, detect multi-login
+- **Encryption:** TLS 1.3 for TCP, HMAC-SHA256 for UDP packet authentication
+- **Password security:** bcrypt with cost factor 12 minimum, never store plaintext
+- **SQL injection prevention:** Use parameterized queries/prepared statements ONLY
+- **Logging:** Log suspicious activities (failed logins, unusual packet patterns)
+- **ID strategy:** Use `UUID` (not auto-increment) for primary keys on security-sensitive tables (accounts, characters, inventory, and any future player-owned data). Auto-increment (`SERIAL`) is acceptable only for server-controlled reference/config tables (item definitions, monsters, loot, etc.).
+
+### Performance & Scalability
+- **Interest management:** Only send updates for entities within player's area of interest
+- **Network optimization:** Batch updates, compress data, use delta compression
+- **Async I/O:** Use Kotlin Coroutines for all I/O operations (database, network, Redis)
+- **Connection pooling:** Use HikariCP for database, maintain Redis connection pools
+- **Lazy loading:** Load only necessary data on demand
+- **Horizontal scaling:** Design services to be stateless where possible
+
+### Code Quality
+- **Dependency Injection:** Use Koin 4.0 for all service dependencies, verify via tests
+- **Repository pattern:** Separate data access logic (interface + implementation)
+- **Error handling:** Graceful degradation, structured logging, meaningful error messages to client
+- **Testing:** Unit tests for business logic, integration tests for database/network
+- **Clear separation of concerns:** network, business logic, persistence — each in its own layer
+
+## Monorepo Structure
+
+```
+server/                    # Kotlin multi-project Gradle build
+  common/                  # Shared: network layer (TcpServer, Packet, Codec, ConnectionLimiter),
+                           #   Protobuf/gRPC stubs, Redis client, ConfigHelper
+  database-service/        # gRPC :9090 — Repository interfaces + impls, Flyway, write-back
+  login-service/           # TCP :7777 — auth, registration, JWT, sessions, rate-limiting
+  account-service/         # TCP :7779 — character CRUD, JWT validation
+  world-service/           # TCP :7780 + UDP :7781 — gameplay, 20Hz loop, zones, combat, AI
+  gradle/libs.versions.toml # Central version catalog (incl. Koin 4.0)
+client/                    # Godot 4 client (GDScript)
+shared/proto/              # Shared Protocol Buffer definitions (.proto)
+  flyagain.proto           # Client-facing messages and opcodes
+  internal.proto           # gRPC service definitions for inter-service communication
+docs/                      # Design docs, architecture, setup guides
+docker-compose.yml         # PostgreSQL + Redis + all 4 services
+```
+
+Build all services: `cd server && ./gradlew build`. Single service: `./gradlew :login-service:build`.
 
 ## Key Design Principles
 
 - **NO Pay-to-Win** — fair play, skill and time investment only
-- **German-themed naming** — classes (Krieger, Magier, Assassine, Kleriker), zones (Aerheim, Grüne Ebene, Dunkler Wald)
-- **Security-first** — bcrypt (cost 12), JWT + session tokens, HMAC-SHA256 for UDP, rate limiting, multi-login prevention, comprehensive server-side input validation
+- **English naming in code** — classes (Warrior, Mage, Assassin, Cleric), zones, items, skills all use English identifiers in code
+- **Security-first** — bcrypt (cost 12), JWT + session tokens, HMAC-SHA256 for UDP, rate limiting, multi-login prevention
+- **Original IP** — FlyAgain is its own game; no references to other titles in any project artifact
+- **Bilingual** — English and German localization for all user-facing content

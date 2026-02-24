@@ -69,5 +69,5 @@ interface GameDataRepository {
      * @param characterId the character whose skills to load
      * @return list of [CharacterSkillRecord]s with skill ID and current level
      */
-    suspend fun getCharacterSkills(characterId: Long): List<CharacterSkillRecord>
+    suspend fun getCharacterSkills(characterId: String): List<CharacterSkillRecord>
 }

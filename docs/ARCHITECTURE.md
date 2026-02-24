@@ -4,8 +4,8 @@
 
 ```
 ┌──────────────────────────────────────┐
-│         Client: Unity (C#)           │
-│  - 3D Rendering (URP)                │
+│         Client: Godot 4 (GDScript)   │
+│  - 3D Rendering                      │
 │  - Input, UI, Audio                  │
 │  - Client-Side Prediction            │
 └──┬───────────────┬──────────────┬────┘
@@ -49,7 +49,7 @@
 
 ### 1.2 Serialisierung: Protocol Buffers (Protobuf)
 
-- Generiert Kotlin- **und** C#-Code aus einer `.proto`-Datei
+- Generiert Kotlin-Code aus einer `.proto`-Datei; Godot-Client nutzt manuelle GDScript-Implementierung (`ProtoEncoder.gd` / `ProtoDecoder.gd`)
 - Kompaktes Binaerformat (kleiner als JSON, schneller als XML)
 - Versionierbar (neue Felder ohne Breaking Changes)
 - Single-Source-of-Truth: `shared/proto/flyagain.proto` (Client-facing) + `shared/proto/internal.proto` (gRPC inter-service)
@@ -226,7 +226,7 @@ repository/
 
 ### 2.2 Zonen- und Channel-System
 
-**Zonen** sind logische Weltsegmente (Aerheim, Gruene Ebene, Dunkler Wald).
+**Zonen** sind logische Weltsegmente (Aerheim, Green Plains, Dark Forest).
 
 **Channels** verteilen Spieler innerhalb einer Zone:
 - Max. **1.000 Spieler pro Channel**
@@ -331,9 +331,9 @@ class GameLoop {
 ### 2.7 CCU-Verteilung (5.000 Spieler)
 
 ```
-Aerheim (Stadt):         ~1.000 Spieler ->  1 Channel
-Gruene Ebene (Lv 1-15): ~2.000 Spieler ->  2 Channels a 1.000
-Dunkler Wald (Lv 15-30):~1.500 Spieler ->  2 Channels a 750
+Aerheim (Stadt):           ~1.000 Spieler ->  1 Channel
+Green Plains (Lv 1-15):    ~2.000 Spieler ->  2 Channels a 1.000
+Dark Forest (Lv 15-30):    ~1.500 Spieler ->  2 Channels a 750
 Dungeons (Instanzen):      ~500 Spieler -> 100 Instanzen a 5
 ──────────────────────────────────────────────────────────────
 Gesamt:                   5.000 Spieler     5 Channels + 100 Instanzen
@@ -425,7 +425,7 @@ CREATE INDEX idx_characters_account ON characters(account_id);
 ```
 
 - Max. 3 Charaktere pro Account (Application-Level Constraint)
-- `class`: 0=Krieger, 1=Magier, 2=Assassine, 3=Kleriker
+- `class`: 0=Warrior, 1=Mage, 2=Assassin, 3=Cleric
 - `is_deleted`: Soft-Delete statt hartem Loeschen
 - CHECK-Constraints als letzte Verteidigungslinie gegen korrupte Daten
 
@@ -452,7 +452,7 @@ CREATE TABLE item_definitions (
 );
 ```
 
-- `type`: 0=Waffe, 1=Ruestung, 2=Verbrauchbar, 3=Material
+- `type`: 0=Weapon, 1=Armor, 2=Consumable, 3=Material
 - `rarity`: 0=Common, 1=Uncommon, 2=Rare, 3=Epic
 - `class_req`: NULL = alle Klassen koennen es tragen
 
@@ -491,7 +491,7 @@ CREATE TABLE equipment (
 );
 ```
 
-- `slot_type`: 0=Waffe, 1=Helm, 2=Brust, 3=Hose, 4=Schuhe, 5=Ring, 6=Halskette
+- `slot_type`: 0=Weapon, 1=Helmet, 2=Chest, 3=Pants, 4=Boots, 5=Ring, 6=Necklace
 
 #### Skills
 

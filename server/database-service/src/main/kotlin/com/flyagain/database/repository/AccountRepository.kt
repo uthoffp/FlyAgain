@@ -27,7 +27,7 @@ interface AccountRepository {
      * @param accountId the account's database ID
      * @return the matching [AccountRecord], or `null` if no account exists with that ID
      */
-    suspend fun getById(accountId: Long): AccountRecord?
+    suspend fun getById(accountId: String): AccountRecord?
 
     /**
      * Creates a new account with the given credentials.
@@ -38,10 +38,10 @@ interface AccountRepository {
      * @param username the desired username (must be unique)
      * @param email the account email address (must be unique)
      * @param passwordHash the pre-hashed password (bcrypt)
-     * @return the auto-generated account ID
+     * @return the generated UUID account ID
      * @throws Exception if the username or email already exists (unique constraint violation)
      */
-    suspend fun create(username: String, email: String, passwordHash: String): Long
+    suspend fun create(username: String, email: String, passwordHash: String): String
 
     /**
      * Updates the `last_login` timestamp to the current server time.
@@ -50,5 +50,5 @@ interface AccountRepository {
      *
      * @param accountId the account whose login timestamp should be refreshed
      */
-    suspend fun updateLastLogin(accountId: Long)
+    suspend fun updateLastLogin(accountId: String)
 }

@@ -2,6 +2,7 @@ package com.flyagain.database.repository
 
 import com.flyagain.common.grpc.CharacterRecord
 import com.flyagain.common.grpc.SaveCharacterRequest
+import java.util.UUID
 import javax.sql.DataSource
 
 /**
@@ -15,11 +16,11 @@ import javax.sql.DataSource
  */
 class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource), CharacterRepository {
 
-    override suspend fun getByAccount(accountId: Long): List<CharacterRecord> = withConnection { conn ->
+    override suspend fun getByAccount(accountId: String): List<CharacterRecord> = withConnection { conn ->
         conn.prepareStatement(
             "SELECT * FROM characters WHERE account_id = ? AND is_deleted = FALSE ORDER BY created_at"
         ).use { stmt ->
-            stmt.setLong(1, accountId)
+            stmt.setObject(1, UUID.fromString(accountId))
             stmt.executeQuery().use { rs ->
                 val results = mutableListOf<CharacterRecord>()
                 while (rs.next()) {
@@ -30,24 +31,24 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
         }
     }
 
-    override suspend fun getById(characterId: Long, accountId: Long): CharacterRecord? = withConnection { conn ->
+    override suspend fun getById(characterId: String, accountId: String): CharacterRecord? = withConnection { conn ->
         conn.prepareStatement(
             "SELECT * FROM characters WHERE id = ? AND account_id = ? AND is_deleted = FALSE"
         ).use { stmt ->
-            stmt.setLong(1, characterId)
-            stmt.setLong(2, accountId)
+            stmt.setObject(1, UUID.fromString(characterId))
+            stmt.setObject(2, UUID.fromString(accountId))
             stmt.executeQuery().use { rs ->
                 if (rs.next()) mapToCharacterRecord(rs) else null
             }
         }
     }
 
-    override suspend fun create(accountId: Long, name: String, characterClass: Int): Long = withTransaction { conn ->
+    override suspend fun create(accountId: String, name: String, characterClass: Int): String = withTransaction { conn ->
         // Enforce maximum of 3 characters per account
         val count = conn.prepareStatement(
             "SELECT COUNT(*) FROM characters WHERE account_id = ? AND is_deleted = FALSE"
         ).use { stmt ->
-            stmt.setLong(1, accountId)
+            stmt.setObject(1, UUID.fromString(accountId))
             stmt.executeQuery().use { rs ->
                 rs.next()
                 rs.getInt(1)
@@ -58,14 +59,14 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             throw IllegalStateException("Maximum 3 characters per account")
         }
 
-        // Base stats by class: 0=Krieger, 1=Magier, 2=Assassine, 3=Kleriker
+        // Base stats by class: 0=Warrior, 1=Mage, 2=Assassin, 3=Cleric
         data class BaseStats(val hp: Int, val mp: Int, val maxHp: Int, val maxMp: Int,
                              val str: Int, val sta: Int, val dex: Int, val intStat: Int)
         val stats = when (characterClass) {
-            0 -> BaseStats(150, 50, 150, 50, 15, 15, 10, 5)   // Krieger
-            1 -> BaseStats(80, 150, 80, 150, 5, 8, 10, 20)    // Magier
-            2 -> BaseStats(100, 80, 100, 80, 10, 8, 20, 5)    // Assassine
-            3 -> BaseStats(120, 120, 120, 120, 8, 12, 8, 15)  // Kleriker
+            0 -> BaseStats(150, 50, 150, 50, 15, 15, 10, 5)   // Warrior
+            1 -> BaseStats(80, 150, 80, 150, 5, 8, 10, 20)    // Mage
+            2 -> BaseStats(100, 80, 100, 80, 10, 8, 20, 5)    // Assassin
+            3 -> BaseStats(120, 120, 120, 120, 8, 12, 8, 15)  // Cleric
             else -> throw IllegalArgumentException("Invalid class: $characterClass")
         }
 
@@ -74,7 +75,7 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
                str, sta, dex, int_stat, stat_points, map_id, pos_x, pos_y, pos_z, gold)
                VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 0, 0, 0) RETURNING id"""
         ).use { stmt ->
-            stmt.setLong(1, accountId)
+            stmt.setObject(1, UUID.fromString(accountId))
             stmt.setString(2, name)
             stmt.setInt(3, characterClass)
             stmt.setInt(4, stats.hp)
@@ -87,7 +88,7 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.setInt(11, stats.intStat)
             stmt.executeQuery().use { rs ->
                 rs.next()
-                rs.getLong("id")
+                rs.getString("id")
             }
         }
     }
@@ -114,17 +115,17 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.setInt(13, request.dex)
             stmt.setInt(14, request.intStat)
             stmt.setInt(15, request.statPoints)
-            stmt.setLong(16, request.characterId)
+            stmt.setObject(16, UUID.fromString(request.characterId))
             stmt.executeUpdate()
         }
     }
 
-    override suspend fun softDelete(characterId: Long, accountId: Long): Unit = withTransaction { conn ->
+    override suspend fun softDelete(characterId: String, accountId: String): Unit = withTransaction { conn ->
         conn.prepareStatement(
             "UPDATE characters SET is_deleted = TRUE WHERE id = ? AND account_id = ?"
         ).use { stmt ->
-            stmt.setLong(1, characterId)
-            stmt.setLong(2, accountId)
+            stmt.setObject(1, UUID.fromString(characterId))
+            stmt.setObject(2, UUID.fromString(accountId))
             stmt.executeUpdate()
         }
     }
@@ -135,8 +136,8 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
      */
     private fun mapToCharacterRecord(rs: java.sql.ResultSet): CharacterRecord =
         CharacterRecord.newBuilder()
-            .setId(rs.getLong("id"))
-            .setAccountId(rs.getLong("account_id"))
+            .setId(rs.getString("id"))
+            .setAccountId(rs.getString("account_id"))
             .setName(rs.getString("name"))
             .setCharacterClass(rs.getInt("class"))
             .setLevel(rs.getInt("level"))

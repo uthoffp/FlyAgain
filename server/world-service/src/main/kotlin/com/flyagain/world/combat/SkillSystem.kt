@@ -22,7 +22,7 @@ class SkillSystem(
     private val skillDefinitions = HashMap<Int, SkillDefinitionRecord>()
 
     // Player skill levels: characterId -> (skillId -> level)
-    private val playerSkills = HashMap<Long, MutableMap<Int, Int>>()
+    private val playerSkills = HashMap<String, MutableMap<Int, Int>>()
 
     /**
      * Load skill definitions from game data (called at startup).
@@ -38,14 +38,14 @@ class SkillSystem(
     /**
      * Set a player's known skills (loaded from database on enter world).
      */
-    fun setPlayerSkills(characterId: Long, skills: Map<Int, Int>) {
+    fun setPlayerSkills(characterId: String, skills: Map<Int, Int>) {
         playerSkills[characterId] = skills.toMutableMap()
     }
 
     /**
      * Remove a player's skill data (on logout/disconnect).
      */
-    fun removePlayerSkills(characterId: Long) {
+    fun removePlayerSkills(characterId: String) {
         playerSkills.remove(characterId)
     }
 

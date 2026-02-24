@@ -7,7 +7,7 @@
 
 ## Phase 1: Minimal MVP
 
-**Ziel:** Ein spielbarer Multiplayer-Prototyp. Ein Krieger kann sich in einer Zone bewegen,
+**Ziel:** Ein spielbarer Multiplayer-Prototyp. Ein Warrior kann sich in einer Zone bewegen,
 Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 
 ---
@@ -22,16 +22,16 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Flyway oder Liquibase fuer DB-Migrationen einrichten
 - [x] Erste Migration: `accounts` Tabelle erstellen
 
-**Client (Unity):**
-- [x] Unity-Projekt erstellen (`client/`) mit URP Template
-- [x] Ordnerstruktur: `Scripts/Network/`, `Scripts/UI/`, `Scripts/Game/`, `Scripts/Entity/`
-- [x] NuGet/Unity Protobuf-Package einbinden (Google.Protobuf)
-- [x] Build-Targets: Windows, macOS, Linux konfigurieren
+**Client (Godot):**
+- [x] Godot 4-Projekt erstellen (`client/`) mit GDScript
+- [x] Ordnerstruktur: `scenes/`, `scripts/network/`, `scripts/proto/`, `autoloads/`, `themes/`
+- [x] Protobuf-Handling: Manuelle Implementierung via `ProtoEncoder.gd` / `ProtoDecoder.gd`
+- [x] Export-Targets: Windows, macOS, Linux konfigurierbar über Godot Export-Templates
 
 **Shared:**
 - [x] `.proto`-Datei erstellen (`shared/proto/flyagain.proto`) mit Auth-Opcodes
-- [x] Protobuf-Codegen fuer Kotlin und C# einrichten
-- [x] Git-Repository initialisieren, `.gitignore` fuer Unity + Kotlin + IDE-Dateien
+- [x] Protobuf-Codegen fuer Kotlin einrichten (Godot nutzt manuelle GDScript-Implementierung)
+- [x] Git-Repository initialisieren, `.gitignore` fuer Godot + Kotlin + IDE-Dateien
 
 **Zusaetzlich implementiert (nicht im Original-Plan):**
 - [x] Koin Dependency Injection in allen Services
@@ -44,9 +44,9 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 
 **Akzeptanzkriterien:**
 - `./gradlew build` kompiliert fehlerfrei
-- Unity-Projekt oeffnet sich, leere Scene mit URP-Rendering
+- Godot-Projekt oeffnet sich, LoginScreen als Hauptszene
 - `docker-compose up` startet PostgreSQL + Redis
-- Protobuf-Codegen generiert Kotlin- und C#-Klassen
+- Protobuf-Codegen generiert Kotlin-Klassen (Godot nutzt manuelle GDScript-Impl.)
 
 ---
 
@@ -65,10 +65,10 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Heartbeat-System (Opcode `0x0601`, 15s Timeout) — `common/network/HeartbeatTracker.kt`, integriert in Login- und Account-Service
 - [x] Protobuf De-/Serialisierung mit try-catch + Malformed-Packet-Counter
 
-**Client:**
-- [x] `NetworkManager`: TCP + UDP Verbindung zum Server
-- [x] `PacketSender`: Serialisierung + Senden (TCP/UDP je nach Opcode)
-- [x] `PacketReceiver`: Empfangen + Deserialisierung + Event-Dispatch
+**Client (Godot):**
+- [x] `NetworkManager.gd`: TCP + UDP Verbindung zum Server (Autoload)
+- [x] `PacketProtocol.gd`: Opcode-Konstanten + Serialisierung/Deserialisierung
+- [x] `ProtoEncoder.gd` / `ProtoDecoder.gd`: Manuelle Protobuf-Implementierung
 - [x] Heartbeat senden (alle 5 Sekunden)
 - [x] Reconnect-Logik (3 Versuche, dann Disconnect-Screen)
 
@@ -85,11 +85,11 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 > Abhaengigkeit: 1.2
 
 **Server:**
-- [ ] DB-Migrationen: Alle Tabellen aus ARCHITECTURE.md Abschnitt 3.2 erstellen
+- [x] DB-Migrationen: Alle Tabellen aus ARCHITECTURE.md Abschnitt 3.2 erstellen
   - `accounts`, `characters`, `item_definitions`, `inventory`, `equipment`
   - `skill_definitions`, `character_skills`
   - `monster_definitions`, `monster_spawns`, `loot_table`
-  - Alle CHECK-Constraints inkludiert
+  - Alle CHECK-Constraints inkludiert (V1-V8 vollstaendig)
 - [x] Redis-Anbindung: Session-CRUD, Rate-Limiting-Counter
 - [x] `RegisterHandler` (Opcode `0x0006`):
   - Input-Validierung (Username 3-16 Zeichen, E-Mail-Format, Passwort min 8)
@@ -104,21 +104,29 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - Session in Redis speichern
   - Rate-Limit: 5 pro Minute pro IP
 - [x] `CharacterCreateHandler` (Opcode `0x0005`):
-  - Name-Validierung (3-16 Zeichen, `[a-zA-Z0-9-]`, Blacklist)
+  - Name-Validierung (2-16 Zeichen, Buchstaben+Ziffern+Umlaute)
   - Max 3 Charaktere pro Account
-  - Basis-Stats je nach Klasse setzen (MVP: nur Krieger)
+  - Basis-Stats fuer alle 4 Klassen (Warrior, Mage, Assassin, Cleric)
+  - **TODO:** Server-Regex auf `[a-zA-Z0-9-]{3,16}` angleichen, Blacklist implementieren
 - [x] `CharacterSelectHandler` (Opcode `0x0003`):
   - Ownership-Validierung (`account_id == session.accountId`)
   - Character laden, in Redis cachen
   - Zur Zone hinzufuegen (naechster Schritt)
 - [x] Session-Lifecycle: Disconnect -> Force-Flush -> Redis-Cleanup
 
-**Client:**
-- [ ] Login-Screen: Username + Passwort Eingabefelder, Login-Button
-- [ ] Registrierungs-Screen: Username + E-Mail + Passwort + Bestaetigung
-- [ ] Character-Select-Screen: Liste der Charaktere, Erstellen-Button
-- [ ] Character-Create-Screen: Name eingeben (Klasse fix Krieger im MVP)
-- [ ] Error-Handling: Fehlermeldungen vom Server anzeigen (ErrorResponse `0x0603`)
+**Client (Godot):**
+- [x] Login-Screen (`LoginScreen.tscn`): Username + Passwort Eingabefelder, Login-Button
+- [x] Registrierungs-Screen: Username + E-Mail + Passwort + Bestaetigung
+- [x] Character-Select-Screen: Liste der Charaktere, Erstellen-Button
+- [x] Character-Create-Screen: Name eingeben (Klasse: Warrior, Mage, Assassin, Cleric)
+- [x] Error-Handling: Fehlermeldungen vom Server anzeigen (ErrorResponse `0x0603`)
+
+**Zusaetzlich implementiert (nicht im Original-Plan):**
+- [x] `CharacterListHandler` (Opcode `0x0008`): Separate Charakter-Liste nach Reconnect
+- [x] `JwtValidator` im Account-Service: JWT-Validierung fuer alle Account-Operationen
+- [x] `InputValidator.gd` (Client): Client-seitige Eingabe-Validierung mit deutschen Fehlermeldungen
+- [x] Client-Tests: InputValidatorTest, GameStateTest, NetworkManagerTest, PacketProtocolTest, ProtoEncoder/DecoderTest
+- [x] Alle 4 Klassen mit Basis-Stats (nicht nur Warrior wie im MVP geplant)
 
 **Akzeptanzkriterien:**
 - Account erstellen, einloggen, Character erstellen, Character auswaehlen
@@ -134,35 +142,40 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 > Abhaengigkeit: 1.3
 
 **Server:**
-- [ ] `ZoneManager`: Verwaltet alle Zonen, laedt Zonen-Konfiguration
-- [ ] `ZoneChannel`: Spieler-Liste, Entity-Liste, SpatialGrid
-- [ ] `SpatialGrid`: 50x50 Grid-Zellen, Entity-Tracking, Nachbar-Abfragen
-- [ ] Zone-Konfiguration: Aerheim (Stadt) + Gruene Ebene (Grinding-Zone)
-- [ ] `EnterWorldHandler` (Opcode `0x0004`):
+- [x] `ZoneManager`: Verwaltet alle Zonen (Aerheim, Green Plains, Dark Forest), Auto-Channel-Erstellung
+- [x] `ZoneChannel`: Spieler-Liste, Entity-Liste, SpatialGrid, max 1.000 Spieler pro Channel
+- [x] `SpatialGrid`: 50x50 Grid-Zellen, Entity-Tracking, Nachbar-Abfragen (3x3 Zellen)
+- [x] Zone-Konfiguration: Aerheim (Stadt) + Green Plains (Grinding-Zone) + Dark Forest
+- [x] `EnterWorldHandler` (Opcode `0x0004`):
+  - JWT-Validierung, Character aus Redis laden
   - Character in Zone/Channel einfuegen
   - EntitySpawn (`0x0301`) an alle Spieler in Sichtweite senden
   - ZoneData (`0x0701`) an den neuen Spieler senden
-- [ ] `MovementHandler` (UDP Opcode `0x0101`):
+- [x] `MovementHandler` (UDP Opcode `0x0101`):
   - HMAC verifizieren
   - Sequence-Check (Duplikate/alte Pakete verwerfen)
-  - Position validieren (Speed-Check, Terrain-Collision)
+  - Position validieren (Speed-Check, Welt-Grenzen, Hoehen-Validierung, NaN/Infinity-Pruefung)
   - Bei Abweichung: PositionCorrection (`0x0103`)
   - Bei OK: EntityPositionUpdate (`0x0102`) an SpatialGrid-Nachbarn broadcasten
-- [ ] `EntityManager`: Spawn/Despawn Tracking, Entity-ID-Vergabe
-- [ ] Game-Loop (20 Hz): Bewegungs-Updates verarbeiten, Broadcasts senden
-- [ ] Flugmechanik: `isFlying`-Flag, andere Geschwindigkeit, Y-Achsen-Bewegung
-- [ ] Zone-Wechsel: Character aus Zone A entfernen, in Zone B einfuegen, Ladescreen-Trigger
+- [x] `EntityManager`: Spawn/Despawn Tracking, Entity-ID-Vergabe (Spieler: 1+, Monster: 1.000.000+)
+- [x] Game-Loop (20 Hz): InputQueue-Drain, Bewegung, Monster-AI, Broadcasts, periodische Persistenz
+- [x] Flugmechanik: `isFlying`-Flag, andere Geschwindigkeit (5 vs 8 u/s + DEX-Bonus), Y-Achsen-Bewegung
+- [x] Zone-Wechsel: Character aus Zone A entfernen, in Zone B einfuegen, Despawn/Spawn-Broadcasts
+- [x] `BroadcastService`: Position-Update-Queuing, EntitySpawn/Despawn-Broadcasts, Batched TCP-Flush
+- [x] `WorldUdpHandler`: Session-Token-Lookup via EntityManager, InputQueue-Enqueue
+- [x] `SessionLifecycleManager`: Disconnect → Despawn-Broadcast → DB-Flush → Redis-Cleanup
+- [x] Unit-Tests: ZoneManager, ZoneChannel, SpatialGrid, EntityManager, MovementHandler, ZoneChangeHandler, GameLoop, BroadcastService, WorldUdpHandler, SessionLifecycleManager
 
-**Client:**
-- [ ] Third-Person-Kamera: Freie Rotation, Zoom
-- [ ] Spieler-Bewegung: WASD + Maus, Click-to-Move
+**Client (Godot):**
+- [ ] Third-Person-Kamera: Freie Rotation, Zoom (Camera3D + SpringArm3D)
+- [ ] Spieler-Bewegung: WASD + Maus, Click-to-Move (CharacterBody3D)
 - [ ] Client-Side Prediction: Lokale Bewegung sofort anwenden
 - [ ] Server-Reconciliation: PositionCorrection verarbeiten, Snap-Back
 - [ ] Entity-Interpolation: Andere Spieler smooth bewegen (100ms Buffer)
 - [ ] Flugmechanik: Leertaste zum Abheben/Landen, Steigen/Sinken
-- [ ] Terrain: Einfache Heightmap (Gruene Ebene = flaches Grasland)
+- [ ] Terrain: Einfache Heightmap (Green Plains = flaches Grasland)
 - [ ] Aerheim: Einfache Stadt-Geometrie (Platzhalter-Assets)
-- [ ] Remote-Spieler: EntitySpawn empfangen -> Charakter-Modell instanziieren
+- [ ] Remote-Spieler: EntitySpawn empfangen -> Charakter-Node instanziieren
 - [ ] Zone-Wechsel: Ladescreen bei ZoneData-Empfang
 
 **Akzeptanzkriterien:**
@@ -171,7 +184,7 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - Andere Spieler sind sichtbar und bewegen sich smooth
 - Flug funktioniert (Abheben, frei bewegen, Landen)
 - Speed-Hack wird vom Server erkannt und korrigiert
-- Zone-Wechsel von Aerheim zur Gruenen Ebene funktioniert
+- Zone-Wechsel von Aerheim zu Green Plains funktioniert
 
 ---
 
@@ -185,7 +198,7 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - Kritischer Treffer: `if (random < critChance) damage *= 1.5`
   - Auto-Attack Timer (Waffen-Speed, z.B. 2000ms)
 - [ ] `SkillSystem`:
-  - Skill-Definitionen in DB laden (Seed-Daten fuer 3-4 Krieger-Skills)
+  - Skill-Definitionen in DB laden (Seed-Daten fuer 3-4 Warrior-Skills)
   - `UseSkillHandler` (Opcode `0x0202`):
     - Pruefe: Skill existiert, Spieler hat Skill, genug MP, Cooldown abgelaufen
     - Pruefe: Target in Range, Target existiert, selbe Zone
@@ -228,18 +241,18 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 
 **Seed-Daten (Server DB):**
 ```
-Krieger-Skills:
-  - Schlag (Lv1, 0 MP, 1.5s CD, 120% ATK Schaden, Range 2)
-  - Schildstoss (Lv3, 10 MP, 5s CD, 150% ATK + Slow, Range 2)
-  - Wirbelschlag (Lv5, 20 MP, 8s CD, AoE 200% ATK, Range 3)
-  - Kriegsschrei (Lv8, 15 MP, 30s CD, +20% ATK Buff 30s, Self)
+Warrior-Skills:
+  - Strike (Lv1, 0 MP, 1.5s CD, 120% ATK damage, Range 2)
+  - Shield Bash (Lv3, 10 MP, 5s CD, 150% ATK + Slow, Range 2)
+  - Whirlwind (Lv5, 20 MP, 8s CD, AoE 200% ATK, Range 3)
+  - War Cry (Lv8, 15 MP, 30s CD, +20% ATK Buff 30s, Self)
 
-Monster (Gruene Ebene):
-  - Schleimling (Lv1-3, passiv)
-  - Waldpilz (Lv3-5, passiv)
-  - Wildeber (Lv5-8, aggressiv)
-  - Waldwolf (Lv8-12, aggressiv)
-  - Steingolem (Lv12-15, aggressiv, Mini-Boss)
+Monster (Green Plains):
+  - Slime (Lv1-3, passive)
+  - Forest Mushroom (Lv3-5, passive)
+  - Wild Boar (Lv5-8, aggressive)
+  - Forest Wolf (Lv8-12, aggressive)
+  - Stone Golem (Lv12-15, aggressive, Mini-Boss)
 ```
 
 **Akzeptanzkriterien:**
@@ -281,15 +294,15 @@ Monster (Gruene Ebene):
 
 **Seed-Daten:**
 ```
-Items (Krieger, Gruene Ebene):
-  - Holzschwert (Lv1, ATK+5, 10 Gold)
-  - Eisenschwert (Lv5, ATK+12, 100 Gold)
-  - Stahlschwert (Lv10, ATK+22, 500 Gold)
-  - Lederruestung (Lv1, DEF+3, 15 Gold)
-  - Kettenruestung (Lv5, DEF+8, 120 Gold)
-  - Plattenruestung (Lv10, DEF+15, 600 Gold)
-  - Heiltrank (Verbrauchbar, +50 HP, 5 Gold, Stackable x20)
-  - Manatrank (Verbrauchbar, +30 MP, 8 Gold, Stackable x20)
+Items (Warrior, Green Plains):
+  - Wooden Sword (Lv1, ATK+5, 10 Gold)
+  - Iron Sword (Lv5, ATK+12, 100 Gold)
+  - Steel Sword (Lv10, ATK+22, 500 Gold)
+  - Leather Armor (Lv1, DEF+3, 15 Gold)
+  - Chain Armor (Lv5, DEF+8, 120 Gold)
+  - Plate Armor (Lv10, DEF+15, 600 Gold)
+  - Health Potion (Consumable, +50 HP, 5 Gold, Stackable x20)
+  - Mana Potion (Consumable, +30 MP, 8 Gold, Stackable x20)
 ```
 
 **Akzeptanzkriterien:**
@@ -351,8 +364,8 @@ Items (Krieger, Gruene Ebene):
 ```
 Schritt  | Abhaengigkeit | Server                              | Client
 ---------|---------------|-------------------------------------|----------------------------------
-1.1      | -             | Gradle, Docker, DB-Migrationen      | Unity-Projekt, Protobuf
-1.2      | 1.1           | Netty TCP/UDP, PacketRouter          | NetworkManager, Heartbeat
+1.1      | -             | Gradle, Docker, DB-Migrationen      | Godot-Projekt, Proto-GDScript
+1.2      | 1.1           | Netty TCP/UDP, PacketRouter          | NetworkManager.gd, Heartbeat
 1.3      | 1.2           | Auth, DB, Redis, Sessions            | Login/Register/CharSelect UI
 1.4      | 1.3           | Zonen, SpatialGrid, Game-Loop        | Bewegung, Kamera, Flug, Entities
 1.5      | 1.4           | Combat, Skills, Monster-AI, Loot     | Targeting, Skillbar, Damage-Zahlen
@@ -376,12 +389,12 @@ Quest-System und zweite Zone. Das Spiel fuehlt sich wie ein richtiges MMORPG an.
 
 ### 2.1 Weitere Klassen
 
-- [ ] Klassen-Daten in DB: Magier, Assassine, Kleriker
+- [ ] Klassen-Daten in DB: Mage, Assassin, Cleric
 - [ ] Basis-Stats pro Klasse (HP/MP-Skalierung, Primaer-Stat)
 - [ ] Je 4 Skills pro neue Klasse:
-  - **Magier:** Feuerball (Ranged), Eissplitter (Slow), Blitzschlag (AoE), Magieschild (Buff)
-  - **Assassine:** Dolchstoss, Schattenschritt (Dash), Giftklinge (DoT), Hinterhalt (Crit-Buff)
-  - **Kleriker:** Heilung (Single), Segen (Party-Buff), Heiliger Schlag, Schutzaura (AoE-Buff)
+  - **Mage:** Fireball (Ranged), Ice Shard (Slow), Lightning Strike (AoE), Magic Shield (Buff)
+  - **Assassin:** Dagger Thrust, Shadow Step (Dash), Poison Blade (DoT), Ambush (Crit-Buff)
+  - **Cleric:** Heal (Single), Blessing (Party-Buff), Holy Strike, Protection Aura (AoE-Buff)
 - [ ] Character-Create: Klassenauswahl-UI mit Beschreibungen
 - [ ] Klassen-spezifische Waffen und Ruestungen (Item-Definitionen erweitern)
 - [ ] Klassen-spezifische Animationen (Platzhalter oder Assets)
@@ -418,14 +431,14 @@ Quest-System und zweite Zone. Das Spiel fuehlt sich wie ein richtiges MMORPG an.
 ### 2.3 Dungeon-System
 
 - [ ] `DungeonInstance`-Klasse: Separater Game-State, eigener Entity-Pool
-- [ ] Dungeon-Eingang in der Gruenen Ebene (NPC oder Portal)
+- [ ] Dungeon-Eingang in Green Plains (NPC oder Portal)
 - [ ] Party-System (MVP: max 5 Spieler):
   - Party erstellen, einladen, verlassen
   - Party-Chat
   - Geteiltes XP bei Party-Kills
-- [ ] Dungeon: "Hoehle des Steingolem"
+- [ ] Dungeon: "Stone Golem Cave"
   - 3 Raeume mit Monster-Gruppen
-  - Endboss: Steingolem-Koenig (erweiterte AI: Phasen, AoE-Angriff)
+  - Endboss: Stone Golem King (erweiterte AI: Phasen, AoE-Angriff)
   - Boss-Loot: Seltene/Epische Items
 - [ ] Timer: 30 Minuten Dungeon-Timeout
 - [ ] Instanz-Aufraeumung nach Completion/Timeout
@@ -442,9 +455,9 @@ Quest-System und zweite Zone. Das Spiel fuehlt sich wie ein richtiges MMORPG an.
 
 - [ ] `QuestManager`: Quest-Annahme, Fortschritts-Tracking, Abgabe
 - [ ] Quest-Typen:
-  - Kill-Quest: "Toete 10 Wildeber" (Daily)
-  - Sammel-Quest: "Sammle 5 Wolfsfelpe" (Daily)
-  - Boss-Quest: "Besiege den Steingolem-Koenig" (Weekly)
+  - Kill-Quest: "Kill 10 Wild Boars" (Daily)
+  - Collect-Quest: "Collect 5 Wolf Pelts" (Daily)
+  - Boss-Quest: "Defeat the Stone Golem King" (Weekly)
 - [ ] Quest-NPCs in Aerheim
 - [ ] Belohnungen: XP + Gold + gelegentlich Items
 - [ ] Daily-Reset (Server-Zeit 05:00 UTC), Weekly-Reset (Montag 05:00 UTC)
@@ -458,19 +471,19 @@ Quest-System und zweite Zone. Das Spiel fuehlt sich wie ein richtiges MMORPG an.
 
 ---
 
-### 2.5 Zweite Zone: Dunkler Wald
+### 2.5 Zweite Zone: Dark Forest
 
-- [ ] Zone-Konfiguration: Dunkler Wald (Level 15-30)
+- [ ] Zone-Konfiguration: Dark Forest (Level 15-30)
 - [ ] 5-8 neue Monstertypen (Level 15-30)
 - [ ] Neue Loot-Tabellen fuer hoehere Level
-- [ ] Uebergang von Gruener Ebene zum Dunklen Wald
+- [ ] Uebergang von Green Plains zum Dark Forest
 - [ ] Terrain: Dichterer Wald, dunklere Atmosphaere
 - [ ] Neue Items: Level 15-30 Waffen und Ruestungen
 
 **Akzeptanzkriterien:**
 - Zone erreichbar und bespielbar
 - Monster-Schwierigkeit passt zum Level-Bereich
-- Progression fuehlt sich natuerlich an (Gruene Ebene -> Dunkler Wald)
+- Progression fuehlt sich natuerlich an (Green Plains -> Dark Forest)
 
 ---
 
@@ -514,7 +527,7 @@ miteinander zu interagieren und gegeneinander anzutreten.
 
 ### 3.5 Open-World PvP (Optional Zone)
 
-- [ ] PvP-Zone markieren (z.B. Teil des Dunklen Waldes)
+- [ ] PvP-Zone markieren (z.B. Teil des Dark Forest)
 - [ ] PvP-Flag-System: Automatisch in PvP-Zone, Warnung bei Eintritt
 - [ ] Belohnungen/Risiken: Bonus-XP in PvP-Zone, aber PvP-Tod = XP-Verlust
 - [ ] Anti-Grief: Level-Differenz-Schutz (kein PvP bei >10 Level Unterschied)
@@ -532,29 +545,29 @@ miteinander zu interagieren und gegeneinander anzutreten.
 ### 4.1 2nd Job Spezialisierungen
 
 - [ ] Pro Klasse 2 Spezialisierungen (ab Level 30):
-  - Krieger -> Ritter (Tank) / Berserker (DPS)
-  - Magier -> Elementarist (AoE) / Erzmagier (Single-Target)
-  - Assassine -> Schattenklinge (Burst) / Giftmischer (DoT)
-  - Kleriker -> Priester (Heilung) / Paladin (Hybrid Tank/Heal)
+  - Warrior -> Knight (Tank) / Berserker (DPS)
+  - Mage -> Elementalist (AoE) / Archmage (Single-Target)
+  - Assassin -> Shadow Blade (Burst) / Poisoner (DoT)
+  - Cleric -> Priest (Healing) / Paladin (Hybrid Tank/Heal)
 - [ ] Neue Skill-Trees pro Spezialisierung (4-6 neue Skills)
 - [ ] Klassen-Quest fuer Spezialisierung
 
 ### 4.2 Weitere Zonen
 
-- [ ] Zone 3: Wueste (Level 30-45)
-- [ ] Zone 4: Vulkangebiet (Level 45-60)
+- [ ] Zone 3: Desert (Level 30-45)
+- [ ] Zone 4: Volcanic Region (Level 45-60)
 - [ ] Neue Monster, Items, Loot-Tabellen pro Zone
 
 ### 4.3 Weitere Dungeons
 
-- [ ] Dungeon 2: Waldtempel (Level 20-25, 5-Spieler)
-- [ ] Dungeon 3: Wuestenruine (Level 35-40, 5-Spieler)
-- [ ] Raid: Vulkanfestung (Level 55-60, 10-Spieler)
+- [ ] Dungeon 2: Forest Temple (Level 20-25, 5-Spieler)
+- [ ] Dungeon 3: Desert Ruins (Level 35-40, 5-Spieler)
+- [ ] Raid: Volcanic Fortress (Level 55-60, 10-Spieler)
 
 ### 4.4 Crafting-System
 
-- [ ] Sammeln: Erze, Kraeuter, Haeute (aus der Welt oder von Monstern)
-- [ ] Berufe: Schmied, Alchemist, Schneider
+- [ ] Gathering: Ores, Herbs, Hides (from the world or monsters)
+- [ ] Professions: Blacksmith, Alchemist, Tailor
 - [ ] Crafting-UI: Rezepte, Materialien, Herstellung
 - [ ] Hergestellte Items: Konkurrenzfaehig mit Drops (kein P2W)
 
@@ -594,7 +607,7 @@ miteinander zu interagieren und gegeneinander anzutreten.
 - [ ] Automatische Ban-Systeme (10x Cheat-Versuch -> Temp-Ban)
 - [ ] GM-Tools: Spieler beobachten, Inventar pruefen, Teleportieren, Bannen
 - [ ] Logging: Verdaechtige Aktionen in DB loggen fuer manuelle Pruefung
-- [ ] Client-Side: Basis Obfuscation (IL2CPP), Memory-Scan-Erkennung
+- [ ] Client-Side: Basis Obfuscation (GDScript-Export verschleiert), Memory-Scan-Erkennung
 
 ### 5.3 Performance-Optimierung
 
@@ -642,13 +655,33 @@ miteinander zu interagieren und gegeneinander anzutreten.
 
 ## Naechster Schritt
 
-**Phase 1, Schritt 1.1** ist vollstaendig abgeschlossen (Server + Client + Shared).
-**Schritt 1.2** (Netzwerk) ist vollstaendig abgeschlossen (Server + Client).
+**Phase 1, Schritt 1.1** ist vollstaendig abgeschlossen (Server + Client + Shared). ✅
+**Schritt 1.2** (Netzwerk) ist vollstaendig abgeschlossen (Server + Client). ✅
   - Server: TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker
   - Client: NetworkManager, TcpConnection, UdpConnection, PacketHandler, Heartbeat (5s), Reconnect (3 Versuche)
-**Schritt 1.3** (Auth/DB) ist teilweise erledigt (Handler-Logik, Redis-Anbindung, DB-Migrationen V1-V8 vorhanden — Session-Lifecycle fehlt).
+**Schritt 1.3** (Auth/DB) ist nahezu abgeschlossen (~95%). ✅
+  - Server: Login, Register, CharacterCreate, CharacterSelect Handler mit Redis + DB
+  - Client: Login, Register, CharacterSelect, CharacterCreate UI mit Fehlerbehandlung
+  - DB-Migrationen: V1-V8 (alle Tabellen: accounts, characters, items, inventory, equipment, skills, monsters, loot)
+  - Service-Transitions: Login :7777 → Account :7779 → World :7780/:7781
+  - **Offene Punkte:** Character-Name-Regex Server/Client angleichen (3-16, [a-zA-Z0-9-]), Blacklist implementieren
+**Schritt 1.4** (Welt/Bewegung/Zonen) — Server vollstaendig, Client fehlt. (~50%) 🔧
+  - Server: ZoneManager, ZoneChannel, SpatialGrid, EnterWorldHandler, MovementHandler,
+    EntityManager, GameLoop (20Hz), Flugmechanik, Zone-Wechsel, BroadcastService — alle mit Tests
+  - Client: Nur Protokoll-Stubs vorhanden (Opcodes definiert)
+  - **Fehlend (Client):** Gesamte 3D-Spielwelt-Laufzeit:
+    - Szenen: `scenes/game/` existiert nicht (kein Terrain, keine Stadt, keine Spieler-Szene)
+    - Kamera: Third-Person-Kamera (Camera3D + SpringArm3D)
+    - Bewegung: WASD-Steuerung, Click-to-Move (CharacterBody3D)
+    - Client-Side Prediction + Server-Reconciliation
+    - Entity-Interpolation fuer andere Spieler (100ms Buffer)
+    - Flugmechanik (Leertaste, Steigen/Sinken)
+    - Zone-Wechsel mit Ladescreen
+    - Proto-Decoder: zone_data, entity_spawn, entity_position, position_correction
+    - Proto-Encoder: enter_world, movement_input, zone_change
+    - UDP-Verbindung zum World-Service
 
 **Naechste Prioritaeten:**
-1. Session-Lifecycle (Disconnect -> Force-Flush -> Cleanup) (Schritt 1.3)
-2. Client Auth-UI: Login, Register, CharSelect, CharCreate Screens (Schritt 1.3)
-3. DB-Migrationen fuer restliche Tabellen (Schritt 1.3)
+1. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
+2. Phase 1.4 Client: 3D-Spielwelt, Kamera, Bewegung, Entities, Flug, Zone-Wechsel
+3. Proto-Encoder/Decoder fuer Welt-Nachrichten erweitern

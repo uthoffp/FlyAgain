@@ -15,8 +15,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  *
  * Zone IDs follow the architecture naming scheme:
  * - Zone 1: Aerheim (starting town)
- * - Zone 2: Gruene Ebene (green plains)
- * - Zone 3: Dunkler Wald (dark forest)
+ * - Zone 2: Green Plains (grinding zone)
+ * - Zone 3: Dark Forest (higher-level zone)
  *
  * Thread-safety: Uses ConcurrentHashMap for zones and CopyOnWriteArrayList for
  * channel lists. Channel creation is rare (only when all channels are full),
@@ -29,13 +29,13 @@ class ZoneManager(
     companion object {
         // Zone definitions
         const val ZONE_AERHEIM = 1
-        const val ZONE_GRUENE_EBENE = 2
-        const val ZONE_DUNKLER_WALD = 3
+        const val ZONE_GREEN_PLAINS = 2
+        const val ZONE_DARK_FOREST = 3
 
         val ZONE_NAMES = mapOf(
             ZONE_AERHEIM to "Aerheim",
-            ZONE_GRUENE_EBENE to "Gruene Ebene",
-            ZONE_DUNKLER_WALD to "Dunkler Wald"
+            ZONE_GREEN_PLAINS to "Green Plains",
+            ZONE_DARK_FOREST to "Dark Forest"
         )
 
         // Default spawn position for new players (Aerheim town center)

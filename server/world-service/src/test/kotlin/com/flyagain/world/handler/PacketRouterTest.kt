@@ -57,8 +57,8 @@ class PacketRouterTest {
     private fun makePlayer(): PlayerEntity {
         return PlayerEntity(
             entityId = 1L,
-            characterId = 101L,
-            accountId = 201L,
+            characterId = "101",
+            accountId = "201",
             name = "TestPlayer",
             characterClass = 1,
             x = 0f, y = 0f, z = 0f
@@ -97,7 +97,7 @@ class PacketRouterTest {
     fun `enter world when already authenticated sends error`() {
         val ctx = mockCtx(authenticated = true)
         val request = EnterWorldRequest.newBuilder()
-            .setCharacterId(1L)
+            .setCharacterId("1")
             .setSessionId("test")
             .setJwt("test.jwt.token")
             .build()

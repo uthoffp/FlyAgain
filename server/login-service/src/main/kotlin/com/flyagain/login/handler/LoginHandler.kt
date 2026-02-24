@@ -49,14 +49,14 @@ class LoginHandler(
     private val logger = LoggerFactory.getLogger(LoginHandler::class.java)
 
     /**
-     * Character class ID to name mapping (German-themed names from GDD).
+     * Character class ID to name mapping.
      */
     companion object {
         private val CLASS_NAMES = mapOf(
-            1 to "Krieger",
-            2 to "Magier",
-            3 to "Assassine",
-            4 to "Kleriker"
+            1 to "Warrior",
+            2 to "Mage",
+            3 to "Assassin",
+            4 to "Cleric"
         )
     }
 

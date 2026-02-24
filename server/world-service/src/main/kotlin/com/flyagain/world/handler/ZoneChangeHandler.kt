@@ -161,12 +161,12 @@ class ZoneChangeHandler(
                 player.y = ZoneManager.DEFAULT_SPAWN_Y
                 player.z = ZoneManager.DEFAULT_SPAWN_Z
             }
-            ZoneManager.ZONE_GRUENE_EBENE -> {
+            ZoneManager.ZONE_GREEN_PLAINS -> {
                 player.x = 200f
                 player.y = 0f
                 player.z = 200f
             }
-            ZoneManager.ZONE_DUNKLER_WALD -> {
+            ZoneManager.ZONE_DARK_FOREST -> {
                 player.x = 100f
                 player.y = 0f
                 player.z = 100f

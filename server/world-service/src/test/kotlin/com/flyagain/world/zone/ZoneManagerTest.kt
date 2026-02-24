@@ -14,10 +14,10 @@ class ZoneManagerTest {
     private val entityManager = EntityManager()
     private val zoneManager = ZoneManager(entityManager)
 
-    private fun makePlayer(entityId: Long = 1L, accountId: Long = 100L): PlayerEntity {
+    private fun makePlayer(entityId: Long = 1L, accountId: String = "100"): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = entityId + 100,
+            characterId = "${entityId + 100}",
             accountId = accountId,
             name = "Player$entityId",
             characterClass = 1,
@@ -29,16 +29,16 @@ class ZoneManagerTest {
     fun `initialize creates all three zones`() {
         zoneManager.initialize()
         assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_AERHEIM))
-        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_GRUENE_EBENE))
-        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_DUNKLER_WALD))
+        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_GREEN_PLAINS))
+        assertTrue(zoneManager.zoneExists(ZoneManager.ZONE_DARK_FOREST))
     }
 
     @Test
     fun `initialize creates one channel per zone`() {
         zoneManager.initialize()
         assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_AERHEIM).size)
-        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_GRUENE_EBENE).size)
-        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_DUNKLER_WALD).size)
+        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_GREEN_PLAINS).size)
+        assertEquals(1, zoneManager.getChannels(ZoneManager.ZONE_DARK_FOREST).size)
     }
 
     @Test
@@ -56,8 +56,8 @@ class ZoneManagerTest {
     @Test
     fun `getZoneName returns correct names`() {
         assertEquals("Aerheim", zoneManager.getZoneName(ZoneManager.ZONE_AERHEIM))
-        assertEquals("Gruene Ebene", zoneManager.getZoneName(ZoneManager.ZONE_GRUENE_EBENE))
-        assertEquals("Dunkler Wald", zoneManager.getZoneName(ZoneManager.ZONE_DUNKLER_WALD))
+        assertEquals("Green Plains", zoneManager.getZoneName(ZoneManager.ZONE_GREEN_PLAINS))
+        assertEquals("Dark Forest", zoneManager.getZoneName(ZoneManager.ZONE_DARK_FOREST))
     }
 
     @Test
@@ -157,9 +157,9 @@ class ZoneManagerTest {
     @Test
     fun `multiple players can join same zone`() {
         zoneManager.initialize()
-        val p1 = makePlayer(entityId = 1L, accountId = 1L)
-        val p2 = makePlayer(entityId = 2L, accountId = 2L)
-        val p3 = makePlayer(entityId = 3L, accountId = 3L)
+        val p1 = makePlayer(entityId = 1L, accountId = "1")
+        val p2 = makePlayer(entityId = 2L, accountId = "2")
+        val p3 = makePlayer(entityId = 3L, accountId = "3")
         zoneManager.addPlayerToZone(p1, ZoneManager.ZONE_AERHEIM)
         zoneManager.addPlayerToZone(p2, ZoneManager.ZONE_AERHEIM)
         zoneManager.addPlayerToZone(p3, ZoneManager.ZONE_AERHEIM)

@@ -22,8 +22,8 @@ class WorldUdpHandlerTest {
     private fun makePlayer(entityId: Long = 1L, sessionToken: Long = 12345L): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = entityId + 100,
-            accountId = entityId + 200,
+            characterId = "${entityId + 100}",
+            accountId = "${entityId + 200}",
             name = "Player$entityId",
             characterClass = 1,
             x = 0f, y = 0f, z = 0f,

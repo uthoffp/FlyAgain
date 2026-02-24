@@ -38,6 +38,13 @@ protobuf {
     }
 }
 
+// Disable build cache for proto generation — the protobuf-gradle-plugin
+// does not correctly restore the grpc output directory from cache, causing
+// "Unresolved reference 'AccountDataServiceGrpc'" errors.
+tasks.withType<com.google.protobuf.gradle.GenerateProtoTask> {
+    outputs.cacheIf { false }
+}
+
 sourceSets {
     main {
         proto {

@@ -51,7 +51,7 @@ class EnterWorldHandler(
         }
 
         // Verify ownership
-        val cachedAccountId = charData["account_id"]?.toLongOrNull()
+        val cachedAccountId = charData["account_id"]
         if (cachedAccountId != accountId) {
             logger.warn("Character {} does not belong to account {} (cached account: {})",
                 characterId, accountId, cachedAccountId)
@@ -126,20 +126,20 @@ class EnterWorldHandler(
         return player
     }
 
-    private fun validateJwt(jwt: String): Long? {
+    private fun validateJwt(jwt: String): String? {
         return try {
             val verifier = com.auth0.jwt.JWT.require(
                 com.auth0.jwt.algorithms.Algorithm.HMAC256(jwtSecret)
             ).build()
             val decoded = verifier.verify(jwt)
-            decoded.subject?.toLongOrNull()
+            decoded.subject?.ifBlank { null }
         } catch (e: Exception) {
             logger.debug("JWT validation failed: {}", e.message)
             null
         }
     }
 
-    private suspend fun loadCharacterFromRedis(characterId: Long): Map<String, String>? {
+    private suspend fun loadCharacterFromRedis(characterId: String): Map<String, String>? {
         val redis = redisConnection.sync()
         val key = "character:$characterId"
         val data = redis.hgetall(key)

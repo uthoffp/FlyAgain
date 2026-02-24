@@ -30,8 +30,8 @@ class ZoneChangeHandlerTest {
     private fun makePlayer(entityId: Long = 1L): PlayerEntity {
         return PlayerEntity(
             entityId = entityId,
-            characterId = entityId + 100,
-            accountId = entityId + 200,
+            characterId = "${entityId + 100}",
+            accountId = "${entityId + 200}",
             name = "Player$entityId",
             characterClass = 1,
             x = 500f, y = 0f, z = 500f,
@@ -56,9 +56,9 @@ class ZoneChangeHandlerTest {
         zoneManager.addPlayerToZone(player, ZoneManager.ZONE_AERHEIM)
 
         val ctx = mockCtx()
-        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_GRUENE_EBENE)
+        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_GREEN_PLAINS)
 
-        assertEquals(ZoneManager.ZONE_GRUENE_EBENE, player.zoneId)
+        assertEquals(ZoneManager.ZONE_GREEN_PLAINS, player.zoneId)
         assertTrue(player.dirty)
     }
 
@@ -70,7 +70,7 @@ class ZoneChangeHandlerTest {
         zoneManager.addPlayerToZone(player, ZoneManager.ZONE_AERHEIM)
 
         val ctx = mockCtx()
-        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_GRUENE_EBENE)
+        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_GREEN_PLAINS)
 
         verify(exactly = 1) { broadcastService.broadcastEntityDespawn(any(), eq(player.entityId), any(), any()) }
     }
@@ -83,7 +83,7 @@ class ZoneChangeHandlerTest {
         zoneManager.addPlayerToZone(player, ZoneManager.ZONE_AERHEIM)
 
         val ctx = mockCtx()
-        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_GRUENE_EBENE)
+        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_GREEN_PLAINS)
 
         io.mockk.coVerify(exactly = 1) { sessionLifecycleManager.flushCharacterToDatabase(player) }
     }
@@ -128,9 +128,9 @@ class ZoneChangeHandlerTest {
         zoneManager.addPlayerToZone(player, ZoneManager.ZONE_AERHEIM)
 
         val ctx = mockCtx()
-        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_DUNKLER_WALD)
+        handler.handleZoneChange(ctx, player, ZoneManager.ZONE_DARK_FOREST)
 
-        // Dunkler Wald spawn: (100, 0, 100)
+        // Dark Forest spawn: (100, 0, 100)
         assertEquals(100f, player.x)
         assertEquals(0f, player.y)
         assertEquals(100f, player.z)

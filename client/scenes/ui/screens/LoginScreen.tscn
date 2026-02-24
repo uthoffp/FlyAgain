@@ -1,0 +1,165 @@
+[gd_scene load_steps=6 format=3 uid="uid://b1sw0ydyfbpn7"]
+
+[ext_resource type="Script" uid="uid://c41scpsbrngyk" path="res://scenes/ui/screens/LoginScreen.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/FlyLineEdit.tscn" id="2_lineedit"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/FlyButton.tscn" id="3_button"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/StatusLabel.tscn" id="4_status"]
+[ext_resource type="PackedScene" path="res://scenes/ui/components/LoadingSpinner.tscn" id="5_spinner"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nol1i"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.51, 0.42, 0.18, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_08ygy"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.784, 0.659, 0.318, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vyjeh"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.941, 0.82, 0.471, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="LoginScreen" type="Control" unique_id=1726139306]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=586525306]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="OuterVBox" type="VBoxContainer" parent="CenterContainer" unique_id=1559047241]
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/OuterVBox" unique_id=404898324]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.941, 0.82, 0.471, 1)
+theme_override_font_sizes/font_size = 28
+text = "FLY AGAIN"
+horizontal_alignment = 1
+
+[node name="TitleSpacer" type="Control" parent="CenterContainer/OuterVBox" unique_id=547897970]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="LoginPanel" type="PanelContainer" parent="CenterContainer/OuterVBox" unique_id=959926250]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PanelVBox" type="VBoxContainer" parent="CenterContainer/OuterVBox/LoginPanel" unique_id=107692142]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PanelTitle" type="Label" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=2069814485]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.82, 0.471, 1)
+theme_override_font_sizes/font_size = 18
+text = "ANMELDUNG"
+
+[node name="PanelSeparator" type="HSeparator" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1202546440]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FieldSpacer" type="Control" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=792562077]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="UsernameField" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1369110272 instance=ExtResource("2_lineedit")]
+layout_mode = 2
+theme_override_constants/separation = 4
+label_text = "Benutzername"
+placeholder_text = "Benutzername eingeben"
+
+[node name="FieldSpacer2" type="Control" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=972983157]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="PasswordField" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1839297823 instance=ExtResource("2_lineedit")]
+layout_mode = 2
+theme_override_constants/separation = 4
+label_text = "Passwort"
+placeholder_text = "Passwort eingeben"
+secret = true
+
+[node name="ButtonSpacer" type="Control" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1683416613]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="LoginButton" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1868701181 instance=ExtResource("3_button")]
+layout_mode = 2
+text = "Anmelden"
+label_text = "Anmelden"
+
+[node name="RegisterLinkSpacer" type="Control" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1327288750]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="RegisterLink" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=11609407 instance=ExtResource("3_button")]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.576, 0.502, 1)
+theme_override_colors/font_hover_color = Color(0.784, 0.659, 0.318, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_nol1i")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_nol1i")
+theme_override_styles/hover = SubResource("StyleBoxFlat_08ygy")
+theme_override_styles/focus = SubResource("StyleBoxFlat_vyjeh")
+text = "Noch kein Konto? Registrieren"
+variant = 1
+label_text = "Noch kein Konto? Registrieren"
+
+[node name="StatusSpacer" type="Control" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1924905686]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="StatusLabel" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=1868435019 instance=ExtResource("4_status")]
+layout_mode = 2
+
+[node name="SpinnerContainer" type="CenterContainer" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox" unique_id=219132709]
+layout_mode = 2
+
+[node name="Spinner" parent="CenterContainer/OuterVBox/LoginPanel/PanelVBox/SpinnerContainer" unique_id=453856911 instance=ExtResource("5_spinner")]
+layout_mode = 2
