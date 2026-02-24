@@ -1,0 +1,1 @@
+ALTER TABLE characters ADD COLUMN rotation REAL NOT NULL DEFAULT 0;

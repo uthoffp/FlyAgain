@@ -249,9 +249,9 @@ func decode_character_stats() -> Dictionary:
 
 
 ## Decodes a ZoneDataMessage.
-## Returns: { zone_id: int, channel_id: int, zone_name: String, entities: Array[Dict] }
+## Returns: { zone_id: int, channel_id: int, zone_name: String, entities: Array[Dict], my_entity_id: int }
 func decode_zone_data() -> Dictionary:
-	var result := {"zone_id": 0, "channel_id": 0, "zone_name": "", "entities": []}
+	var result := {"zone_id": 0, "channel_id": 0, "zone_name": "", "entities": [], "my_entity_id": 0}
 	while _has_bytes():
 		var pair := _next_tag()
 		if pair.is_empty():
@@ -259,12 +259,13 @@ func decode_zone_data() -> Dictionary:
 		var fn: int = pair[0]
 		var wt: int = pair[1]
 		match fn:
-			1: result["zone_id"]    = _read_varint()
-			2: result["channel_id"] = _read_varint()
-			3: result["zone_name"]  = _read_string()
+			1: result["zone_id"]       = _read_varint()
+			2: result["channel_id"]    = _read_varint()
+			3: result["zone_name"]     = _read_string()
 			4:
 				var sub := ProtoDecoder.new(_read_bytes_ld())
 				result["entities"].append(sub.decode_entity_spawn())
+			5: result["my_entity_id"]  = _read_varint()
 			_: _skip(wt)
 	return result
 

@@ -471,17 +471,31 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 
 	match opcode:
 		PacketProtocol.OPCODE_ZONE_DATA:
-			zone_data_received.emit(ProtoDecoder.new(payload).decode_zone_data())
+			var data := ProtoDecoder.new(payload).decode_zone_data()
+			print("[NET] ZONE_DATA: zone=%d channel=%d my_entity_id=%d entities=%d" % [
+				data.get("zone_id", 0), data.get("channel_id", 0),
+				data.get("my_entity_id", 0), data.get("entities", []).size()])
+			zone_data_received.emit(data)
 		PacketProtocol.OPCODE_ENTITY_SPAWN:
-			entity_spawned.emit(ProtoDecoder.new(payload).decode_entity_spawn())
+			var data := ProtoDecoder.new(payload).decode_entity_spawn()
+			print("[NET] ENTITY_SPAWN: id=%d type=%d name=%s pos=%s" % [
+				data.get("entity_id", 0), data.get("entity_type", 0),
+				data.get("name", ""), data.get("position", {})])
+			entity_spawned.emit(data)
 		PacketProtocol.OPCODE_ENTITY_DESPAWN:
-			entity_despawned.emit(ProtoDecoder.new(payload).decode_entity_despawn())
+			var data := ProtoDecoder.new(payload).decode_entity_despawn()
+			print("[NET] ENTITY_DESPAWN: id=%d" % data.get("entity_id", 0))
+			entity_despawned.emit(data)
 		PacketProtocol.OPCODE_ENTITY_POSITION:
-			entity_position_updated.emit(ProtoDecoder.new(payload).decode_entity_position_update())
+			var data := ProtoDecoder.new(payload).decode_entity_position_update()
+			entity_position_updated.emit(data)
 		PacketProtocol.OPCODE_POSITION_CORRECTION:
 			position_corrected.emit(ProtoDecoder.new(payload).decode_position_correction())
 		PacketProtocol.OPCODE_ERROR_RESPONSE:
-			error_response.emit(ProtoDecoder.new(payload).decode_error_response())
+			var data := ProtoDecoder.new(payload).decode_error_response()
+			print("[NET] ERROR: opcode=%d code=%d msg=%s" % [
+				data.get("original_opcode", 0), data.get("error_code", 0), data.get("message", "")])
+			error_response.emit(data)
 		PacketProtocol.OPCODE_SERVER_MESSAGE:
 			server_message.emit(ProtoDecoder.new(payload).decode_server_message())
 		PacketProtocol.OPCODE_HEARTBEAT:

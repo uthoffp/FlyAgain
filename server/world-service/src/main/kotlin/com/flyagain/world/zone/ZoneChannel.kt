@@ -10,6 +10,10 @@ import java.util.concurrent.ConcurrentHashMap
  * Each channel has its own set of players, monsters, and a spatial grid
  * for interest management. Max players per channel is configurable
  * (default 1000 as per architecture spec).
+ *
+ * SpatialGrid uses non-thread-safe HashMap internally. All grid operations
+ * are synchronized via [gridLock] to allow safe concurrent access from
+ * the game loop thread and coroutine IO threads (e.g. EnterWorldHandler).
  */
 class ZoneChannel(
     val zoneId: Int,
@@ -23,7 +27,11 @@ class ZoneChannel(
 
     private val logger = LoggerFactory.getLogger(ZoneChannel::class.java)
 
-    val spatialGrid = SpatialGrid()
+    private val spatialGrid = SpatialGrid()
+
+    // Lock for all SpatialGrid operations. The grid uses HashMap internally
+    // and is accessed from both the game loop thread and IO coroutine threads.
+    private val gridLock = Any()
 
     // Players in this channel, keyed by entity ID
     private val players = ConcurrentHashMap<Long, PlayerEntity>()
@@ -43,7 +51,9 @@ class ZoneChannel(
         }
 
         players[player.entityId] = player
-        spatialGrid.addEntity(player.entityId, player.x, player.z)
+        synchronized(gridLock) {
+            spatialGrid.addEntity(player.entityId, player.x, player.z)
+        }
         player.zoneId = zoneId
         player.channelId = channelId
 
@@ -57,7 +67,9 @@ class ZoneChannel(
      */
     fun removePlayer(entityId: Long): PlayerEntity? {
         val player = players.remove(entityId) ?: return null
-        spatialGrid.removeEntity(entityId)
+        synchronized(gridLock) {
+            spatialGrid.removeEntity(entityId)
+        }
         logger.debug("Player {} left channel {}-{} (remaining: {})",
             player.name, zoneId, channelId, players.size)
         return player
@@ -68,7 +80,9 @@ class ZoneChannel(
      */
     fun addMonster(monster: MonsterEntity) {
         monsters[monster.entityId] = monster
-        spatialGrid.addEntity(monster.entityId, monster.x, monster.z)
+        synchronized(gridLock) {
+            spatialGrid.addEntity(monster.entityId, monster.x, monster.z)
+        }
         monster.zoneId = zoneId
         monster.channelId = channelId
     }
@@ -78,7 +92,9 @@ class ZoneChannel(
      */
     fun removeMonster(entityId: Long): MonsterEntity? {
         val monster = monsters.remove(entityId) ?: return null
-        spatialGrid.removeEntity(entityId)
+        synchronized(gridLock) {
+            spatialGrid.removeEntity(entityId)
+        }
         return monster
     }
 
@@ -114,22 +130,29 @@ class ZoneChannel(
 
     /**
      * Get nearby entity IDs for a given position using the spatial grid.
+     * Returns a defensive copy since SpatialGrid reuses its internal result set.
      */
     fun getNearbyEntities(x: Float, z: Float): Set<Long> {
-        return spatialGrid.getNearbyEntities(x, z)
+        synchronized(gridLock) {
+            return HashSet(spatialGrid.getNearbyEntities(x, z))
+        }
     }
 
     /**
      * Update a player's position in the spatial grid.
      */
     fun updatePlayerPosition(entityId: Long, x: Float, z: Float) {
-        spatialGrid.updateEntity(entityId, x, z)
+        synchronized(gridLock) {
+            spatialGrid.updateEntity(entityId, x, z)
+        }
     }
 
     /**
      * Update a monster's position in the spatial grid.
      */
     fun updateMonsterPosition(entityId: Long, x: Float, z: Float) {
-        spatialGrid.updateEntity(entityId, x, z)
+        synchronized(gridLock) {
+            spatialGrid.updateEntity(entityId, x, z)
+        }
     }
 }

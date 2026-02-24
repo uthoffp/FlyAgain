@@ -79,6 +79,7 @@ class WriteBackScheduler(
                         .setPosX(data["pos_x"]?.toFloatOrNull() ?: 0f)
                         .setPosY(data["pos_y"]?.toFloatOrNull() ?: 0f)
                         .setPosZ(data["pos_z"]?.toFloatOrNull() ?: 0f)
+                        .setRotation(data["rotation"]?.toFloatOrNull() ?: 0f)
                         .setGold(data["gold"]?.toLongOrNull() ?: 0)
                         .setPlayTime(data["play_time"]?.toLongOrNull() ?: 0)
                         .setStr(data["str"]?.toIntOrNull() ?: 0)

@@ -95,6 +95,7 @@ class SessionLifecycleManager(
             .setPosX(player.x)
             .setPosY(player.y)
             .setPosZ(player.z)
+            .setRotation(player.rotation)
             .setGold(player.gold)
             .setPlayTime(calculatePlayTime(player))
             .setStr(player.str)
@@ -140,6 +141,7 @@ class SessionLifecycleManager(
             "pos_x" to player.x.toString(),
             "pos_y" to player.y.toString(),
             "pos_z" to player.z.toString(),
+            "rotation" to player.rotation.toString(),
             "gold" to player.gold.toString(),
             "play_time" to calculatePlayTime(player).toString()
         )
@@ -218,6 +220,7 @@ class SessionLifecycleManager(
             "pos_x" to player.x.toString(),
             "pos_y" to player.y.toString(),
             "pos_z" to player.z.toString(),
+            "rotation" to player.rotation.toString(),
             "gold" to player.gold.toString(),
             "play_time" to calculatePlayTime(player).toString()
         )

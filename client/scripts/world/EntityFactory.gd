@@ -21,12 +21,17 @@ func initialize(parent: Node3D) -> void:
 func spawn_entity(data: Dictionary) -> Node3D:
 	var entity_id: int = data.get("entity_id", 0)
 	if _entities.has(entity_id):
+		print("[FACTORY] Entity %d already exists, skipping spawn" % entity_id)
 		return _entities[entity_id]
 
 	var entity: Node3D = RemoteEntityScene.instantiate()
 	entity.setup(data)
 	_parent.add_child(entity)
 	_entities[entity_id] = entity
+	var pos_dict: Dictionary = data.get("position", {})
+	print("[FACTORY] Spawned entity %d at (%.1f, %.1f, %.1f) — total entities: %d" % [
+		entity_id, pos_dict.get("x", 0.0), pos_dict.get("y", 0.0),
+		pos_dict.get("z", 0.0), _entities.size()])
 	return entity
 
 

@@ -97,6 +97,7 @@ class CharacterSelectHandler(
                 "pos_x" to character.posX.toString(),
                 "pos_y" to character.posY.toString(),
                 "pos_z" to character.posZ.toString(),
+                "rotation" to character.rotation.toString(),
                 "gold" to character.gold.toString()
             ))
             redis.expire(key, CHARACTER_CACHE_TTL_SECONDS)

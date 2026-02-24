@@ -169,9 +169,13 @@ func _send_enter_world() -> void:
 # ---- Signal handlers ----
 
 func _on_zone_data(data: Dictionary) -> void:
+	GameState.my_entity_id = data.get("my_entity_id", 0)
 	GameState.current_zone_id = data.get("zone_id", 0)
 	GameState.current_channel_id = data.get("channel_id", 0)
 	GameState.current_zone_name = data.get("zone_name", "")
+	print("[WORLD] Zone data: my_entity_id=%d zone=%d channel=%d entities=%d" % [
+		GameState.my_entity_id, GameState.current_zone_id,
+		GameState.current_channel_id, data.get("entities", []).size()])
 
 	# Clear existing remote entities
 	_entity_factory.clear_all()
@@ -181,6 +185,8 @@ func _on_zone_data(data: Dictionary) -> void:
 	for entity_data in entities:
 		var eid: int = entity_data.get("entity_id", 0)
 		if eid != GameState.my_entity_id:
+			print("[WORLD] Spawning entity from zone data: id=%d name=%s" % [
+				eid, entity_data.get("name", "")])
 			_entity_factory.spawn_entity(entity_data)
 
 
@@ -188,6 +194,7 @@ func _on_entity_spawned(data: Dictionary) -> void:
 	var entity_id: int = data.get("entity_id", 0)
 	if entity_id == GameState.my_entity_id:
 		return  # Don't spawn ourselves as a remote entity
+	print("[WORLD] Entity spawned: id=%d name=%s" % [entity_id, data.get("name", "")])
 	_entity_factory.spawn_entity(data)
 
 
@@ -195,6 +202,7 @@ func _on_entity_despawned(data: Dictionary) -> void:
 	var entity_id: int = data.get("entity_id", 0)
 	if entity_id == GameState.my_entity_id:
 		return
+	print("[WORLD] Entity despawned: id=%d" % entity_id)
 	_entity_factory.despawn_entity(entity_id)
 
 

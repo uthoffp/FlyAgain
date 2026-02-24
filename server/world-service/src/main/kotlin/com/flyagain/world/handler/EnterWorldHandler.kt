@@ -91,6 +91,7 @@ class EnterWorldHandler(
             x = charData["pos_x"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_X,
             y = charData["pos_y"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_Y,
             z = charData["pos_z"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_Z,
+            rotation = charData["rotation"]?.toFloatOrNull() ?: 0f,
             level = charData["level"]?.toIntOrNull() ?: 1,
             hp = charData["hp"]?.toIntOrNull() ?: 100,
             maxHp = charData["max_hp"]?.toIntOrNull() ?: 100,
@@ -183,6 +184,8 @@ class EnterWorldHandler(
         channel: com.flyagain.world.zone.ZoneChannel
     ) {
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
+        logger.info("sendZoneData for {} (entityId={}): nearby={} entities at ({}, {})",
+            player.name, player.entityId, nearbyEntityIds.size, player.x, player.z)
         val spawnMessages = mutableListOf<EntitySpawnMessage>()
 
         for (entityId in nearbyEntityIds) {
@@ -191,6 +194,7 @@ class EnterWorldHandler(
             // Check if it's a player
             val otherPlayer = entityManager.getPlayer(entityId)
             if (otherPlayer != null) {
+                logger.info("  Including player {} (entityId={}) in zone data", otherPlayer.name, entityId)
                 spawnMessages.add(buildPlayerSpawn(otherPlayer))
                 continue
             }
@@ -202,11 +206,15 @@ class EnterWorldHandler(
             }
         }
 
+        logger.info("Sending ZoneData to {} with {} entities (myEntityId={})",
+            player.name, spawnMessages.size, player.entityId)
+
         val zoneData = ZoneDataMessage.newBuilder()
             .setZoneId(player.zoneId)
             .setChannelId(player.channelId)
             .setZoneName(zoneManager.getZoneName(player.zoneId))
             .addAllEntities(spawnMessages)
+            .setMyEntityId(player.entityId)
             .build()
 
         ctx.writeAndFlush(Packet(Opcode.ZONE_DATA_VALUE, zoneData.toByteArray()))
@@ -220,11 +228,16 @@ class EnterWorldHandler(
         val packet = Packet(Opcode.ENTITY_SPAWN_VALUE, spawnMsg.toByteArray())
 
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
+        var broadcastCount = 0
         for (entityId in nearbyEntityIds) {
             if (entityId == player.entityId) continue
             val otherPlayer = channel.getPlayer(entityId) ?: continue
+            logger.info("Broadcasting EntitySpawn of {} to player {} (entityId={})",
+                player.name, otherPlayer.name, entityId)
             otherPlayer.tcpChannel?.writeAndFlush(packet)
+            broadcastCount++
         }
+        logger.info("broadcastPlayerSpawn for {}: sent to {} nearby players", player.name, broadcastCount)
     }
 
     private fun buildPlayerSpawn(player: PlayerEntity): EntitySpawnMessage {
