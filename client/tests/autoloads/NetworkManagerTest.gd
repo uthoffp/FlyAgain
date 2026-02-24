@@ -99,13 +99,13 @@ func test_on_connect_error_triggers_reconnect() -> void:
 
 func test_on_connect_error_exhausts_retries() -> void:
 	_nm._reconnect_count = NetworkManagerScript.MAX_RECONNECT_ATTEMPTS - 1
-	# Monitor the connection_failed signal
-	monitor_signals(_nm)
+	var received := false
+	_nm.connection_failed.connect(func(_reason): received = true)
 
 	_nm._on_connect_error()
 
 	assert_int(_nm._state).is_equal(NetworkManagerScript._State.FAILED)
-	await assert_signal(_nm).is_emitted("connection_failed")
+	assert_bool(received).is_true()
 
 
 func test_on_connected_resets_reconnect_count() -> void:
@@ -195,14 +195,15 @@ func test_parse_multiple_frames_in_one_buffer() -> void:
 	_nm._recv_buf.append_array(frame2)
 	_nm._frame_len = -1
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.register_response.connect(func(_data): received = true)
 	_nm._parse_frames()
 
 	# Both frames consumed
 	assert_array(_nm._recv_buf).is_empty()
 	assert_int(_nm._frame_len).is_equal(-1)
 	# register_response signal should have been emitted for frame1
-	await assert_signal(_nm).is_emitted("register_response")
+	assert_bool(received).is_true()
 
 
 func test_parse_invalid_frame_length_zero() -> void:
@@ -243,10 +244,11 @@ func test_dispatch_login_response() -> void:
 	frame.append(0x02)  # OPCODE_LOGIN_RESPONSE
 	frame.append_array(payload)
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.login_response.connect(func(_data): received = true)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_emitted("login_response")
+	assert_bool(received).is_true()
 
 
 func test_dispatch_register_response() -> void:
@@ -258,10 +260,11 @@ func test_dispatch_register_response() -> void:
 	frame.append(0x07)  # OPCODE_REGISTER_RESPONSE
 	frame.append_array(payload)
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.register_response.connect(func(_data): received = true)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_emitted("register_response")
+	assert_bool(received).is_true()
 
 
 func test_dispatch_error_response() -> void:
@@ -275,10 +278,11 @@ func test_dispatch_error_response() -> void:
 	frame.append(0x03)  # OPCODE_ERROR_RESPONSE
 	frame.append_array(payload)
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.error_response.connect(func(_data): received = true)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_emitted("error_response")
+	assert_bool(received).is_true()
 
 
 func test_dispatch_server_message() -> void:
@@ -291,10 +295,11 @@ func test_dispatch_server_message() -> void:
 	frame.append(0x02)  # OPCODE_SERVER_MESSAGE
 	frame.append_array(payload)
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.server_message.connect(func(_data): received = true)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_emitted("server_message")
+	assert_bool(received).is_true()
 
 
 func test_dispatch_enter_world_response() -> void:
@@ -306,10 +311,11 @@ func test_dispatch_enter_world_response() -> void:
 	frame.append(0x04)  # OPCODE_ENTER_WORLD
 	frame.append_array(payload)
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.enter_world_response.connect(func(_data): received = true)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_emitted("enter_world_response")
+	assert_bool(received).is_true()
 
 
 func test_dispatch_character_list_response() -> void:
@@ -318,10 +324,11 @@ func test_dispatch_character_list_response() -> void:
 	frame.append(0x09)  # OPCODE_CHARACTER_LIST_RESPONSE
 	# empty payload
 
-	monitor_signals(_nm)
+	var received := false
+	_nm.character_list_response.connect(func(_data): received = true)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_emitted("character_list_response")
+	assert_bool(received).is_true()
 
 
 func test_dispatch_heartbeat_silent() -> void:
