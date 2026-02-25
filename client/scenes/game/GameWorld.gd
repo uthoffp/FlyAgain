@@ -1,15 +1,23 @@
 ## GameWorld.gd
 ## Root scene for the 3D game world.
-## Orchestrates: terrain, local player, remote entities, zone data.
+## Orchestrates: zone-specific terrain, local player, remote entities, zone data.
 extends Node3D
 
 
 const PlayerCharacterScene := preload("res://scenes/game/PlayerCharacter.tscn")
-const BaseTerrainScene := preload("res://scenes/game/terrain/BaseTerrain.tscn")
+const FlyButtonScene := preload("res://scenes/ui/components/FlyButton.tscn")
+
+const ZONE_TERRAINS: Dictionary = {
+	WorldConstants.ZONE_AERHEIM: preload("res://scenes/game/terrain/AerheimTerrain.tscn"),
+	WorldConstants.ZONE_GREEN_PLAINS: preload("res://scenes/game/terrain/GreenPlainsTerrain.tscn"),
+	WorldConstants.ZONE_DARK_FOREST: preload("res://scenes/game/terrain/DarkForestTerrain.tscn"),
+}
+const FallbackTerrainScene := preload("res://scenes/game/terrain/BaseTerrain.tscn")
 
 var _entity_factory: EntityFactory = EntityFactory.new()
 var _player: CharacterBody3D = null
 var _terrain: Node3D = null
+var _logout_dialog: ConfirmationDialog = null
 
 @onready var _entities_root: Node3D = $Entities
 
@@ -17,8 +25,11 @@ var _terrain: Node3D = null
 func _ready() -> void:
 	_entity_factory.initialize(_entities_root)
 	_connect_signals()
-	_setup_terrain()
-	_setup_static_objects()
+	_setup_hud()
+	var initial_zone := GameState.current_zone_id
+	if initial_zone == 0:
+		initial_zone = WorldConstants.ZONE_AERHEIM
+	_setup_terrain(initial_zone)
 	_spawn_local_player()
 	_send_enter_world()
 
@@ -48,115 +59,69 @@ func _disconnect_signals() -> void:
 		NetworkManager.world_disconnected.disconnect(_on_world_disconnected)
 
 
-func _setup_terrain() -> void:
-	_terrain = BaseTerrainScene.instantiate()
+# ---- HUD ----
+
+func _setup_hud() -> void:
+	var hud_layer := CanvasLayer.new()
+	hud_layer.name = "HUD"
+	hud_layer.layer = 10
+	add_child(hud_layer)
+
+	var hud_root := Control.new()
+	hud_root.name = "HUDRoot"
+	hud_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_root.theme = ThemeFactory.create_main_theme()
+	hud_layer.add_child(hud_root)
+
+	# Logout button — top-right corner
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_root.add_child(margin)
+
+	var logout_btn: FlyButton = FlyButtonScene.instantiate()
+	logout_btn.variant = FlyButton.Variant.SECONDARY
+	logout_btn.label_text = "Abmelden"  # TODO: localize with tr()
+	logout_btn.pressed.connect(_on_logout_pressed)
+	margin.add_child(logout_btn)
+
+	# Confirmation dialog
+	_logout_dialog = ConfirmationDialog.new()
+	_logout_dialog.title = "Abmelden"  # TODO: localize with tr()
+	_logout_dialog.dialog_text = "Möchtest du dich wirklich abmelden?"  # TODO: localize with tr()
+	_logout_dialog.ok_button_text = "Ja"  # TODO: localize with tr()
+	_logout_dialog.cancel_button_text = "Abbrechen"  # TODO: localize with tr()
+	_logout_dialog.confirmed.connect(_on_logout_confirmed)
+	hud_root.add_child(_logout_dialog)
+
+
+func _on_logout_pressed() -> void:
+	_logout_dialog.popup_centered()
+
+
+func _on_logout_confirmed() -> void:
+	NetworkManager.send_logout()
+	GameState.reset()
+	UIManager.leave_game_world("login")
+
+
+# ---- Terrain management ----
+
+func _setup_terrain(zone_id: int) -> void:
+	if _terrain and is_instance_valid(_terrain):
+		remove_child(_terrain)
+		_terrain.queue_free()
+		_terrain = null
+
+	var scene: PackedScene = ZONE_TERRAINS.get(zone_id, FallbackTerrainScene)
+	_terrain = scene.instantiate()
 	add_child(_terrain)
-
-
-func _setup_static_objects() -> void:
-	var spawn := WorldConstants.DEFAULT_SPAWN
-
-	# Wooden crates near spawn
-	_place_box(spawn + Vector3(6, 0.5, 3), Vector3(1, 1, 1), Color(0.55, 0.35, 0.15))
-	_place_box(spawn + Vector3(7, 0.5, 3.5), Vector3(0.8, 0.8, 0.8), Color(0.5, 0.3, 0.12))
-	_place_box(spawn + Vector3(6.4, 1.4, 3.2), Vector3(0.7, 0.7, 0.7), Color(0.6, 0.38, 0.18))
-
-	# Stone pillars
-	_place_cylinder(spawn + Vector3(-8, 1.5, 5), 0.5, 3.0, Color(0.6, 0.6, 0.58))
-	_place_cylinder(spawn + Vector3(-8, 1.5, -5), 0.5, 3.0, Color(0.6, 0.6, 0.58))
-	_place_cylinder(spawn + Vector3(8, 1.5, -5), 0.5, 3.0, Color(0.55, 0.55, 0.53))
-
-	# Rocks scattered around
-	_place_sphere(spawn + Vector3(12, 0.4, -8), 0.8, Color(0.45, 0.43, 0.4))
-	_place_sphere(spawn + Vector3(-15, 0.3, 10), 0.6, Color(0.5, 0.48, 0.44))
-	_place_sphere(spawn + Vector3(3, 0.25, -14), 0.5, Color(0.4, 0.38, 0.35))
-	_place_sphere(spawn + Vector3(-5, 0.5, -12), 1.0, Color(0.48, 0.46, 0.42))
-
-	# Tree trunks (cylinder) with canopy (sphere)
-	_place_tree(spawn + Vector3(-12, 0, -3))
-	_place_tree(spawn + Vector3(15, 0, 8))
-	_place_tree(spawn + Vector3(-3, 0, 18))
-	_place_tree(spawn + Vector3(20, 0, -15))
-
-
-func _place_box(pos: Vector3, size: Vector3, color: Color) -> void:
-	var body := StaticBody3D.new()
-	body.position = pos
-
-	var mesh_inst := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = size
-	mesh_inst.mesh = box
-
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mesh_inst.material_override = mat
-
-	var col := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
-	col.shape = shape
-
-	body.add_child(mesh_inst)
-	body.add_child(col)
-	add_child(body)
-
-
-func _place_cylinder(pos: Vector3, radius: float, height: float, color: Color) -> void:
-	var body := StaticBody3D.new()
-	body.position = pos
-
-	var mesh_inst := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = radius
-	cyl.bottom_radius = radius
-	cyl.height = height
-	mesh_inst.mesh = cyl
-
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mesh_inst.material_override = mat
-
-	var col := CollisionShape3D.new()
-	var shape := CylinderShape3D.new()
-	shape.radius = radius
-	shape.height = height
-	col.shape = shape
-
-	body.add_child(mesh_inst)
-	body.add_child(col)
-	add_child(body)
-
-
-func _place_sphere(pos: Vector3, radius: float, color: Color) -> void:
-	var body := StaticBody3D.new()
-	body.position = pos
-
-	var mesh_inst := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = radius
-	sphere.height = radius * 2.0
-	mesh_inst.mesh = sphere
-
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mesh_inst.material_override = mat
-
-	var col := CollisionShape3D.new()
-	var shape := SphereShape3D.new()
-	shape.radius = radius
-	col.shape = shape
-
-	body.add_child(mesh_inst)
-	body.add_child(col)
-	add_child(body)
-
-
-func _place_tree(base_pos: Vector3) -> void:
-	# Trunk
-	_place_cylinder(base_pos + Vector3(0, 1.5, 0), 0.25, 3.0, Color(0.4, 0.26, 0.13))
-	# Canopy
-	_place_sphere(base_pos + Vector3(0, 3.8, 0), 1.5, Color(0.15, 0.45, 0.12))
+	# Keep terrain behind entities in the scene tree
+	move_child(_terrain, 0)
 
 
 func _send_enter_world() -> void:
@@ -176,6 +141,9 @@ func _on_zone_data(data: Dictionary) -> void:
 	print("[WORLD] Zone data: my_entity_id=%d zone=%d channel=%d entities=%d" % [
 		GameState.my_entity_id, GameState.current_zone_id,
 		GameState.current_channel_id, data.get("entities", []).size()])
+
+	# Swap terrain for the new zone
+	_setup_terrain(GameState.current_zone_id)
 
 	# Clear existing remote entities
 	_entity_factory.clear_all()
@@ -227,5 +195,5 @@ func _spawn_local_player() -> void:
 	var spawn_pos := GameState.player_position
 	if spawn_pos == Vector3.ZERO:
 		spawn_pos = WorldConstants.DEFAULT_SPAWN
-	_player.global_position = spawn_pos
+	_player.position = spawn_pos
 	add_child(_player)

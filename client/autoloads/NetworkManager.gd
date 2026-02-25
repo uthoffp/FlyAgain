@@ -187,8 +187,9 @@ func connect_to_world(host: String, tcp_port: int, udp_port: int, session_token:
 		world_disconnected.emit()
 		return
 
-	# Set up UDP
+	# Set up UDP and connect incoming packet signal
 	_udp = UdpConnection.new()
+	_udp.packet_received.connect(_on_udp_packet_received)
 	var udp_err := _udp.connect_to_server(host, udp_port, session_token, GameState.hmac_secret)
 	if udp_err != OK:
 		push_error("NetworkManager: world UDP connect failed: %s" % error_string(udp_err))
@@ -202,6 +203,8 @@ func disconnect_from_world() -> void:
 	_world_recv_buf.clear()
 	_world_frame_len = -1
 	if _udp != null:
+		if _udp.packet_received.is_connected(_on_udp_packet_received):
+			_udp.packet_received.disconnect(_on_udp_packet_received)
 		_udp.disconnect_from_server()
 		_udp = null
 
@@ -215,6 +218,15 @@ func is_world_connected() -> bool:
 func send_enter_world(jwt: String, character_id: String, session_id: String) -> void:
 	_send_world(PacketProtocol.OPCODE_ENTER_WORLD,
 		ProtoEncoder.encode_enter_world_request(jwt, character_id, session_id))
+
+
+## Sends a logout request to the world-service, then disconnects all connections.
+func send_logout() -> void:
+	if _world_state == _State.CONNECTED:
+		_send_world(PacketProtocol.OPCODE_LOGOUT_REQUEST,
+			ProtoEncoder.encode_logout_request(GameState.session_id))
+	disconnect_from_world()
+	disconnect_from_server()
 
 
 ## Sends a MovementInput over UDP.
@@ -476,6 +488,16 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 				data.get("zone_id", 0), data.get("channel_id", 0),
 				data.get("my_entity_id", 0), data.get("entities", []).size()])
 			zone_data_received.emit(data)
+		PacketProtocol.OPCODE_ENTER_WORLD:
+			# EnterWorldHandler sends this on error (success path sends ZONE_DATA instead)
+			var data := ProtoDecoder.new(payload).decode_enter_world_response()
+			if not data.get("success", false):
+				push_error("NetworkManager: world entry rejected: %s" % data.get("error_message", ""))
+				error_response.emit({
+					"original_opcode": PacketProtocol.OPCODE_ENTER_WORLD,
+					"error_code": 403,
+					"message": data.get("error_message", "World entry failed.")
+				})
 		PacketProtocol.OPCODE_ENTITY_SPAWN:
 			var data := ProtoDecoder.new(payload).decode_entity_spawn()
 			print("[NET] ENTITY_SPAWN: id=%d type=%d name=%s pos=%s" % [
@@ -518,6 +540,20 @@ func _send_world_heartbeat() -> void:
 	var client_time_ms := int(Time.get_unix_time_from_system() * 1000)
 	_send_world(PacketProtocol.OPCODE_HEARTBEAT,
 		ProtoEncoder.encode_heartbeat(client_time_ms))
+
+
+# ---- UDP incoming packet handling ----
+
+func _on_udp_packet_received(opcode: int, payload: PackedByteArray) -> void:
+	match opcode:
+		PacketProtocol.OPCODE_ENTITY_POSITION:
+			entity_position_updated.emit(
+				ProtoDecoder.new(payload).decode_entity_position_update())
+		PacketProtocol.OPCODE_POSITION_CORRECTION:
+			position_corrected.emit(
+				ProtoDecoder.new(payload).decode_position_correction())
+		_:
+			push_warning("NetworkManager: unhandled UDP opcode %s" % PacketProtocol.opcode_name(opcode))
 
 
 # ---- Utility ----

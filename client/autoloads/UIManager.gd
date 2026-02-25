@@ -134,8 +134,9 @@ func _transition_to(screen_name: String) -> void:
 	_transitioning = true
 
 	# Fade out current scene content (background stays visible)
+	# modulate only exists on CanvasItem — skip fade for Node3D scenes (e.g. GameWorld)
 	var current := get_tree().current_scene
-	if current:
+	if current and current is CanvasItem:
 		var tween := create_tween()
 		tween.tween_property(current, "modulate:a", 0.0, FADE_DURATION)
 		await tween.finished
@@ -147,7 +148,7 @@ func _transition_to(screen_name: String) -> void:
 
 	# Fade in new scene content
 	var new_scene := get_tree().current_scene
-	if new_scene:
+	if new_scene and new_scene is CanvasItem:
 		new_scene.modulate.a = 0.0
 		var tween := create_tween()
 		tween.tween_property(new_scene, "modulate:a", 1.0, FADE_DURATION)

@@ -35,6 +35,13 @@ static func encode_register_request(
 	return buf
 
 
+## Encodes a LogoutRequest { session_id=1 }.
+static func encode_logout_request(session_id: String) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_string_field(1, session_id))
+	return buf
+
+
 ## Encodes a Heartbeat { client_time=1 }.
 static func encode_heartbeat(client_time_ms: int) -> PackedByteArray:
 	var buf := PackedByteArray()

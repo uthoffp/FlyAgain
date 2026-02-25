@@ -167,15 +167,16 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Unit-Tests: ZoneManager, ZoneChannel, SpatialGrid, EntityManager, MovementHandler, ZoneChangeHandler, GameLoop, BroadcastService, WorldUdpHandler, SessionLifecycleManager
 
 **Client (Godot):**
-- [ ] Third-Person-Kamera: Freie Rotation, Zoom (Camera3D + SpringArm3D)
-- [ ] Spieler-Bewegung: WASD + Maus, Click-to-Move (CharacterBody3D)
-- [ ] Client-Side Prediction: Lokale Bewegung sofort anwenden
-- [ ] Server-Reconciliation: PositionCorrection verarbeiten, Snap-Back
-- [ ] Entity-Interpolation: Andere Spieler smooth bewegen (100ms Buffer)
-- [ ] Flugmechanik: Leertaste zum Abheben/Landen, Steigen/Sinken
-- [ ] Terrain: Einfache Heightmap (Green Plains = flaches Grasland)
-- [ ] Aerheim: Einfache Stadt-Geometrie (Platzhalter-Assets)
-- [ ] Remote-Spieler: EntitySpawn empfangen -> Charakter-Node instanziieren
+- [x] Third-Person-Kamera: Freie Rotation, Zoom (Camera3D + SpringArm3D)
+- [x] Spieler-Bewegung: WASD + Maus, Click-to-Move (CharacterBody3D)
+- [x] Client-Side Prediction: Lokale Bewegung sofort anwenden
+- [x] Server-Reconciliation: PositionCorrection verarbeiten, Snap-Back
+- [x] Entity-Interpolation: Andere Spieler smooth bewegen (100ms Buffer)
+- [ ] Springen: Leertaste fuer Sprung-Mechanik (Gravitation, vertikale Geschwindigkeit)
+- [ ] Flugmechanik: Zum Abheben/Landen, Steigen/Sinken (verschoben auf spaeter)
+- [x] Terrain: Zone-spezifisches Terrain mit Noise-Shader (Green Plains, Dark Forest, Aerheim)
+- [x] Aerheim: Stadt-Geometrie mit Stadtmauer, ~12 Gebaeuden, Marktplatz, NPC-Markern
+- [x] Remote-Spieler: EntitySpawn empfangen -> Charakter-Node mit Klassen-Farben instanziieren
 - [ ] Zone-Wechsel: Ladescreen bei ZoneData-Empfang
 
 **Akzeptanzkriterien:**
@@ -665,23 +666,26 @@ miteinander zu interagieren und gegeneinander anzutreten.
   - DB-Migrationen: V1-V8 (alle Tabellen: accounts, characters, items, inventory, equipment, skills, monsters, loot)
   - Service-Transitions: Login :7777 → Account :7779 → World :7780/:7781
   - **Offene Punkte:** Character-Name-Regex Server/Client angleichen (3-16, [a-zA-Z0-9-]), Blacklist implementieren
-**Schritt 1.4** (Welt/Bewegung/Zonen) — Server vollstaendig, Client fehlt. (~50%) 🔧
+**Schritt 1.4** (Welt/Bewegung/Zonen) — Server vollstaendig, Client ~80%. (~80%) 🔧
   - Server: ZoneManager, ZoneChannel, SpatialGrid, EnterWorldHandler, MovementHandler,
     EntityManager, GameLoop (20Hz), Flugmechanik, Zone-Wechsel, BroadcastService — alle mit Tests
-  - Client: Nur Protokoll-Stubs vorhanden (Opcodes definiert)
-  - **Fehlend (Client):** Gesamte 3D-Spielwelt-Laufzeit:
-    - Szenen: `scenes/game/` existiert nicht (kein Terrain, keine Stadt, keine Spieler-Szene)
-    - Kamera: Third-Person-Kamera (Camera3D + SpringArm3D)
-    - Bewegung: WASD-Steuerung, Click-to-Move (CharacterBody3D)
-    - Client-Side Prediction + Server-Reconciliation
-    - Entity-Interpolation fuer andere Spieler (100ms Buffer)
-    - Flugmechanik (Leertaste, Steigen/Sinken)
-    - Zone-Wechsel mit Ladescreen
-    - Proto-Decoder: zone_data, entity_spawn, entity_position, position_correction
-    - Proto-Encoder: enter_world, movement_input, zone_change
+  - Client (erledigt):
+    - GameWorld-Szene mit Zone-spezifischem Terrain-Switching
+    - PlayerCharacter: WASD + Click-to-Move + Client-Side Prediction + Server-Reconciliation
+    - ThirdPersonCamera: SpringArm3D mit Zoom und Orbit
+    - RemoteEntity: EntitySpawn mit Klassen-Farben, Entity-Interpolation (100ms Buffer)
+    - EntityFactory: Spawn/Despawn/Update mit Validierung
+    - Terrain: Aerheim (Stadt), Green Plains (Noise-Shader Huegel), Dark Forest (dunkles Terrain)
+    - Aerheim: Stadtmauer, ~12 Gebaeude, Marktplatz, NPC-Marker
+    - Proto-Decoder/Encoder: Alle Welt-Nachrichten implementiert
     - UDP-Verbindung zum World-Service
+  - **Fehlend (Client):**
+    - Sprung-Mechanik (Leertaste, Gravitation)
+    - Flugmechanik (verschoben auf spaeter)
+    - Zone-Wechsel mit Ladescreen
 
 **Naechste Prioritaeten:**
-1. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
-2. Phase 1.4 Client: 3D-Spielwelt, Kamera, Bewegung, Entities, Flug, Zone-Wechsel
-3. Proto-Encoder/Decoder fuer Welt-Nachrichten erweitern
+1. Phase 1.4: Sprung-Mechanik implementieren
+2. Phase 1.4: Zone-Wechsel mit Ladescreen
+3. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
+4. Phase 1.5: Kampfsystem und Monster-AI

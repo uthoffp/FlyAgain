@@ -71,7 +71,7 @@ See [docs/godot-setup.md](docs/godot-setup.md) for Godot project setup instructi
 
 ## Status
 
-Early development (Phase 1.1 — project setup complete). See [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) for the detailed build plan.
+Early development (Phase 1.4 — world, movement, and zone system ~80% complete). See [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) for the detailed build plan.
 
 ## Documentation
 
@@ -79,6 +79,7 @@ Early development (Phase 1.1 — project setup complete). See [docs/IMPLEMENTATI
 - [docs/GDD.md](docs/GDD.md) -- Game Design Document
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) -- Technical Architecture
 - [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) -- Phased Build Plan
+- [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) -- Scalability & Performance Bottleneck Analysis
 - [docs/ROADMAP.md](docs/ROADMAP.md) -- High-level Roadmap
 - [docs/godot-setup.md](docs/godot-setup.md) -- Godot Client Setup Guide
 - [server/README.md](server/README.md) -- Server Documentation

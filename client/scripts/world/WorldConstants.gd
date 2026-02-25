@@ -11,6 +11,11 @@ const GROUND_MOVE_SPEED := 5.0   # units/sec on ground
 const FLY_MOVE_SPEED := 8.0      # units/sec while flying
 const SPEED_TOLERANCE := 1.5     # server tolerance multiplier for speed-hack detection
 
+# ---- Jump physics (client-side visual) ----
+
+const JUMP_VELOCITY := 7.0      # initial upward velocity (units/sec)
+const GRAVITY := 20.0            # downward acceleration (units/sec²)
+
 
 # ---- World boundaries (must match server MovementHandler.kt) ----
 
@@ -29,9 +34,26 @@ const ZONE_GREEN_PLAINS := 2
 const ZONE_DARK_FOREST := 3
 
 
+# ---- Zone spawn positions (must match server ZoneManager.kt) ----
+
+const ZONE_SPAWNS: Dictionary = {
+	ZONE_AERHEIM: Vector3(500.0, 0.0, 500.0),
+	ZONE_GREEN_PLAINS: Vector3(200.0, 0.0, 200.0),
+	ZONE_DARK_FOREST: Vector3(100.0, 0.0, 100.0),
+}
+
+
 # ---- Default spawn position (Aerheim town center) ----
 
 const DEFAULT_SPAWN := Vector3(500.0, 0.0, 500.0)
+
+
+# ---- Character classes (must match server CharacterRepositoryImpl.kt) ----
+
+const CLASS_WARRIOR := 0
+const CLASS_MAGE := 1
+const CLASS_ASSASSIN := 2
+const CLASS_CLERIC := 3
 
 
 # ---- Entity types (from EntitySpawnMessage.entity_type) ----

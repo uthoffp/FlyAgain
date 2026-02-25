@@ -20,9 +20,20 @@ func initialize(parent: Node3D) -> void:
 ## Returns the spawned node, or the existing one if already spawned.
 func spawn_entity(data: Dictionary) -> Node3D:
 	var entity_id: int = data.get("entity_id", 0)
+	if entity_id == 0:
+		push_warning("[FACTORY] Invalid entity spawn: entity_id=0")
+		return null
+	if not data.has("position"):
+		push_warning("[FACTORY] Invalid entity spawn: missing position for id=%d" % entity_id)
+		return null
+
 	if _entities.has(entity_id):
-		print("[FACTORY] Entity %d already exists, skipping spawn" % entity_id)
-		return _entities[entity_id]
+		var existing: Node3D = _entities[entity_id]
+		if is_instance_valid(existing) and not existing.is_queued_for_deletion():
+			print("[FACTORY] Entity %d already exists, skipping spawn" % entity_id)
+			return existing
+		# Old entity is being freed, allow respawn
+		_entities.erase(entity_id)
 
 	var entity: Node3D = RemoteEntityScene.instantiate()
 	entity.setup(data)
@@ -40,8 +51,9 @@ func despawn_entity(entity_id: int) -> void:
 	if not _entities.has(entity_id):
 		return
 	var entity: Node3D = _entities[entity_id]
-	entity.queue_free()
 	_entities.erase(entity_id)
+	if is_instance_valid(entity):
+		entity.queue_free()
 
 
 ## Update position for a remote entity from an EntityPositionUpdate dictionary.
@@ -50,6 +62,9 @@ func update_entity_position(data: Dictionary) -> void:
 	if not _entities.has(entity_id):
 		return
 	var entity: Node3D = _entities[entity_id]
+	if not is_instance_valid(entity):
+		_entities.erase(entity_id)
+		return
 	var pos_dict: Dictionary = data.get("position", {})
 	var pos := Vector3(
 		pos_dict.get("x", 0.0),

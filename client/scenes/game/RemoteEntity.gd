@@ -63,24 +63,65 @@ func _physics_process(_delta: float) -> void:
 		rotation.y = sample["rotation"]
 
 
-## Update the name label text.
+## Update the name label text based on entity type.
 func _update_name_label() -> void:
-	if _name_label:
+	if not _name_label:
+		return
+	if entity_type == WorldConstants.ENTITY_TYPE_PLAYER:
+		var class_abbr := _get_class_abbreviation(character_class)
+		_name_label.text = "%s [%s Lv.%d]" % [entity_name, class_abbr, level]
+	else:
 		_name_label.text = "%s [Lv.%d]" % [entity_name, level]
 
+	# Color the label by entity type
+	match entity_type:
+		WorldConstants.ENTITY_TYPE_MONSTER:
+			_name_label.modulate = Color(1.0, 0.4, 0.4)
+		WorldConstants.ENTITY_TYPE_NPC:
+			_name_label.modulate = Color(0.4, 1.0, 0.4)
+		_:
+			_name_label.modulate = Color.WHITE
 
-## Apply visual appearance based on entity type (placeholder colors).
+
+## Apply visual appearance based on entity type and character class.
 func _apply_appearance() -> void:
 	if not _mesh:
 		return
 	var mat := StandardMaterial3D.new()
 	match entity_type:
 		WorldConstants.ENTITY_TYPE_PLAYER:
-			mat.albedo_color = Color(0.2, 0.6, 1.0)   # Blue
+			mat.albedo_color = _get_class_color(character_class)
 		WorldConstants.ENTITY_TYPE_MONSTER:
-			mat.albedo_color = Color(0.8, 0.2, 0.2)   # Red
+			mat.albedo_color = Color(0.8, 0.2, 0.2)
+			_mesh.scale = Vector3(1.2, 1.2, 1.2)
 		WorldConstants.ENTITY_TYPE_NPC:
-			mat.albedo_color = Color(0.2, 0.8, 0.2)   # Green
+			mat.albedo_color = Color(0.2, 0.8, 0.2)
+		WorldConstants.ENTITY_TYPE_LOOT:
+			mat.albedo_color = Color(0.8, 0.7, 0.2)
+			_mesh.scale = Vector3(0.5, 0.5, 0.5)
 		_:
-			mat.albedo_color = Color(0.5, 0.5, 0.5)   # Gray
+			mat.albedo_color = Color(0.5, 0.5, 0.5)
 	_mesh.material_override = mat
+
+
+func _get_class_color(cls: int) -> Color:
+	match cls:
+		WorldConstants.CLASS_WARRIOR:
+			return Color(0.3, 0.5, 0.9)   # Steel blue
+		WorldConstants.CLASS_MAGE:
+			return Color(0.6, 0.2, 0.8)   # Purple
+		WorldConstants.CLASS_ASSASSIN:
+			return Color(0.15, 0.15, 0.15) # Dark
+		WorldConstants.CLASS_CLERIC:
+			return Color(0.9, 0.85, 0.5)  # Golden
+		_:
+			return Color(0.2, 0.6, 1.0)   # Default blue
+
+
+func _get_class_abbreviation(cls: int) -> String:
+	match cls:
+		WorldConstants.CLASS_WARRIOR:  return "WAR"
+		WorldConstants.CLASS_MAGE:     return "MAG"
+		WorldConstants.CLASS_ASSASSIN: return "ASN"
+		WorldConstants.CLASS_CLERIC:   return "CLR"
+		_: return "???"
