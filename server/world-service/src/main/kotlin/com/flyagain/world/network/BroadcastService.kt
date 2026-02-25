@@ -63,6 +63,7 @@ class BroadcastService(
             .setRotation(player.rotation)
             .setIsMoving(player.isMoving)
             .setIsFlying(player.isFlying)
+            .setJumpOffset(player.jumpOffset)
             .build()
 
         val packet = Packet(Opcode.ENTITY_POSITION_VALUE, positionUpdate.toByteArray())

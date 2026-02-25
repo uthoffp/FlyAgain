@@ -306,12 +306,13 @@ func decode_entity_spawn() -> Dictionary:
 
 ## Decodes an EntityPositionUpdate.
 ## Returns: { entity_id: int, position: Dict, rotation: float,
-##            is_moving: bool, is_flying: bool }
+##            is_moving: bool, is_flying: bool, jump_offset: float }
 func decode_entity_position_update() -> Dictionary:
 	var result := {
 		"entity_id": 0,
 		"position": {"x": 0.0, "y": 0.0, "z": 0.0},
 		"rotation": 0.0, "is_moving": false, "is_flying": false,
+		"jump_offset": 0.0,
 	}
 	while _has_bytes():
 		var pair := _next_tag()
@@ -324,9 +325,10 @@ func decode_entity_position_update() -> Dictionary:
 			2:
 				var sub := ProtoDecoder.new(_read_bytes_ld())
 				result["position"] = sub.decode_position()
-			3: result["rotation"]  = _read_float32()
-			4: result["is_moving"] = _read_varint() != 0
-			5: result["is_flying"] = _read_varint() != 0
+			3: result["rotation"]    = _read_float32()
+			4: result["is_moving"]   = _read_varint() != 0
+			5: result["is_flying"]   = _read_varint() != 0
+			6: result["jump_offset"] = _read_float32()
 			_: _skip(wt)
 	return result
 

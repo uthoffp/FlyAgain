@@ -74,7 +74,8 @@ func update_entity_position(data: Dictionary) -> void:
 		pos,
 		data.get("rotation", 0.0),
 		data.get("is_moving", false),
-		data.get("is_flying", false))
+		data.get("is_flying", false),
+		data.get("jump_offset", 0.0))
 
 
 ## Clear all entities (zone change).

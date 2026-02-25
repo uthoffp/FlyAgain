@@ -88,6 +88,9 @@ class MovementHandler(
             player.isFlying = input.isFlying
             player.markDirty()
         }
+
+        // Pass through jump offset for visual sync (client-authoritative visual)
+        player.jumpOffset = input.jumpOffset
     }
 
     /**

@@ -188,6 +188,7 @@ message MovementInput {
     bool is_moving = 6;
     bool is_flying = 7;
     uint32 sequence = 8; // client-side sequence for reconciliation
+    float jump_offset = 9; // vertical offset for jump visual (client-side arc)
 }
 
 // Server -> Client (UDP): Authoritative entity position update
@@ -197,6 +198,7 @@ message EntityPositionUpdate {
     float rotation = 3;
     bool is_moving = 4;
     bool is_flying = 5;
+    float jump_offset = 6; // vertical offset for jump visual (from sender)
 }
 
 // Server -> Client (TCP): Forced position correction

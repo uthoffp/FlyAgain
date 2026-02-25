@@ -190,14 +190,16 @@ static func encode_position(pos: Vector3) -> PackedByteArray:
 
 ## Encodes a MovementInput message.
 ## Fields: position=1(Position), rotation=2(float), dx=3(float), dy=4(float),
-##         dz=5(float), is_moving=6(bool), is_flying=7(bool), sequence=8(uint32)
+##         dz=5(float), is_moving=6(bool), is_flying=7(bool), sequence=8(uint32),
+##         jump_offset=9(float)
 static func encode_movement_input(
 	position: Vector3,
 	rotation: float,
 	dx: float, dy: float, dz: float,
 	is_moving: bool,
 	is_flying: bool,
-	sequence: int
+	sequence: int,
+	jump_offset: float = 0.0
 ) -> PackedByteArray:
 	var buf := PackedByteArray()
 	buf.append_array(_submessage_field(1, encode_position(position)))
@@ -208,6 +210,7 @@ static func encode_movement_input(
 	buf.append_array(_bool_field(6, is_moving))
 	buf.append_array(_bool_field(7, is_flying))
 	buf.append_array(_uint32_field(8, sequence))
+	buf.append_array(_float_field(9, jump_offset))
 	return buf
 
 

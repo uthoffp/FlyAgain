@@ -233,13 +233,14 @@ func send_logout() -> void:
 func send_movement_input(
 	position: Vector3, rotation: float,
 	dx: float, dy: float, dz: float,
-	is_moving: bool, is_flying: bool, sequence: int
+	is_moving: bool, is_flying: bool, sequence: int,
+	jump_offset: float = 0.0
 ) -> void:
 	if _udp == null or not _udp.is_connected_to_server():
 		return
 	_udp.send_packet(PacketProtocol.OPCODE_MOVEMENT_INPUT,
 		ProtoEncoder.encode_movement_input(position, rotation, dx, dy, dz,
-			is_moving, is_flying, sequence))
+			is_moving, is_flying, sequence, jump_offset))
 
 
 # ---- Auth/account TCP connection handling ----

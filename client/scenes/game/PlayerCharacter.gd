@@ -16,7 +16,7 @@ var _facing_angle: float = 0.0
 var _send_timer: float = 0.0
 const SEND_INTERVAL := 1.0 / WorldConstants.MOVEMENT_SEND_RATE  # 50ms
 
-# Jump state (client-side visual only — mesh offset, not sent to server)
+# Jump state (client-side arc, offset sent to server for remote sync)
 var _jump_velocity: float = 0.0
 var _jump_offset: float = 0.0
 var _is_grounded: bool = true
@@ -246,7 +246,8 @@ func _send_movement(direction: Vector3, is_moving: bool) -> void:
 		_facing_angle,
 		direction.x, direction.y, direction.z,
 		is_moving, _is_flying,
-		_predictor.get_sequence())
+		_predictor.get_sequence(),
+		_jump_offset)
 
 
 ## Handle server position correction.

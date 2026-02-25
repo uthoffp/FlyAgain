@@ -16,6 +16,8 @@ var character_class: int = 0
 var is_flying: bool = false
 
 var _interpolator: EntityInterpolator = EntityInterpolator.new()
+var _mesh_base_y: float = 0.0
+var _label_base_y: float = 0.0
 
 @onready var _mesh: MeshInstance3D = $MeshInstance3D
 @onready var _name_label: Label3D = $NameLabel
@@ -47,12 +49,16 @@ func setup(data: Dictionary) -> void:
 func _ready() -> void:
 	_update_name_label()
 	_apply_appearance()
+	if _mesh:
+		_mesh_base_y = _mesh.position.y
+	if _name_label:
+		_label_base_y = _name_label.position.y
 
 
 ## Push a new position update from the server.
-func push_position_update(pos: Vector3, rot: float, moving: bool, flying: bool) -> void:
+func push_position_update(pos: Vector3, rot: float, moving: bool, flying: bool, jump_offset: float = 0.0) -> void:
 	is_flying = flying
-	_interpolator.push_snapshot(pos, rot, moving, flying)
+	_interpolator.push_snapshot(pos, rot, moving, flying, jump_offset)
 
 
 func _physics_process(_delta: float) -> void:
@@ -61,6 +67,13 @@ func _physics_process(_delta: float) -> void:
 	if new_pos != Vector3.ZERO:
 		global_position = new_pos
 		rotation.y = sample["rotation"]
+
+	# Apply jump visual offset to mesh and name label
+	var jump_off: float = sample.get("jump_offset", 0.0)
+	if _mesh:
+		_mesh.position.y = _mesh_base_y + jump_off
+	if _name_label:
+		_name_label.position.y = _label_base_y + jump_off
 
 
 ## Update the name label text based on entity type.

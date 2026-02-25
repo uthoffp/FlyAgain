@@ -62,6 +62,7 @@ data class PlayerEntity(
     var inputDz: Float = 0f,
     var isMoving: Boolean = false,
     var isFlying: Boolean = false,
+    var jumpOffset: Float = 0f,
 
     // Tracking
     var lastHeartbeat: Long = System.currentTimeMillis(),

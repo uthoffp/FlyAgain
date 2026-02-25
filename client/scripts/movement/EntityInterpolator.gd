@@ -10,7 +10,7 @@ extends RefCounted
 
 # ---- Snapshot data ----
 
-var _buffer: Array = []  # Array of Dictionaries: { position, rotation, timestamp, is_moving, is_flying }
+var _buffer: Array = []  # Array of Dictionaries: { position, rotation, timestamp, is_moving, is_flying, jump_offset }
 var _render_delay_ms: float = WorldConstants.INTERPOLATION_BUFFER_MS
 
 const MAX_BUFFER_SIZE := 10
@@ -23,7 +23,8 @@ func push_snapshot(
 	position: Vector3,
 	rotation: float,
 	is_moving: bool,
-	is_flying: bool
+	is_flying: bool,
+	jump_offset: float = 0.0
 ) -> void:
 	var snap := {
 		"position": position,
@@ -31,6 +32,7 @@ func push_snapshot(
 		"timestamp": Time.get_ticks_msec(),
 		"is_moving": is_moving,
 		"is_flying": is_flying,
+		"jump_offset": jump_offset,
 	}
 	_buffer.append(snap)
 	if _buffer.size() > MAX_BUFFER_SIZE:
@@ -43,7 +45,8 @@ func push_snapshot_at(
 	rotation: float,
 	is_moving: bool,
 	is_flying: bool,
-	timestamp_ms: float
+	timestamp_ms: float,
+	jump_offset: float = 0.0
 ) -> void:
 	var snap := {
 		"position": position,
@@ -51,6 +54,7 @@ func push_snapshot_at(
 		"timestamp": timestamp_ms,
 		"is_moving": is_moving,
 		"is_flying": is_flying,
+		"jump_offset": jump_offset,
 	}
 	_buffer.append(snap)
 	if _buffer.size() > MAX_BUFFER_SIZE:
@@ -58,13 +62,17 @@ func push_snapshot_at(
 
 
 ## Sample the interpolated position at the current render time.
-## Returns: { position: Vector3, rotation: float }
+## Returns: { position: Vector3, rotation: float, jump_offset: float }
 func sample() -> Dictionary:
 	if _buffer.is_empty():
-		return {"position": Vector3.ZERO, "rotation": 0.0}
+		return {"position": Vector3.ZERO, "rotation": 0.0, "jump_offset": 0.0}
 
 	if _buffer.size() == 1:
-		return {"position": _buffer[0]["position"], "rotation": _buffer[0]["rotation"]}
+		return {
+			"position": _buffer[0]["position"],
+			"rotation": _buffer[0]["rotation"],
+			"jump_offset": _buffer[0].get("jump_offset", 0.0),
+		}
 
 	var render_time: float = Time.get_ticks_msec() - _render_delay_ms
 
@@ -79,24 +87,37 @@ func sample() -> Dictionary:
 			return {
 				"position": (a["position"] as Vector3).lerp(b["position"], t),
 				"rotation": lerp_angle(a["rotation"], b["rotation"], t),
+				"jump_offset": lerpf(a.get("jump_offset", 0.0), b.get("jump_offset", 0.0), t),
 			}
 
 	# If render_time is before all snapshots, use the earliest
 	if render_time < _buffer[0]["timestamp"]:
-		return {"position": _buffer[0]["position"], "rotation": _buffer[0]["rotation"]}
+		return {
+			"position": _buffer[0]["position"],
+			"rotation": _buffer[0]["rotation"],
+			"jump_offset": _buffer[0].get("jump_offset", 0.0),
+		}
 
 	# Past the latest snapshot — use last known position (no extrapolation)
 	var last: Dictionary = _buffer.back()
-	return {"position": last["position"], "rotation": last["rotation"]}
+	return {
+		"position": last["position"],
+		"rotation": last["rotation"],
+		"jump_offset": last.get("jump_offset", 0.0),
+	}
 
 
 ## Sample at a specific render time (for testing).
 func sample_at(render_time_ms: float) -> Dictionary:
 	if _buffer.is_empty():
-		return {"position": Vector3.ZERO, "rotation": 0.0}
+		return {"position": Vector3.ZERO, "rotation": 0.0, "jump_offset": 0.0}
 
 	if _buffer.size() == 1:
-		return {"position": _buffer[0]["position"], "rotation": _buffer[0]["rotation"]}
+		return {
+			"position": _buffer[0]["position"],
+			"rotation": _buffer[0]["rotation"],
+			"jump_offset": _buffer[0].get("jump_offset", 0.0),
+		}
 
 	for i in range(_buffer.size() - 1):
 		var a: Dictionary = _buffer[i]
@@ -108,13 +129,22 @@ func sample_at(render_time_ms: float) -> Dictionary:
 			return {
 				"position": (a["position"] as Vector3).lerp(b["position"], t),
 				"rotation": lerp_angle(a["rotation"], b["rotation"], t),
+				"jump_offset": lerpf(a.get("jump_offset", 0.0), b.get("jump_offset", 0.0), t),
 			}
 
 	if render_time_ms < _buffer[0]["timestamp"]:
-		return {"position": _buffer[0]["position"], "rotation": _buffer[0]["rotation"]}
+		return {
+			"position": _buffer[0]["position"],
+			"rotation": _buffer[0]["rotation"],
+			"jump_offset": _buffer[0].get("jump_offset", 0.0),
+		}
 
 	var last: Dictionary = _buffer.back()
-	return {"position": last["position"], "rotation": last["rotation"]}
+	return {
+		"position": last["position"],
+		"rotation": last["rotation"],
+		"jump_offset": last.get("jump_offset", 0.0),
+	}
 
 
 ## Returns the number of snapshots in the buffer.
