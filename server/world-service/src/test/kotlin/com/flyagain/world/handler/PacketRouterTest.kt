@@ -16,6 +16,7 @@ import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.timeout.IdleStateEvent
 import io.netty.util.Attribute
+import io.netty.util.AttributeKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.TestScope
 import kotlin.test.Test
@@ -40,6 +41,13 @@ class PacketRouterTest {
     ): ChannelHandlerContext {
         val ctx = mockk<ChannelHandlerContext>(relaxed = true)
         val channel = mockk<Channel>(relaxed = true)
+
+        // Default: any attr() call returns a safe attribute mock with null get()
+        // This covers MdcHelper's channel attribute lookups
+        @Suppress("UNCHECKED_CAST")
+        val defaultAttr = mockk<Attribute<Any>>(relaxed = true)
+        every { defaultAttr.get() } returns null
+        every { channel.attr(any<AttributeKey<*>>()) } returns defaultAttr as Attribute<Nothing>
 
         val playerAttr = mockk<Attribute<PlayerEntity>>(relaxed = true)
         every { playerAttr.get() } returns player

@@ -38,6 +38,13 @@ class ZoneManager(
             ZONE_DARK_FOREST to "Dark Forest"
         )
 
+        /** Legal zone transitions. A player may only move between adjacent zones. */
+        val ZONE_ADJACENCY: Map<Int, Set<Int>> = mapOf(
+            ZONE_AERHEIM to setOf(ZONE_GREEN_PLAINS),
+            ZONE_GREEN_PLAINS to setOf(ZONE_AERHEIM, ZONE_DARK_FOREST),
+            ZONE_DARK_FOREST to setOf(ZONE_GREEN_PLAINS)
+        )
+
         // Default spawn position for new players (Aerheim town center)
         const val DEFAULT_SPAWN_X = 500f
         const val DEFAULT_SPAWN_Y = 0f
@@ -195,6 +202,8 @@ class ZoneManager(
             return null
         }
 
+        logger.info("Player {} joined zone {} ({}) channel {} (players: {})",
+            player.name, zoneId, ZONE_NAMES[zoneId] ?: "Unknown", channel.channelId, channel.getPlayerCount())
         return channel
     }
 
@@ -204,6 +213,8 @@ class ZoneManager(
     fun removePlayerFromZone(player: PlayerEntity) {
         val channel = getChannel(player.zoneId, player.channelId)
         channel?.removePlayer(player.entityId)
+        logger.info("Player {} left zone {} ({}) channel {}",
+            player.name, player.zoneId, ZONE_NAMES[player.zoneId] ?: "Unknown", player.channelId)
     }
 
     /**
@@ -215,4 +226,10 @@ class ZoneManager(
      * Check if a zone exists.
      */
     fun zoneExists(zoneId: Int): Boolean = zones.containsKey(zoneId)
+
+    /**
+     * Check if a transition from [fromZoneId] to [toZoneId] is allowed.
+     */
+    fun isAdjacentZone(fromZoneId: Int, toZoneId: Int): Boolean =
+        ZONE_ADJACENCY[fromZoneId]?.contains(toZoneId) == true
 }

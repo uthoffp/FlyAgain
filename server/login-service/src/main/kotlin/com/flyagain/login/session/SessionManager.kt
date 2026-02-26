@@ -96,6 +96,7 @@ class SessionManager(
                 val exists = async.exists(sessionKey).await()
                 if (exists > 0) sessionId else {
                     // Stale reverse lookup, clean up
+                    logger.info("Cleaning up stale reverse-lookup for account {} (session {} expired)", accountId, sessionId)
                     async.del(accountKey).await()
                     null
                 }

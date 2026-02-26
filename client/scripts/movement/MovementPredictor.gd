@@ -27,24 +27,24 @@ const MAX_PENDING := 60  # ~3 seconds at 20 Hz
 func apply_input(
 	direction: Vector3,
 	is_moving: bool,
-	is_flying: bool,
+	flying: bool,
 	dex: int,
 	delta: float
 ) -> Vector3:
 	_sequence += 1
-	_is_flying = is_flying
+	_is_flying = flying
 
 	if is_moving and direction.length_squared() > 0.001:
-		var speed := _compute_speed(is_flying, dex)
+		var speed := _compute_speed(flying, dex)
 		var displacement := direction * speed * delta
 
 		# Non-flying: zero out vertical displacement
-		if not is_flying:
+		if not flying:
 			displacement.y = 0.0
 
 		_current_position += displacement
 
-	_current_position = _clamp_to_world_bounds(_current_position, is_flying)
+	_current_position = _clamp_to_world_bounds(_current_position, flying)
 	return _current_position
 
 
@@ -94,16 +94,16 @@ func set_flying(flying: bool) -> void:
 # ---- Private helpers ----
 
 ## Computes movement speed matching the server's MovementHandler.
-func _compute_speed(is_flying: bool, dex: int) -> float:
-	var base := WorldConstants.FLY_MOVE_SPEED if is_flying else WorldConstants.GROUND_MOVE_SPEED
+func _compute_speed(flying: bool, dex: int) -> float:
+	var base := WorldConstants.FLY_MOVE_SPEED if flying else WorldConstants.GROUND_MOVE_SPEED
 	return base + (dex * 0.05)
 
 
 ## Clamps position to world boundaries matching the server.
-func _clamp_to_world_bounds(pos: Vector3, is_flying: bool) -> Vector3:
+func _clamp_to_world_bounds(pos: Vector3, flying: bool) -> Vector3:
 	pos.x = clampf(pos.x, WorldConstants.WORLD_BOUNDARY_MIN, WorldConstants.WORLD_BOUNDARY_MAX)
 	pos.z = clampf(pos.z, WorldConstants.WORLD_BOUNDARY_MIN, WorldConstants.WORLD_BOUNDARY_MAX)
-	if is_flying:
+	if flying:
 		pos.y = clampf(pos.y, WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_Y_POSITION)
 	else:
 		pos.y = clampf(pos.y, WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_GROUND_Y)

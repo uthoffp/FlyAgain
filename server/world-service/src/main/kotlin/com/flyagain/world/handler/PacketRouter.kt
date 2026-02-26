@@ -3,6 +3,7 @@ package com.flyagain.world.handler
 import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
+import com.flyagain.common.logging.MdcHelper
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.session.SessionLifecycleManager
@@ -13,7 +14,9 @@ import io.netty.handler.timeout.IdleStateEvent
 import io.netty.util.AttributeKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.LoggerFactory
+import java.net.InetSocketAddress
 
 /**
  * Routes inbound TCP packets to the appropriate handler in the world service.
@@ -50,6 +53,7 @@ class PacketRouter(
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
+        MdcHelper.restoreMdc(ctx)
         val opcode = msg.opcode
 
         // Heartbeat does not require world authentication
@@ -77,12 +81,13 @@ class PacketRouter(
                 // Rate limit zone changes
                 val now = System.currentTimeMillis()
                 if (now - player.lastZoneChangeTime < ZONE_CHANGE_COOLDOWN_MS) {
+                    logger.info("Zone change rejected for player {}: cooldown active", player.name)
                     sendError(ctx, opcode, 429, "Zone change on cooldown.")
                     return
                 }
                 player.lastZoneChangeTime = now
 
-                coroutineScope.launch {
+                coroutineScope.launch(MDCContext()) {
                     try {
                         val request = ZoneChangeRequest.parseFrom(msg.payload)
                         zoneChangeHandler.handleZoneChange(ctx, player, request.targetZoneId)
@@ -97,12 +102,13 @@ class PacketRouter(
                 // Rate limit channel switches
                 val now = System.currentTimeMillis()
                 if (now - player.lastChannelSwitchTime < CHANNEL_SWITCH_COOLDOWN_MS) {
+                    logger.info("Channel switch rejected for player {}: cooldown active", player.name)
                     sendError(ctx, opcode, 429, "Channel switch on cooldown.")
                     return
                 }
                 player.lastChannelSwitchTime = now
 
-                coroutineScope.launch {
+                coroutineScope.launch(MDCContext()) {
                     try {
                         val request = ChannelSwitchRequest.parseFrom(msg.payload)
                         zoneChangeHandler.handleChannelSwitch(ctx, player, request.targetChannelId)
@@ -139,12 +145,17 @@ class PacketRouter(
             return
         }
 
-        coroutineScope.launch {
+        coroutineScope.launch(MDCContext()) {
             try {
                 val player = enterWorldHandler.handle(ctx, request)
                 if (player != null) {
                     ctx.channel().attr(PLAYER_ENTITY_KEY).set(player)
                     ctx.channel().attr(AUTHENTICATED_KEY).set(true)
+                    MdcHelper.setPlayer(ctx,
+                        accountId = player.accountId,
+                        characterId = player.characterId,
+                        playerName = player.name
+                    )
                     logger.info("Player {} authenticated on world service", player.name)
                 }
             } catch (e: Exception) {
@@ -182,19 +193,22 @@ class PacketRouter(
     }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
+        val ip = (ctx.channel().remoteAddress() as? InetSocketAddress)?.address?.hostAddress ?: "unknown"
+        MdcHelper.setConnection(ctx, ip)
         logger.debug("World client connected: {}", ctx.channel().remoteAddress())
         heartbeatTracker.register(ctx.channel())
         super.channelActive(ctx)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
+        MdcHelper.restoreMdc(ctx)
         logger.info("World client disconnected: {}", ctx.channel().remoteAddress())
         heartbeatTracker.unregister(ctx.channel())
 
         // Handle player disconnect
         val player = ctx.channel().attr(PLAYER_ENTITY_KEY).get()
         if (player != null) {
-            coroutineScope.launch {
+            coroutineScope.launch(MDCContext()) {
                 try {
                     sessionLifecycleManager.handleDisconnect(player)
                 } catch (e: Exception) {
@@ -203,6 +217,7 @@ class PacketRouter(
             }
         }
 
+        MdcHelper.clearAll()
         super.channelInactive(ctx)
     }
 

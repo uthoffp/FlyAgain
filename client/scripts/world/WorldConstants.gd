@@ -34,6 +34,23 @@ const ZONE_GREEN_PLAINS := 2
 const ZONE_DARK_FOREST := 3
 
 
+# ---- Zone display name translation keys (use with tr()) ----
+
+const ZONE_NAME_KEYS: Dictionary = {
+	ZONE_AERHEIM: "ZONE_AERHEIM",
+	ZONE_GREEN_PLAINS: "ZONE_GREEN_PLAINS",
+	ZONE_DARK_FOREST: "ZONE_DARK_FOREST",
+}
+
+
+## Returns the localized display name for the given zone ID.
+static func get_zone_name(zone_id: int) -> String:
+	var key: String = ZONE_NAME_KEYS.get(zone_id, "")
+	if key.is_empty():
+		return tr("ZONE_UNKNOWN")
+	return tr(key)
+
+
 # ---- Zone spawn positions (must match server ZoneManager.kt) ----
 
 const ZONE_SPAWNS: Dictionary = {

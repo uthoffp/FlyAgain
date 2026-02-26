@@ -172,12 +172,12 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Client-Side Prediction: Lokale Bewegung sofort anwenden
 - [x] Server-Reconciliation: PositionCorrection verarbeiten, Snap-Back
 - [x] Entity-Interpolation: Andere Spieler smooth bewegen (100ms Buffer)
-- [ ] Springen: Leertaste fuer Sprung-Mechanik (Gravitation, vertikale Geschwindigkeit)
-- [ ] Flugmechanik: Zum Abheben/Landen, Steigen/Sinken (verschoben auf spaeter)
+- [x] Springen: Leertaste fuer Sprung-Mechanik (Gravitation, vertikale Geschwindigkeit)
+- [x] Flugmechanik: Zum Abheben/Landen, Steigen/Sinken
 - [x] Terrain: Zone-spezifisches Terrain mit Noise-Shader (Green Plains, Dark Forest, Aerheim)
 - [x] Aerheim: Stadt-Geometrie mit Stadtmauer, ~12 Gebaeuden, Marktplatz, NPC-Markern
 - [x] Remote-Spieler: EntitySpawn empfangen -> Charakter-Node mit Klassen-Farben instanziieren
-- [ ] Zone-Wechsel: Ladescreen bei ZoneData-Empfang
+- [x] Zone-Wechsel: Ladescreen bei ZoneData-Empfang, Zone-Portale, Terrain-/Entity-Swap
 
 **Akzeptanzkriterien:**
 - Spieler spawnt in Aerheim nach CharacterSelect
@@ -666,10 +666,10 @@ miteinander zu interagieren und gegeneinander anzutreten.
   - DB-Migrationen: V1-V8 (alle Tabellen: accounts, characters, items, inventory, equipment, skills, monsters, loot)
   - Service-Transitions: Login :7777 → Account :7779 → World :7780/:7781
   - **Offene Punkte:** Character-Name-Regex Server/Client angleichen (3-16, [a-zA-Z0-9-]), Blacklist implementieren
-**Schritt 1.4** (Welt/Bewegung/Zonen) — Server vollstaendig, Client ~80%. (~80%) 🔧
+**Schritt 1.4** (Welt/Bewegung/Zonen) ist vollstaendig abgeschlossen (Server + Client). ✅
   - Server: ZoneManager, ZoneChannel, SpatialGrid, EnterWorldHandler, MovementHandler,
     EntityManager, GameLoop (20Hz), Flugmechanik, Zone-Wechsel, BroadcastService — alle mit Tests
-  - Client (erledigt):
+  - Client:
     - GameWorld-Szene mit Zone-spezifischem Terrain-Switching
     - PlayerCharacter: WASD + Click-to-Move + Client-Side Prediction + Server-Reconciliation
     - ThirdPersonCamera: SpringArm3D mit Zoom und Orbit
@@ -679,13 +679,10 @@ miteinander zu interagieren und gegeneinander anzutreten.
     - Aerheim: Stadtmauer, ~12 Gebaeude, Marktplatz, NPC-Marker
     - Proto-Decoder/Encoder: Alle Welt-Nachrichten implementiert
     - UDP-Verbindung zum World-Service
-  - **Fehlend (Client):**
-    - Sprung-Mechanik (Leertaste, Gravitation)
-    - Flugmechanik (verschoben auf spaeter)
-    - Zone-Wechsel mit Ladescreen
+    - Sprung-Mechanik: Leertaste, Gravitation, Jump-Offset Sync ueber Netzwerk
+    - Flugmechanik: Abheben/Landen-Toggle, Steigen/Sinken (fly_up/fly_down)
+    - Zone-Wechsel: Ladescreen-Overlay, ZonePortal-Trigger, Terrain-/Entity-Swap, Player-Repositionierung
 
 **Naechste Prioritaeten:**
-1. Phase 1.4: Sprung-Mechanik implementieren
-2. Phase 1.4: Zone-Wechsel mit Ladescreen
-3. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
-4. Phase 1.5: Kampfsystem und Monster-AI
+1. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
+2. Phase 1.5: Kampfsystem und Monster-AI

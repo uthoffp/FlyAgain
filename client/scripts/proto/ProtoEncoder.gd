@@ -225,3 +225,10 @@ static func encode_enter_world_request(
 	buf.append_array(_string_field(2, character_id))
 	buf.append_array(_string_field(3, session_id))
 	return buf
+
+
+## Encodes a ZoneChangeRequest { target_zone_id=1 }.
+static func encode_zone_change_request(target_zone_id: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int32_field(1, target_zone_id))
+	return buf

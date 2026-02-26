@@ -229,6 +229,12 @@ func send_logout() -> void:
 	disconnect_from_server()
 
 
+## Sends a ZoneChangeRequest over world TCP.
+func send_zone_change_request(target_zone_id: int) -> void:
+	_send_world(PacketProtocol.OPCODE_ZONE_DATA,
+		ProtoEncoder.encode_zone_change_request(target_zone_id))
+
+
 ## Sends a MovementInput over UDP.
 func send_movement_input(
 	position: Vector3, rotation: float,

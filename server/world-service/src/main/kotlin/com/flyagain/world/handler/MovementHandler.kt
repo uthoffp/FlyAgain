@@ -43,7 +43,13 @@ class MovementHandler(
         const val MIN_Y_POSITION = -10f          // below terrain threshold
         const val WORLD_BOUNDARY_MIN = -100f
         const val WORLD_BOUNDARY_MAX = 10100f
+
+        /** Only log one correction per player per this interval to avoid log spam at scale. */
+        private const val CORRECTION_LOG_INTERVAL_MS = 5000L
     }
+
+    /** Tracks last correction log time per player entity ID to rate-limit logging. */
+    private val lastCorrectionLogTime = java.util.concurrent.ConcurrentHashMap<Long, Long>()
 
     /**
      * Process a movement input packet from the InputQueue.
@@ -118,6 +124,13 @@ class MovementHandler(
         // Validate movement
         val validationResult = validatePosition(player, newX, newY, newZ, deltaSeconds, speed)
         if (!validationResult.valid) {
+            val now = System.currentTimeMillis()
+            val lastLog = lastCorrectionLogTime[player.entityId] ?: 0L
+            if (now - lastLog >= CORRECTION_LOG_INTERVAL_MS) {
+                lastCorrectionLogTime[player.entityId] = now
+                logger.warn("Movement rejected for player {} at ({},{},{}): {}",
+                    player.name, newX, newY, newZ, validationResult.reason)
+            }
             sendPositionCorrection(player, validationResult.reason)
             return false
         }

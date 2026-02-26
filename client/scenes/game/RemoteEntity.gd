@@ -39,7 +39,7 @@ func setup(data: Dictionary) -> void:
 		pos_dict.get("x", 0.0),
 		pos_dict.get("y", 0.0),
 		pos_dict.get("z", 0.0))
-	global_position = pos
+	position = pos
 	rotation.y = data.get("rotation", 0.0)
 
 	# Seed the interpolator with the initial position

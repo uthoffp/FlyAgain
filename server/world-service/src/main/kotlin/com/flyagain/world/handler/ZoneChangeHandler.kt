@@ -45,6 +45,13 @@ class ZoneChangeHandler(
             return
         }
 
+        if (!zoneManager.isAdjacentZone(player.zoneId, targetZoneId)) {
+            logger.warn("Player {} attempted illegal zone transition from {} to {}",
+                player.name, player.zoneId, targetZoneId)
+            sendError(ctx, "Cannot travel to that zone from here.")
+            return
+        }
+
         logger.info("Player {} changing zone from {} to {}",
             player.name, zoneManager.getZoneName(player.zoneId), zoneManager.getZoneName(targetZoneId))
 

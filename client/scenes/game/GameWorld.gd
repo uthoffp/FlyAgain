@@ -1,10 +1,12 @@
 ## GameWorld.gd
 ## Root scene for the 3D game world.
 ## Orchestrates: zone-specific terrain, local player, remote entities, zone data.
+## Shows a loading overlay during zone transitions.
 extends Node3D
 
 
 const PlayerCharacterScene := preload("res://scenes/game/PlayerCharacter.tscn")
+const ZonePortalScene := preload("res://scenes/game/ZonePortal.tscn")
 const FlyButtonScene := preload("res://scenes/ui/components/FlyButton.tscn")
 
 const ZONE_TERRAINS: Dictionary = {
@@ -14,10 +16,41 @@ const ZONE_TERRAINS: Dictionary = {
 }
 const FallbackTerrainScene := preload("res://scenes/game/terrain/BaseTerrain.tscn")
 
+## Zone portal definitions: { source_zone: [{ position, target_zone_id, color }] }
+## Labels are resolved at runtime via WorldConstants.get_zone_name() for localization.
+const ZONE_PORTALS: Dictionary = {
+	WorldConstants.ZONE_AERHEIM: [
+		{"position": Vector3(500.0, 0.0, 440.0), "target": WorldConstants.ZONE_GREEN_PLAINS,
+		 "color": Color(0.3, 0.8, 0.3, 0.8)},
+	],
+	WorldConstants.ZONE_GREEN_PLAINS: [
+		{"position": Vector3(200.0, 0.0, 140.0), "target": WorldConstants.ZONE_AERHEIM,
+		 "color": Color(0.8, 0.7, 0.3, 0.8)},
+		{"position": Vector3(260.0, 0.0, 200.0), "target": WorldConstants.ZONE_DARK_FOREST,
+		 "color": Color(0.4, 0.2, 0.6, 0.8)},
+	],
+	WorldConstants.ZONE_DARK_FOREST: [
+		{"position": Vector3(100.0, 0.0, 40.0), "target": WorldConstants.ZONE_GREEN_PLAINS,
+		 "color": Color(0.3, 0.8, 0.3, 0.8)},
+	],
+}
+
 var _entity_factory: EntityFactory = EntityFactory.new()
 var _player: CharacterBody3D = null
 var _terrain: Node3D = null
 var _logout_dialog: ConfirmationDialog = null
+var _portals: Array[Area3D] = []
+var _is_zone_transitioning: bool = false
+
+# Loading overlay nodes
+var _loading_layer: CanvasLayer = null
+var _loading_bg: ColorRect = null
+var _loading_label: Label = null
+var _loading_dots: Label = null
+var _dot_timer: float = 0.0
+var _dot_index: int = 0
+const _DOT_PATTERNS: Array = [".", "..", "...", ".."]
+const _DOT_INTERVAL := 0.4
 
 @onready var _entities_root: Node3D = $Entities
 
@@ -26,16 +59,29 @@ func _ready() -> void:
 	_entity_factory.initialize(_entities_root)
 	_connect_signals()
 	_setup_hud()
+	_setup_loading_overlay()
 	var initial_zone := GameState.current_zone_id
 	if initial_zone == 0:
 		initial_zone = WorldConstants.ZONE_AERHEIM
 	_setup_terrain(initial_zone)
+	_spawn_portals(initial_zone)
 	_spawn_local_player()
+	_show_loading(tr("LOADING"))
 	_send_enter_world()
 
 
 func _exit_tree() -> void:
 	_disconnect_signals()
+
+
+func _process(delta: float) -> void:
+	if _loading_layer and _loading_layer.visible:
+		_dot_timer += delta
+		if _dot_timer >= _DOT_INTERVAL:
+			_dot_timer -= _DOT_INTERVAL
+			_dot_index = (_dot_index + 1) % _DOT_PATTERNS.size()
+			if _loading_dots:
+				_loading_dots.text = _DOT_PATTERNS[_dot_index]
 
 
 func _connect_signals() -> void:
@@ -57,6 +103,58 @@ func _disconnect_signals() -> void:
 		NetworkManager.entity_position_updated.disconnect(_on_entity_position_updated)
 	if NetworkManager.world_disconnected.is_connected(_on_world_disconnected):
 		NetworkManager.world_disconnected.disconnect(_on_world_disconnected)
+
+
+# ---- Loading overlay ----
+
+func _setup_loading_overlay() -> void:
+	_loading_layer = CanvasLayer.new()
+	_loading_layer.name = "LoadingOverlay"
+	_loading_layer.layer = 20  # Above HUD
+	_loading_layer.visible = false
+	add_child(_loading_layer)
+
+	_loading_bg = ColorRect.new()
+	_loading_bg.color = Color(0.05, 0.05, 0.08, 0.95)
+	_loading_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_loading_layer.add_child(_loading_bg)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_loading_bg.add_child(center)
+
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(vbox)
+
+	_loading_label = Label.new()
+	_loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_loading_label.add_theme_font_size_override("font_size", 24)
+	_loading_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
+	vbox.add_child(_loading_label)
+
+	_loading_dots = Label.new()
+	_loading_dots.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_loading_dots.add_theme_font_size_override("font_size", 20)
+	_loading_dots.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
+	_loading_dots.text = "."
+	vbox.add_child(_loading_dots)
+
+
+func _show_loading(message: String) -> void:
+	if _loading_label:
+		_loading_label.text = message
+	_dot_timer = 0.0
+	_dot_index = 0
+	if _loading_dots:
+		_loading_dots.text = "."
+	if _loading_layer:
+		_loading_layer.visible = true
+
+
+func _hide_loading() -> void:
+	if _loading_layer:
+		_loading_layer.visible = false
 
 
 # ---- HUD ----
@@ -124,6 +222,37 @@ func _setup_terrain(zone_id: int) -> void:
 	move_child(_terrain, 0)
 
 
+# ---- Zone portals ----
+
+func _spawn_portals(zone_id: int) -> void:
+	_clear_portals()
+	var portal_defs: Array = ZONE_PORTALS.get(zone_id, [])
+	for def in portal_defs:
+		var portal: Area3D = ZonePortalScene.instantiate()
+		portal.target_zone_id = def["target"]
+		portal.portal_label = WorldConstants.get_zone_name(def["target"])
+		portal.portal_color = def.get("color", Color(0.3, 0.5, 1.0, 0.8))
+		portal.position = def["position"]
+		portal.portal_entered.connect(_on_portal_entered)
+		add_child(portal)
+		_portals.append(portal)
+
+
+func _clear_portals() -> void:
+	for portal in _portals:
+		if is_instance_valid(portal):
+			portal.queue_free()
+	_portals.clear()
+
+
+func _on_portal_entered(target_zone_id: int) -> void:
+	if _is_zone_transitioning:
+		return
+	_is_zone_transitioning = true
+	_show_loading(WorldConstants.get_zone_name(target_zone_id))
+	NetworkManager.send_zone_change_request(target_zone_id)
+
+
 func _send_enter_world() -> void:
 	NetworkManager.send_enter_world(
 		GameState.jwt,
@@ -145,8 +274,18 @@ func _on_zone_data(data: Dictionary) -> void:
 	# Swap terrain for the new zone
 	_setup_terrain(GameState.current_zone_id)
 
+	# Swap portals for the new zone
+	_spawn_portals(GameState.current_zone_id)
+
 	# Clear existing remote entities
 	_entity_factory.clear_all()
+
+	# Reposition local player to zone spawn
+	if _player and is_instance_valid(_player):
+		var spawn_pos: Vector3 = WorldConstants.ZONE_SPAWNS.get(
+			GameState.current_zone_id, WorldConstants.DEFAULT_SPAWN)
+		_player.position = spawn_pos
+		GameState.player_position = spawn_pos
 
 	# Spawn all entities from zone data (skip our own entity)
 	var entities: Array = data.get("entities", [])
@@ -156,6 +295,17 @@ func _on_zone_data(data: Dictionary) -> void:
 			print("[WORLD] Spawning entity from zone data: id=%d name=%s" % [
 				eid, entity_data.get("name", "")])
 			_entity_factory.spawn_entity(entity_data)
+
+	# Hide loading overlay after a brief delay to let the scene settle
+	_is_zone_transitioning = false
+	_hide_loading_deferred()
+
+
+func _hide_loading_deferred() -> void:
+	# Wait two frames for terrain and entities to render, then hide overlay
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_hide_loading()
 
 
 func _on_entity_spawned(data: Dictionary) -> void:
@@ -183,6 +333,7 @@ func _on_entity_position_updated(data: Dictionary) -> void:
 
 func _on_world_disconnected() -> void:
 	_entity_factory.clear_all()
+	_clear_portals()
 	GameState.reset()
 	UIManager.leave_game_world("login")
 

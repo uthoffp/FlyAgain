@@ -13,6 +13,7 @@ import com.flyagain.login.auth.JwtManager
 import com.flyagain.login.auth.PasswordHasher
 import com.flyagain.login.auth.SessionSecretGenerator
 import com.flyagain.common.network.Packet
+import com.flyagain.common.logging.MdcHelper
 import com.flyagain.login.ratelimit.RateLimiter
 import com.flyagain.login.session.SessionManager
 import io.netty.channel.ChannelHandlerContext
@@ -113,6 +114,7 @@ class LoginHandler(
         }
 
         val accountId = account.id
+        MdcHelper.setPlayer(ctx, accountId = accountId)
 
         // Step 5: Multi-login check -- invalidate any existing session
         val existingSession = sessionManager.getExistingSession(accountId)
@@ -138,6 +140,8 @@ class LoginHandler(
             sendFailure(ctx, "Login service temporarily unavailable. Please try again.")
             return
         }
+
+        MdcHelper.setPlayer(ctx, sessionId = credentials.sessionId)
 
         // Step 8: Generate JWT
         val jwt = jwtManager.createToken(accountId, username, credentials.sessionId)
