@@ -60,7 +60,7 @@ func test_movement_input_minimal_moving() -> void:
 	assert_bool(buf.size() > 0).is_true()
 
 	# Verify roundtrip via decoder
-	var dec := ProtoDecoder.new(buf)
+	var _dec := ProtoDecoder.new(buf)
 	# We don't have a decode_movement_input but we can manually verify the bytes are valid
 
 

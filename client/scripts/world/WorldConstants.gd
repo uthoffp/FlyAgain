@@ -47,8 +47,8 @@ const ZONE_NAME_KEYS: Dictionary = {
 static func get_zone_name(zone_id: int) -> String:
 	var key: String = ZONE_NAME_KEYS.get(zone_id, "")
 	if key.is_empty():
-		return tr("ZONE_UNKNOWN")
-	return tr(key)
+		return TranslationServer.translate("ZONE_UNKNOWN")
+	return TranslationServer.translate(key)
 
 
 # ---- Zone spawn positions (must match server ZoneManager.kt) ----

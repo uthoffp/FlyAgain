@@ -116,7 +116,7 @@ func test_on_connected_resets_reconnect_count() -> void:
 
 	assert_int(_nm._state).is_equal(NetworkManagerScript._State.CONNECTED)
 	assert_int(_nm._reconnect_count).is_equal(0)
-	await assert_signal(_nm).is_emitted("connected_to_server")
+	assert_signal(_nm).is_emitted("connected_to_server")
 
 
 func test_on_disconnected_emits_signal() -> void:
@@ -126,7 +126,7 @@ func test_on_disconnected_emits_signal() -> void:
 	_nm._on_disconnected()
 
 	assert_int(_nm._state).is_equal(NetworkManagerScript._State.IDLE)
-	await assert_signal(_nm).is_emitted("disconnected_from_server")
+	assert_signal(_nm).is_emitted("disconnected_from_server")
 
 
 # ==== Frame Parsing (_parse_frames) ====
@@ -216,7 +216,7 @@ func test_parse_invalid_frame_length_zero() -> void:
 	_nm._parse_frames()
 
 	# Should disconnect due to invalid frame
-	await assert_signal(_nm).is_emitted("disconnected_from_server")
+	assert_signal(_nm).is_emitted("disconnected_from_server")
 
 
 func test_parse_oversized_frame_drops_connection() -> void:
@@ -228,7 +228,7 @@ func test_parse_oversized_frame_drops_connection() -> void:
 	monitor_signals(_nm)
 	_nm._parse_frames()
 
-	await assert_signal(_nm).is_emitted("disconnected_from_server")
+	assert_signal(_nm).is_emitted("disconnected_from_server")
 
 
 # ==== Opcode Dispatch (_dispatch_frame) ====
@@ -345,9 +345,9 @@ func test_dispatch_heartbeat_silent() -> void:
 	monitor_signals(_nm)
 	_nm._dispatch_frame(frame)
 
-	await assert_signal(_nm).is_not_emitted("login_response")
-	await assert_signal(_nm).is_not_emitted("register_response")
-	await assert_signal(_nm).is_not_emitted("error_response")
+	assert_signal(_nm).is_not_emitted("login_response")
+	assert_signal(_nm).is_not_emitted("register_response")
+	assert_signal(_nm).is_not_emitted("error_response")
 
 
 func test_dispatch_empty_frame_ignored() -> void:
