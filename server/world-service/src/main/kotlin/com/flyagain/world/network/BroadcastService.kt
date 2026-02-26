@@ -42,10 +42,15 @@ class BroadcastService(
      * Called at the end of each game loop tick.
      */
     fun flushPendingUpdates() {
+        var count = 0
         var update = pendingPositionUpdates.poll()
         while (update != null) {
             broadcastPositionUpdate(update.player, update.channel)
+            count++
             update = pendingPositionUpdates.poll()
+        }
+        if (count > 0) {
+            logger.trace("Flushed {} position broadcasts", count)
         }
     }
 
@@ -63,6 +68,7 @@ class BroadcastService(
             .setRotation(player.rotation)
             .setIsMoving(player.isMoving)
             .setIsFlying(player.isFlying)
+            .setJumpOffset(player.jumpOffset)
             .build()
 
         val packet = Packet(Opcode.ENTITY_POSITION_VALUE, positionUpdate.toByteArray())

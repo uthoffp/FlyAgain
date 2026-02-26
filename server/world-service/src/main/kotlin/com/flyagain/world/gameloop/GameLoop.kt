@@ -1,5 +1,6 @@
 package com.flyagain.world.gameloop
 
+import com.flyagain.common.logging.MdcHelper
 import com.flyagain.world.ai.MonsterAI
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
@@ -9,6 +10,7 @@ import com.flyagain.world.session.SessionLifecycleManager
 import com.flyagain.world.zone.ZoneManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -44,6 +46,13 @@ class GameLoop(
     // Persistence: save dirty characters to Redis every 60 seconds
     private var lastPersistenceTime = System.currentTimeMillis()
     private val persistenceIntervalMs = 60_000L
+
+    // Tick stats for periodic logging
+    private var lastStatsTime = System.currentTimeMillis()
+    private val statsIntervalMs = 60_000L
+    private var tickCount = 0L
+    private var totalTickNanos = 0L
+    private var maxTickNanos = 0L
 
     @Volatile
     private var gameThread: Thread? = null
@@ -82,8 +91,27 @@ class GameLoop(
                 logger.error("Error in game loop tick", e)
             }
 
+            val tickElapsedNanos = System.nanoTime() - tickStart
+            tickCount++
+            totalTickNanos += tickElapsedNanos
+            if (tickElapsedNanos > maxTickNanos) maxTickNanos = tickElapsedNanos
+
+            // Periodic tick stats
+            val now = System.currentTimeMillis()
+            if (now - lastStatsTime >= statsIntervalMs) {
+                val avgMs = (totalTickNanos / tickCount) / 1_000_000.0
+                val maxMs = maxTickNanos / 1_000_000.0
+                val playerCount = entityManager.getAllPlayers().size
+                logger.info("Tick stats: ticks={}, avg={}ms, max={}ms, players={}",
+                    tickCount, String.format("%.2f", avgMs), String.format("%.2f", maxMs), playerCount)
+                tickCount = 0
+                totalTickNanos = 0
+                maxTickNanos = 0
+                lastStatsTime = now
+            }
+
             // Sleep until next tick
-            val elapsed = (System.nanoTime() - tickStart) / 1_000_000
+            val elapsed = tickElapsedNanos / 1_000_000
             val sleepTime = tickDurationMs - elapsed
             if (sleepTime > 0) {
                 Thread.sleep(sleepTime)
@@ -117,14 +145,19 @@ class GameLoop(
 
     private fun processInputQueue() {
         val packets = inputQueue.drainAll()
+        if (packets.isNotEmpty()) {
+            logger.trace("Processing {} queued packets", packets.size)
+        }
         for (packet in packets) {
-            try {
-                when (packet.opcode) {
-                    0x0101 -> movementHandler.handleMovementInput(packet)
-                    else -> logger.debug("Unknown game opcode 0x{} in input queue", packet.opcode.toString(16))
+            MdcHelper.withContext(MdcHelper.ACCOUNT_ID to packet.accountId) {
+                try {
+                    when (packet.opcode) {
+                        0x0101 -> movementHandler.handleMovementInput(packet)
+                        else -> logger.debug("Unknown game opcode 0x{} in input queue", packet.opcode.toString(16))
+                    }
+                } catch (e: Exception) {
+                    logger.error("Error processing queued packet (opcode=0x{})", packet.opcode.toString(16), e)
                 }
-            } catch (e: Exception) {
-                logger.error("Error processing queued packet (opcode=0x{})", packet.opcode.toString(16), e)
             }
         }
     }
@@ -172,7 +205,7 @@ class GameLoop(
         }
 
         logger.debug("Persisting {} dirty characters to Redis", snapshots.size)
-        asyncScope.launch {
+        asyncScope.launch(MDCContext()) {
             for ((characterId, fields) in snapshots) {
                 try {
                     sessionLifecycleManager.saveSnapshotToRedis(characterId, fields)

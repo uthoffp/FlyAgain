@@ -16,6 +16,7 @@ extends Control
 # ---- Lifecycle ----
 
 func _ready() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	theme = ThemeFactory.create_main_theme()
 	UIManager.set_initial_screen("login")
 	_connect_signals()
@@ -114,6 +115,8 @@ func _on_login_response(data: Dictionary) -> void:
 	# Populate GameState from login response
 	GameState.jwt                 = data.get("jwt", "")
 	GameState.hmac_secret         = data.get("hmac_secret", "")
+	GameState.session_id          = data.get("session_id", "")
+	GameState.session_token       = data.get("session_token", 0)
 	GameState.account_service_host = data.get("account_service_host", "")
 	GameState.account_service_port = data.get("account_service_port", 0)
 	GameState.characters          = data.get("characters", [])

@@ -39,6 +39,7 @@ class SessionManager(
      */
     suspend fun createSession(
         sessionId: String,
+        sessionToken: Long,
         accountId: String,
         ip: String,
         hmacSecret: String
@@ -61,7 +62,8 @@ class SessionManager(
                 "characterId" to "0",
                 "ip" to ip,
                 "loginTime" to System.currentTimeMillis().toString(),
-                "hmacSecret" to hmacSecret
+                "hmacSecret" to hmacSecret,
+                "sessionToken" to sessionToken.toString()
             )
             async.hset(sessionKey, fields).await()
             async.expire(sessionKey, sessionTtlSeconds).await()
@@ -94,6 +96,7 @@ class SessionManager(
                 val exists = async.exists(sessionKey).await()
                 if (exists > 0) sessionId else {
                     // Stale reverse lookup, clean up
+                    logger.info("Cleaning up stale reverse-lookup for account {} (session {} expired)", accountId, sessionId)
                     async.del(accountKey).await()
                     null
                 }

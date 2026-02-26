@@ -55,12 +55,14 @@ class WriteBackScheduler(
      * character's hash data to PostgreSQL, then removes the dirty marker.
      */
     internal suspend fun flushDirtyCharacters() {
+        val flushStart = System.currentTimeMillis()
         val redis = redisConnection.sync()
         val dirtyKeys = redis.keys("character:*:dirty")
 
         if (dirtyKeys.isEmpty()) return
 
         logger.info("Flushing {} dirty characters to PostgreSQL", dirtyKeys.size)
+        var flushedCount = 0
 
         for (key in dirtyKeys) {
             try {
@@ -79,6 +81,7 @@ class WriteBackScheduler(
                         .setPosX(data["pos_x"]?.toFloatOrNull() ?: 0f)
                         .setPosY(data["pos_y"]?.toFloatOrNull() ?: 0f)
                         .setPosZ(data["pos_z"]?.toFloatOrNull() ?: 0f)
+                        .setRotation(data["rotation"]?.toFloatOrNull() ?: 0f)
                         .setGold(data["gold"]?.toLongOrNull() ?: 0)
                         .setPlayTime(data["play_time"]?.toLongOrNull() ?: 0)
                         .setStr(data["str"]?.toIntOrNull() ?: 0)
@@ -90,11 +93,18 @@ class WriteBackScheduler(
 
                     characterRepo.save(request)
                     redis.del(key)
+                    flushedCount++
                     logger.debug("Flushed character {} to PostgreSQL", charId)
                 }
             } catch (e: Exception) {
                 logger.error("Failed to flush character from key: {}", key, e)
             }
+        }
+
+        val flushDurationMs = System.currentTimeMillis() - flushStart
+        logger.info("Write-back complete: {}/{} characters flushed in {}ms", flushedCount, dirtyKeys.size, flushDurationMs)
+        if (flushDurationMs > 5000) {
+            logger.warn("Write-back flush took {}ms (>5s), consider investigating DB performance", flushDurationMs)
         }
     }
 

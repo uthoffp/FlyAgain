@@ -20,6 +20,9 @@ subprojects {
         "implementation"(rootProject.libs.typesafe.config)
         "implementation"(rootProject.libs.slf4j.api)
         "implementation"(rootProject.libs.logback)
+        "implementation"(rootProject.libs.logstash.logback.encoder)
+        "implementation"(rootProject.libs.janino)
+        "implementation"(rootProject.libs.coroutines.slf4j)
         "implementation"(rootProject.libs.koin.core)
 
         "testImplementation"(kotlin("test"))

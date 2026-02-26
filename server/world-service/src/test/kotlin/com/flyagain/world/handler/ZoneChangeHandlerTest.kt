@@ -125,7 +125,8 @@ class ZoneChangeHandlerTest {
         zoneManager.initialize()
         val player = makePlayer()
         entityManager.tryAddPlayer(player)
-        zoneManager.addPlayerToZone(player, ZoneManager.ZONE_AERHEIM)
+        // Start from Green Plains (adjacent to Dark Forest)
+        zoneManager.addPlayerToZone(player, ZoneManager.ZONE_GREEN_PLAINS)
 
         val ctx = mockCtx()
         handler.handleZoneChange(ctx, player, ZoneManager.ZONE_DARK_FOREST)

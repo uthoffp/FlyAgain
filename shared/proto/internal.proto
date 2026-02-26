@@ -115,6 +115,7 @@ message CharacterRecord {
     int64 play_time = 21;
     bool is_deleted = 22;
     bool found = 23;
+    float rotation = 24;
 }
 
 message CreateCharacterRequest {
@@ -146,6 +147,7 @@ message SaveCharacterRequest {
     int32 dex = 14;
     int32 int_stat = 15;
     int32 stat_points = 16;
+    float rotation = 17;
 }
 
 message DeleteCharacterRequest {

@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://bn325s8ihnq3y"]
+
+[ext_resource type="Script" path="res://scenes/game/terrain/AerheimTerrain.gd" id="1_script"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(10200, 10200)
+
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[node name="AerheimTerrain" type="StaticBody3D"]
+script = ExtResource("1_script")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5050, 0, 5050)
+mesh = SubResource("PlaneMesh_1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("WorldBoundaryShape3D_1")

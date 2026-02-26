@@ -96,7 +96,7 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
     override suspend fun save(request: SaveCharacterRequest): Unit = withTransaction { conn ->
         conn.prepareStatement(
             """UPDATE characters SET hp = ?, mp = ?, xp = ?, level = ?, map_id = ?,
-               pos_x = ?, pos_y = ?, pos_z = ?, gold = ?, play_time = ?,
+               pos_x = ?, pos_y = ?, pos_z = ?, rotation = ?, gold = ?, play_time = ?,
                str = ?, sta = ?, dex = ?, int_stat = ?, stat_points = ?
                WHERE id = ?"""
         ).use { stmt ->
@@ -108,14 +108,15 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.setFloat(6, request.posX)
             stmt.setFloat(7, request.posY)
             stmt.setFloat(8, request.posZ)
-            stmt.setLong(9, request.gold)
-            stmt.setLong(10, request.playTime)
-            stmt.setInt(11, request.str)
-            stmt.setInt(12, request.sta)
-            stmt.setInt(13, request.dex)
-            stmt.setInt(14, request.intStat)
-            stmt.setInt(15, request.statPoints)
-            stmt.setObject(16, UUID.fromString(request.characterId))
+            stmt.setFloat(9, request.rotation)
+            stmt.setLong(10, request.gold)
+            stmt.setLong(11, request.playTime)
+            stmt.setInt(12, request.str)
+            stmt.setInt(13, request.sta)
+            stmt.setInt(14, request.dex)
+            stmt.setInt(15, request.intStat)
+            stmt.setInt(16, request.statPoints)
+            stmt.setObject(17, UUID.fromString(request.characterId))
             stmt.executeUpdate()
         }
     }
@@ -155,6 +156,7 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             .setPosX(rs.getFloat("pos_x"))
             .setPosY(rs.getFloat("pos_y"))
             .setPosZ(rs.getFloat("pos_z"))
+            .setRotation(rs.getFloat("rotation"))
             .setGold(rs.getLong("gold"))
             .setPlayTime(rs.getLong("play_time"))
             .setIsDeleted(rs.getBoolean("is_deleted"))

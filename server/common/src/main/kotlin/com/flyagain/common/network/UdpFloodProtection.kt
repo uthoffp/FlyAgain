@@ -48,7 +48,11 @@ class UdpFloodProtection(
                 counter.windowStart = now
             }
             counter.count++
-            return counter.count <= maxPacketsPerSecond
+            val allowed = counter.count <= maxPacketsPerSecond
+            if (!allowed && counter.count == maxPacketsPerSecond + 1) {
+                logger.warn("UDP flood limit reached for IP {} ({}/s)", ip, maxPacketsPerSecond)
+            }
+            return allowed
         }
     }
 

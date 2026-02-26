@@ -21,7 +21,8 @@ func _init(data: PackedByteArray) -> void:
 ## Returns a Dictionary with keys:
 ##   success (bool), jwt (String), characters (Array[Dict]),
 ##   error_message (String), hmac_secret (String),
-##   account_service_host (String), account_service_port (int)
+##   account_service_host (String), account_service_port (int),
+##   session_id (String), session_token (int)
 func decode_login_response() -> Dictionary:
 	var result := {
 		"success":              false,
@@ -31,6 +32,8 @@ func decode_login_response() -> Dictionary:
 		"hmac_secret":          "",
 		"account_service_host": "",
 		"account_service_port": 0,
+		"session_id":           "",
+		"session_token":        0,
 	}
 	while _has_bytes():
 		var pair := _next_tag()
@@ -48,6 +51,8 @@ func decode_login_response() -> Dictionary:
 			5: result["hmac_secret"]          = _read_string()
 			6: result["account_service_host"] = _read_string()
 			7: result["account_service_port"] = _read_varint()
+			8: result["session_id"]           = _read_string()
+			9: result["session_token"]        = _read_varint()
 			_: _skip(wt)
 	return result
 
@@ -124,12 +129,15 @@ func decode_heartbeat() -> Dictionary:
 
 
 ## Decodes an EnterWorldResponse message.
-## Returns: { success (bool), error_message (String), world_service_host (String),
+## Returns: { success (bool), position (Dict), stats (Dict),
+##            error_message (String), world_service_host (String),
 ##            world_service_tcp_port (int), world_service_udp_port (int) }
 ## Used as the response for both CHARACTER_CREATE and CHARACTER_SELECT.
 func decode_enter_world_response() -> Dictionary:
 	var result := {
 		"success":              false,
+		"position":             {"x": 0.0, "y": 0.0, "z": 0.0},
+		"stats":                {},
 		"error_message":        "",
 		"world_service_host":   "",
 		"world_service_tcp_port": 0,
@@ -143,6 +151,12 @@ func decode_enter_world_response() -> Dictionary:
 		var wt: int = pair[1]
 		match fn:
 			1: result["success"]                = _read_varint() != 0
+			2:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["position"] = sub.decode_position()
+			3:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["stats"] = sub.decode_character_stats()
 			4: result["error_message"]          = _read_string()
 			5: result["world_service_host"]     = _read_string()
 			6: result["world_service_tcp_port"] = _read_varint()
@@ -185,6 +199,179 @@ func decode_server_message() -> Dictionary:
 	return result
 
 
+# ---- World message decoders ----
+
+## Decodes a Position sub-message { x=1, y=2, z=3 }.
+## Returns: { x: float, y: float, z: float }
+func decode_position() -> Dictionary:
+	var result := {"x": 0.0, "y": 0.0, "z": 0.0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["x"] = _read_float32()
+			2: result["y"] = _read_float32()
+			3: result["z"] = _read_float32()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a CharacterStats sub-message.
+## Returns: { level, hp, max_hp, mp, max_mp, str, sta, dex, int_, xp, xp_to_next_level }
+func decode_character_stats() -> Dictionary:
+	var result := {
+		"level": 0, "hp": 0, "max_hp": 0, "mp": 0, "max_mp": 0,
+		"str": 0, "sta": 0, "dex": 0, "int_": 0, "xp": 0, "xp_to_next_level": 0,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:  result["level"]            = _read_varint()
+			2:  result["hp"]               = _read_varint()
+			3:  result["max_hp"]           = _read_varint()
+			4:  result["mp"]               = _read_varint()
+			5:  result["max_mp"]           = _read_varint()
+			6:  result["str"]              = _read_varint()
+			7:  result["sta"]              = _read_varint()
+			8:  result["dex"]              = _read_varint()
+			9:  result["int_"]             = _read_varint()
+			10: result["xp"]              = _read_varint()
+			11: result["xp_to_next_level"] = _read_varint()
+			_:  _skip(wt)
+	return result
+
+
+## Decodes a ZoneDataMessage.
+## Returns: { zone_id: int, channel_id: int, zone_name: String, entities: Array[Dict], my_entity_id: int }
+func decode_zone_data() -> Dictionary:
+	var result := {"zone_id": 0, "channel_id": 0, "zone_name": "", "entities": [], "my_entity_id": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["zone_id"]       = _read_varint()
+			2: result["channel_id"]    = _read_varint()
+			3: result["zone_name"]     = _read_string()
+			4:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["entities"].append(sub.decode_entity_spawn())
+			5: result["my_entity_id"]  = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes an EntitySpawnMessage.
+## Returns: { entity_id: int, entity_type: int, name: String, position: Dict,
+##            rotation: float, level: int, hp: int, max_hp: int,
+##            character_class: int, is_flying: bool }
+func decode_entity_spawn() -> Dictionary:
+	var result := {
+		"entity_id": 0, "entity_type": 0, "name": "",
+		"position": {"x": 0.0, "y": 0.0, "z": 0.0},
+		"rotation": 0.0, "level": 0, "hp": 0, "max_hp": 0,
+		"character_class": 0, "is_flying": false,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:  result["entity_id"]       = _read_varint()
+			2:  result["entity_type"]     = _read_varint()
+			3:  result["name"]            = _read_string()
+			4:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["position"] = sub.decode_position()
+			5:  result["rotation"]        = _read_float32()
+			6:  result["level"]           = _read_varint()
+			7:  result["hp"]              = _read_varint()
+			8:  result["max_hp"]          = _read_varint()
+			9:  result["character_class"] = _read_varint()
+			10: result["is_flying"]       = _read_varint() != 0
+			_:  _skip(wt)
+	return result
+
+
+## Decodes an EntityPositionUpdate.
+## Returns: { entity_id: int, position: Dict, rotation: float,
+##            is_moving: bool, is_flying: bool, jump_offset: float }
+func decode_entity_position_update() -> Dictionary:
+	var result := {
+		"entity_id": 0,
+		"position": {"x": 0.0, "y": 0.0, "z": 0.0},
+		"rotation": 0.0, "is_moving": false, "is_flying": false,
+		"jump_offset": 0.0,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["entity_id"] = _read_varint()
+			2:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["position"] = sub.decode_position()
+			3: result["rotation"]    = _read_float32()
+			4: result["is_moving"]   = _read_varint() != 0
+			5: result["is_flying"]   = _read_varint() != 0
+			6: result["jump_offset"] = _read_float32()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a PositionCorrection.
+## Returns: { position: Dict, rotation: float, reason: String }
+func decode_position_correction() -> Dictionary:
+	var result := {
+		"position": {"x": 0.0, "y": 0.0, "z": 0.0},
+		"rotation": 0.0, "reason": "",
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["position"] = sub.decode_position()
+			2: result["rotation"] = _read_float32()
+			3: result["reason"]   = _read_string()
+			_: _skip(wt)
+	return result
+
+
+## Decodes an EntityDespawnMessage.
+## Returns: { entity_id: int }
+func decode_entity_despawn() -> Dictionary:
+	var result := {"entity_id": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["entity_id"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
 # ---- Private helpers ----
 
 func _has_bytes() -> bool:
@@ -222,6 +409,16 @@ func _next_tag() -> Array:
 		return []
 	var tag := _read_varint()
 	return [tag >> 3, tag & 0x07]
+
+
+## Reads a 32-bit IEEE 754 float (wire type 5: fixed32, little-endian).
+func _read_float32() -> float:
+	if _pos + 4 > _data.size():
+		push_error("ProtoDecoder: float32 out of bounds (pos=%d size=%d)" % [_pos, _data.size()])
+		return 0.0
+	var buf := _data.slice(_pos, _pos + 4)
+	_pos += 4
+	return buf.decode_float(0)
 
 
 ## Reads a length-delimited byte sequence.

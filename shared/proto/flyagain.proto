@@ -104,6 +104,8 @@ message LoginResponse {
     string hmac_secret = 5;
     string account_service_host = 6;
     int32 account_service_port = 7;
+    string session_id = 8;
+    int64 session_token = 9;
 }
 
 message RegisterRequest {
@@ -186,6 +188,7 @@ message MovementInput {
     bool is_moving = 6;
     bool is_flying = 7;
     uint32 sequence = 8; // client-side sequence for reconciliation
+    float jump_offset = 9; // vertical offset for jump visual (client-side arc)
 }
 
 // Server -> Client (UDP): Authoritative entity position update
@@ -195,6 +198,7 @@ message EntityPositionUpdate {
     float rotation = 3;
     bool is_moving = 4;
     bool is_flying = 5;
+    float jump_offset = 6; // vertical offset for jump visual (from sender)
 }
 
 // Server -> Client (TCP): Forced position correction
@@ -237,6 +241,7 @@ message ZoneDataMessage {
     int32 channel_id = 2;
     string zone_name = 3;
     repeated EntitySpawnMessage entities = 4;
+    int64 my_entity_id = 5;
 }
 
 // Client -> Server: Request to switch channel

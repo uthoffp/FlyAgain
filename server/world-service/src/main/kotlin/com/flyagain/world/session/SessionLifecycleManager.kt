@@ -5,6 +5,7 @@ import com.flyagain.common.grpc.SaveCharacterRequest
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.network.BroadcastService
+import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
 import io.lettuce.core.api.StatefulRedisConnection
 import kotlinx.coroutines.future.await
@@ -24,7 +25,8 @@ class SessionLifecycleManager(
     private val zoneManager: ZoneManager,
     private val redisConnection: StatefulRedisConnection<String, String>,
     private val characterDataStub: CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub,
-    private val broadcastService: BroadcastService
+    private val broadcastService: BroadcastService,
+    private val sessionSecretProvider: RedisSessionSecretProvider
 ) {
 
     private val logger = LoggerFactory.getLogger(SessionLifecycleManager::class.java)
@@ -52,18 +54,23 @@ class SessionLifecycleManager(
             logger.error("Failed to flush character {} to database on disconnect", player.characterId, e)
         }
 
-        // 3. Clean up Redis character cache and dirty marker
+        // 3. Clean up HMAC secret from in-memory cache
+        if (player.sessionTokenLong != 0L) {
+            sessionSecretProvider.removeSecret(player.sessionTokenLong)
+        }
+
+        // 4. Clean up Redis character cache and dirty marker
         try {
             cleanupRedisState(player)
         } catch (e: Exception) {
             logger.error("Failed to clean up Redis state for character {}", player.characterId, e)
         }
 
-        // 4. Remove player from zone/channel/spatial grid
+        // 5. Remove player from zone/channel/spatial grid
         zoneManager.removePlayerFromZone(player)
         entityManager.removePlayer(player.entityId)
 
-        // 5. Close the TCP channel if still open
+        // 6. Close the TCP channel if still open
         player.tcpChannel?.let { ch ->
             if (ch.isActive) {
                 ch.close()
@@ -88,6 +95,7 @@ class SessionLifecycleManager(
             .setPosX(player.x)
             .setPosY(player.y)
             .setPosZ(player.z)
+            .setRotation(player.rotation)
             .setGold(player.gold)
             .setPlayTime(calculatePlayTime(player))
             .setStr(player.str)
@@ -133,6 +141,7 @@ class SessionLifecycleManager(
             "pos_x" to player.x.toString(),
             "pos_y" to player.y.toString(),
             "pos_z" to player.z.toString(),
+            "rotation" to player.rotation.toString(),
             "gold" to player.gold.toString(),
             "play_time" to calculatePlayTime(player).toString()
         )
@@ -211,6 +220,7 @@ class SessionLifecycleManager(
             "pos_x" to player.x.toString(),
             "pos_y" to player.y.toString(),
             "pos_z" to player.z.toString(),
+            "rotation" to player.rotation.toString(),
             "gold" to player.gold.toString(),
             "play_time" to calculatePlayTime(player).toString()
         )

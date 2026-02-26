@@ -5,6 +5,7 @@ import com.flyagain.common.proto.*
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
 import io.lettuce.core.api.StatefulRedisConnection
 import io.netty.channel.ChannelHandlerContext
@@ -26,7 +27,8 @@ class EnterWorldHandler(
     private val entityManager: EntityManager,
     private val zoneManager: ZoneManager,
     private val redisConnection: StatefulRedisConnection<String, String>,
-    private val jwtSecret: String
+    private val jwtSecret: String,
+    private val sessionSecretProvider: RedisSessionSecretProvider
 ) {
 
     private val logger = LoggerFactory.getLogger(EnterWorldHandler::class.java)
@@ -59,6 +61,23 @@ class EnterWorldHandler(
             return null
         }
 
+        // Load session data from Redis to get session token and HMAC secret
+        val sessionData = loadSessionFromRedis(sessionId)
+        if (sessionData == null) {
+            logger.warn("Session {} not found in Redis for account {}", sessionId, accountId)
+            sendError(ctx, "Session expired. Please re-login.")
+            return null
+        }
+
+        val sessionTokenLong = sessionData["sessionToken"]?.toLongOrNull() ?: 0L
+        val hmacSecret = sessionData["hmacSecret"] ?: ""
+
+        if (sessionTokenLong == 0L || hmacSecret.isEmpty()) {
+            logger.warn("Session {} missing token or HMAC secret for account {}", sessionId, accountId)
+            sendError(ctx, "Session invalid. Please re-login.")
+            return null
+        }
+
         // Create PlayerEntity
         val entityId = entityManager.nextPlayerId()
         val mapId = charData["map_id"]?.toIntOrNull() ?: ZoneManager.ZONE_AERHEIM
@@ -72,6 +91,7 @@ class EnterWorldHandler(
             x = charData["pos_x"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_X,
             y = charData["pos_y"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_Y,
             z = charData["pos_z"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_Z,
+            rotation = charData["rotation"]?.toFloatOrNull() ?: 0f,
             level = charData["level"]?.toIntOrNull() ?: 1,
             hp = charData["hp"]?.toIntOrNull() ?: 100,
             maxHp = charData["max_hp"]?.toIntOrNull() ?: 100,
@@ -85,7 +105,9 @@ class EnterWorldHandler(
             xp = charData["xp"]?.toLongOrNull() ?: 0L,
             gold = charData["gold"]?.toLongOrNull() ?: 0L,
             tcpChannel = ctx.channel(),
-            sessionId = sessionId
+            sessionId = sessionId,
+            sessionTokenLong = sessionTokenLong,
+            hmacSecret = hmacSecret
         )
 
         // Atomically add to entity manager (rejects if account already has a player in world)
@@ -104,6 +126,9 @@ class EnterWorldHandler(
             sendError(ctx, "Failed to enter zone. Please try again.")
             return null
         }
+
+        // Register HMAC secret for UDP packet validation
+        sessionSecretProvider.registerSecret(sessionTokenLong, hmacSecret.toByteArray(Charsets.UTF_8))
 
         // Add to online players in Redis
         try {
@@ -139,6 +164,13 @@ class EnterWorldHandler(
         }
     }
 
+    private fun loadSessionFromRedis(sessionId: String): Map<String, String>? {
+        val redis = redisConnection.sync()
+        val key = "session:$sessionId"
+        val data = redis.hgetall(key)
+        return if (data.isNullOrEmpty()) null else data
+    }
+
     private suspend fun loadCharacterFromRedis(characterId: String): Map<String, String>? {
         val redis = redisConnection.sync()
         val key = "character:$characterId"
@@ -152,6 +184,8 @@ class EnterWorldHandler(
         channel: com.flyagain.world.zone.ZoneChannel
     ) {
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
+        logger.info("sendZoneData for {} (entityId={}): nearby={} entities at ({}, {})",
+            player.name, player.entityId, nearbyEntityIds.size, player.x, player.z)
         val spawnMessages = mutableListOf<EntitySpawnMessage>()
 
         for (entityId in nearbyEntityIds) {
@@ -160,6 +194,7 @@ class EnterWorldHandler(
             // Check if it's a player
             val otherPlayer = entityManager.getPlayer(entityId)
             if (otherPlayer != null) {
+                logger.info("  Including player {} (entityId={}) in zone data", otherPlayer.name, entityId)
                 spawnMessages.add(buildPlayerSpawn(otherPlayer))
                 continue
             }
@@ -171,11 +206,15 @@ class EnterWorldHandler(
             }
         }
 
+        logger.info("Sending ZoneData to {} with {} entities (myEntityId={})",
+            player.name, spawnMessages.size, player.entityId)
+
         val zoneData = ZoneDataMessage.newBuilder()
             .setZoneId(player.zoneId)
             .setChannelId(player.channelId)
             .setZoneName(zoneManager.getZoneName(player.zoneId))
             .addAllEntities(spawnMessages)
+            .setMyEntityId(player.entityId)
             .build()
 
         ctx.writeAndFlush(Packet(Opcode.ZONE_DATA_VALUE, zoneData.toByteArray()))
@@ -189,11 +228,16 @@ class EnterWorldHandler(
         val packet = Packet(Opcode.ENTITY_SPAWN_VALUE, spawnMsg.toByteArray())
 
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
+        var broadcastCount = 0
         for (entityId in nearbyEntityIds) {
             if (entityId == player.entityId) continue
             val otherPlayer = channel.getPlayer(entityId) ?: continue
+            logger.info("Broadcasting EntitySpawn of {} to player {} (entityId={})",
+                player.name, otherPlayer.name, entityId)
             otherPlayer.tcpChannel?.writeAndFlush(packet)
+            broadcastCount++
         }
+        logger.info("broadcastPlayerSpawn for {}: sent to {} nearby players", player.name, broadcastCount)
     }
 
     private fun buildPlayerSpawn(player: PlayerEntity): EntitySpawnMessage {

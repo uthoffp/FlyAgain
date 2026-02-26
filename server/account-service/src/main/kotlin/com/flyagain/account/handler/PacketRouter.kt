@@ -5,6 +5,7 @@ import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.ErrorResponse
 import com.flyagain.common.proto.Heartbeat
 import com.flyagain.common.proto.Opcode
+import com.flyagain.common.logging.MdcHelper
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
@@ -14,7 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.LoggerFactory
+import java.net.InetSocketAddress
 
 /**
  * Routes inbound [Packet] messages to the appropriate handler based on opcode.
@@ -49,6 +52,7 @@ class PacketRouter(
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, packet: Packet) {
+        MdcHelper.restoreMdc(ctx)
         val opcode = packet.opcode
 
         // Heartbeat does not require authentication
@@ -79,7 +83,7 @@ class PacketRouter(
 
         when (opcode) {
             Opcode.CHARACTER_SELECT_VALUE -> {
-                routerScope.launch {
+                routerScope.launch(MDCContext()) {
                     try {
                         characterSelectHandler.handle(ctx, packet, accountId)
                     } catch (e: Exception) {
@@ -90,7 +94,7 @@ class PacketRouter(
             }
 
             Opcode.CHARACTER_CREATE_VALUE -> {
-                routerScope.launch {
+                routerScope.launch(MDCContext()) {
                     try {
                         characterCreateHandler.handle(ctx, packet, accountId)
                     } catch (e: Exception) {
@@ -101,7 +105,7 @@ class PacketRouter(
             }
 
             Opcode.CHARACTER_LIST_REQUEST_VALUE -> {
-                routerScope.launch {
+                routerScope.launch(MDCContext()) {
                     try {
                         characterListHandler.handle(ctx, accountId)
                     } catch (e: Exception) {
@@ -135,6 +139,7 @@ class PacketRouter(
         ctx.channel().attr(SESSION_ID_KEY).set(claims.sessionId)
         ctx.channel().attr(AUTHENTICATED_KEY).set(true)
 
+        MdcHelper.setPlayer(ctx, accountId = claims.accountId, sessionId = claims.sessionId)
         logger.info("Authenticated account {} (session {}) from {}", claims.accountId, claims.sessionId, ctx.channel().remoteAddress())
         return true
     }
@@ -192,12 +197,16 @@ class PacketRouter(
     }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
+        val ip = (ctx.channel().remoteAddress() as? InetSocketAddress)?.address?.hostAddress ?: "unknown"
+        MdcHelper.setConnection(ctx, ip)
         heartbeatTracker.register(ctx.channel())
         super.channelActive(ctx)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
+        MdcHelper.restoreMdc(ctx)
         heartbeatTracker.unregister(ctx.channel())
+        MdcHelper.clearAll()
         super.channelInactive(ctx)
     }
 

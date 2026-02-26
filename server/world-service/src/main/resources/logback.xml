@@ -1,10 +1,15 @@
 <configuration>
+    <variable name="LOG_FORMAT" value="${LOG_FORMAT:-text}" />
+    <variable name="MDC_PATTERN" value="%X{ip:--} %X{sid:--} %X{acc:--} %X{chr:--}" />
+
+    <!-- Human-readable console appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [${MDC_PATTERN}] - %msg%n</pattern>
         </encoder>
     </appender>
 
+    <!-- Rolling file appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/world-service.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -12,15 +17,30 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [${MDC_PATTERN}] - %msg%n</pattern>
         </encoder>
     </appender>
 
     <logger name="com.flyagain" level="DEBUG" />
     <logger name="io.netty" level="INFO" />
 
-    <root level="INFO">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="FILE" />
-    </root>
+    <if condition='property("LOG_FORMAT").equals("json")'>
+        <then>
+            <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                    <customFields>{"service":"world-service"}</customFields>
+                </encoder>
+            </appender>
+            <root level="INFO">
+                <appender-ref ref="JSON_CONSOLE" />
+                <appender-ref ref="FILE" />
+            </root>
+        </then>
+        <else>
+            <root level="INFO">
+                <appender-ref ref="CONSOLE" />
+                <appender-ref ref="FILE" />
+            </root>
+        </else>
+    </if>
 </configuration>

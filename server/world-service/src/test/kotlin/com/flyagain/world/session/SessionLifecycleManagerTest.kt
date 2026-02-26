@@ -5,6 +5,7 @@ import com.google.protobuf.Empty
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.network.BroadcastService
+import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
 import io.lettuce.core.RedisFuture
 import io.lettuce.core.api.StatefulRedisConnection
@@ -37,6 +38,7 @@ class SessionLifecycleManagerTest {
     }
 
     private val characterDataStub = mockk<CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub>()
+    private val sessionSecretProvider = mockk<RedisSessionSecretProvider>(relaxed = true)
 
     private val manager: SessionLifecycleManager
 
@@ -54,7 +56,7 @@ class SessionLifecycleManagerTest {
         coEvery { characterDataStub.saveCharacter(any(), any()) } returns Empty.getDefaultInstance()
 
         manager = SessionLifecycleManager(
-            entityManager, zoneManager, redisConnection, characterDataStub, broadcastService
+            entityManager, zoneManager, redisConnection, characterDataStub, broadcastService, sessionSecretProvider
         )
     }
 

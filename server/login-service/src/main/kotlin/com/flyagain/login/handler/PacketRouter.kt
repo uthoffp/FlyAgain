@@ -7,13 +7,16 @@ import com.flyagain.common.proto.Heartbeat
 import com.flyagain.common.proto.LoginRequest
 import com.flyagain.common.proto.Opcode
 import com.flyagain.common.proto.RegisterRequest
+import com.flyagain.common.logging.MdcHelper
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.IdleStateEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
 import org.slf4j.LoggerFactory
+import java.net.InetSocketAddress
 
 /**
  * Routes decoded Packet objects to the appropriate business-logic handler
@@ -39,6 +42,7 @@ class PacketRouter(
     private val logger = LoggerFactory.getLogger(PacketRouter::class.java)
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
+        MdcHelper.restoreMdc(ctx)
         when (msg.opcode) {
             Opcode.LOGIN_REQUEST_VALUE -> {
                 val request = try {
@@ -48,7 +52,7 @@ class PacketRouter(
                     sendError(ctx, msg.opcode, 400, "Malformed request.")
                     return
                 }
-                coroutineScope.launch {
+                coroutineScope.launch(MDCContext()) {
                     try {
                         loginHandler.handle(ctx, request)
                     } catch (e: Exception) {
@@ -66,7 +70,7 @@ class PacketRouter(
                     sendError(ctx, msg.opcode, 400, "Malformed request.")
                     return
                 }
-                coroutineScope.launch {
+                coroutineScope.launch(MDCContext()) {
                     try {
                         registerHandler.handle(ctx, request)
                     } catch (e: Exception) {
@@ -131,14 +135,18 @@ class PacketRouter(
     }
 
     override fun channelActive(ctx: ChannelHandlerContext) {
+        val ip = (ctx.channel().remoteAddress() as? InetSocketAddress)?.address?.hostAddress ?: "unknown"
+        MdcHelper.setConnection(ctx, ip)
         logger.info("Client connected: {}", ctx.channel().remoteAddress())
         heartbeatTracker.register(ctx.channel())
         super.channelActive(ctx)
     }
 
     override fun channelInactive(ctx: ChannelHandlerContext) {
+        MdcHelper.restoreMdc(ctx)
         logger.info("Client disconnected: {}", ctx.channel().remoteAddress())
         heartbeatTracker.unregister(ctx.channel())
+        MdcHelper.clearAll()
         super.channelInactive(ctx)
     }
 }
