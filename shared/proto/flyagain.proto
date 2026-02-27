@@ -280,16 +280,80 @@ message ZoneChangeRequest {
 // Combat Messages
 // ============================================================
 
+// Client -> Server: Select a target entity
+message SelectTargetRequest {
+    int64 target_entity_id = 1;
+}
+
+// Server -> Client: Confirm target selection (or clear)
+message SelectTargetResponse {
+    bool success = 1;
+    int64 target_entity_id = 2;
+    int32 target_hp = 3;
+    int32 target_max_hp = 4;
+    string target_name = 5;
+    int32 target_level = 6;
+}
+
+// Client -> Server: Use a skill on the current target
+message UseSkillRequest {
+    int32 skill_id = 1;
+    int64 target_entity_id = 2;
+}
+
+// Server -> Client: Skill usage result
+message UseSkillResponse {
+    bool success = 1;
+    int32 skill_id = 2;
+    string error_message = 3;
+}
+
+// Client -> Server: Toggle auto-attack on/off
+message ToggleAutoAttackRequest {
+    bool enable = 1;
+    int64 target_entity_id = 2;
+}
+
+// Server -> Client: Auto-attack state confirmation
+message ToggleAutoAttackResponse {
+    bool auto_attacking = 1;
+    int64 target_entity_id = 2;
+}
+
 // Server -> Client: Damage dealt notification
 message DamageEvent {
     int64 attacker_entity_id = 1;
     int64 target_entity_id = 2;
     int32 damage = 3;
     bool is_critical = 4;
+    int32 target_current_hp = 5;
 }
 
 // Server -> Client: Entity death notification
 message EntityDeath {
     int64 entity_id = 1;
     int64 killer_entity_id = 2;
+}
+
+// Server -> Client: XP gained notification
+message XpGainMessage {
+    int64 xp_gained = 1;
+    int64 total_xp = 2;
+    int64 xp_to_next_level = 3;
+    int32 current_level = 4;
+    bool leveled_up = 5;
+}
+
+// Server -> Client: Stats update after level-up or stat change
+message EntityStatsUpdate {
+    int64 entity_id = 1;
+    int32 level = 2;
+    int32 hp = 3;
+    int32 max_hp = 4;
+    int32 mp = 5;
+    int32 max_mp = 6;
+    int32 str = 7;
+    int32 sta = 8;
+    int32 dex = 9;
+    int32 int_ = 10;
 }

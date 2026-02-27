@@ -123,11 +123,18 @@ class BroadcastService(
             else -> return
         }
 
+        val targetCurrentHp = when {
+            targetPlayer != null -> targetPlayer.hp
+            targetMonster != null -> targetMonster.hp
+            else -> 0
+        }
+
         val damageEvent = DamageEvent.newBuilder()
             .setAttackerEntityId(damageResult.attackerEntityId)
             .setTargetEntityId(damageResult.targetEntityId)
             .setDamage(damageResult.damage)
             .setIsCritical(damageResult.isCritical)
+            .setTargetCurrentHp(targetCurrentHp)
             .build()
 
         val packet = Packet(Opcode.DAMAGE_EVENT_VALUE, damageEvent.toByteArray())

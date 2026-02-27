@@ -2,6 +2,7 @@ package com.flyagain.world.gameloop
 
 import com.flyagain.common.logging.MdcHelper
 import com.flyagain.world.ai.MonsterAI
+import com.flyagain.world.combat.CombatEngine
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.handler.MovementHandler
@@ -33,6 +34,7 @@ class GameLoop(
     private val zoneManager: ZoneManager,
     private val movementHandler: MovementHandler,
     private val monsterAI: MonsterAI,
+    private val combatEngine: CombatEngine,
     private val broadcastService: BroadcastService,
     private val sessionLifecycleManager: SessionLifecycleManager,
     private val asyncScope: CoroutineScope,
@@ -133,10 +135,13 @@ class GameLoop(
         // 3. Update monster AI
         updateMonsterAI(tickDurationMs)
 
-        // 4. Broadcast state changes
+        // 4. Process player auto-attacks
+        processAutoAttacks()
+
+        // 5. Broadcast state changes
         broadcastStateChanges()
 
-        // 5. Periodic persistence
+        // 6. Periodic persistence
         if (now - lastPersistenceTime >= persistenceIntervalMs) {
             lastPersistenceTime = now
             persistDirtyCharacters()
@@ -184,6 +189,23 @@ class GameLoop(
             // Broadcast monster respawns
             for (monster in result.respawnedMonsters) {
                 broadcastService.broadcastEntitySpawn(channel, monster)
+            }
+        }
+    }
+
+    private fun processAutoAttacks() {
+        for (channel in zoneManager.getAllChannels()) {
+            for (player in channel.getAllPlayers()) {
+                if (!player.autoAttacking) continue
+                if (player.hp <= 0) {
+                    player.autoAttacking = false
+                    continue
+                }
+
+                val damageResult = combatEngine.processAutoAttack(player)
+                if (damageResult != null) {
+                    broadcastService.broadcastDamageEvent(channel, damageResult)
+                }
             }
         }
     }
