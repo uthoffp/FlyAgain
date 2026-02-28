@@ -6,8 +6,13 @@
 extends CharacterBody3D
 
 
+## Adjust in the editor if the model clips into or floats above the ground.
+@export var model_y_offset: float = 0.0
+## Uniform scale for the character model.
+@export var model_scale: float = 1.0
+
 @onready var _camera_pivot: Node3D = $CameraPivot
-@onready var _mesh: MeshInstance3D = $MeshInstance3D
+@onready var _model_pivot: Node3D = $ModelPivot
 @onready var _name_label: Label3D = $NameLabel
 
 var _predictor: MovementPredictor = MovementPredictor.new()
@@ -20,7 +25,7 @@ const SEND_INTERVAL := 1.0 / WorldConstants.MOVEMENT_SEND_RATE  # 50ms
 var _jump_velocity: float = 0.0
 var _jump_offset: float = 0.0
 var _is_grounded: bool = true
-var _mesh_base_y: float = 0.0
+var _pivot_base_y: float = 0.0
 var _label_base_y: float = 0.0
 
 # Click-to-Move state
@@ -37,12 +42,12 @@ const CLICK_STALL_TIMEOUT := 1.5
 func _ready() -> void:
 	_predictor.set_position(global_position)
 	_setup_player_name()
-	_setup_appearance()
+	_setup_model()
 	_create_click_marker()
 	NetworkManager.position_corrected.connect(_on_position_corrected)
 	# Store base Y offsets for jump visual
-	if _mesh:
-		_mesh_base_y = _mesh.position.y
+	if _model_pivot:
+		_pivot_base_y = _model_pivot.position.y
 	if _name_label:
 		_label_base_y = _name_label.position.y
 
@@ -97,12 +102,12 @@ func _physics_process(delta: float) -> void:
 		direction, is_moving, _is_flying, GameState.player_dex, delta)
 	global_position = new_pos
 
-	# Rotate only the mesh toward movement direction (NOT the root node,
+	# Rotate only the model toward movement direction (NOT the root node,
 	# because CameraPivot is a child and would rotate with it).
 	if is_moving and direction.length() > 0.01:
 		var target_angle := atan2(direction.x, direction.z)
 		_facing_angle = lerp_angle(_facing_angle, target_angle, 10.0 * delta)
-		_mesh.rotation.y = _facing_angle
+		_model_pivot.rotation.y = _facing_angle
 
 	# Update jump visual offset (applies to mesh + label, not the root node)
 	_update_jump(delta)
@@ -231,10 +236,10 @@ func _update_jump(delta: float) -> void:
 	_apply_jump_visual()
 
 
-## Offsets the mesh and name label vertically for the jump effect.
+## Offsets the model and name label vertically for the jump effect.
 func _apply_jump_visual() -> void:
-	if _mesh:
-		_mesh.position.y = _mesh_base_y + _jump_offset
+	if _model_pivot:
+		_model_pivot.position.y = _pivot_base_y + _jump_offset
 	if _name_label:
 		_name_label.position.y = _label_base_y + _jump_offset
 
@@ -250,6 +255,20 @@ func _send_movement(direction: Vector3, is_moving: bool) -> void:
 		_jump_offset)
 
 
+## Teleport to a new position (e.g. after zone change).
+## Updates both the node position and the movement predictor.
+func teleport_to(pos: Vector3) -> void:
+	global_position = pos
+	_predictor.set_position(pos)
+	_cancel_click_to_move()
+	_is_flying = false
+	_predictor.set_flying(false)
+	_jump_offset = 0.0
+	_jump_velocity = 0.0
+	_is_grounded = true
+	_apply_jump_visual()
+
+
 ## Handle server position correction.
 func _on_position_corrected(data: Dictionary) -> void:
 	var pos_dict: Dictionary = data.get("position", {})
@@ -261,7 +280,7 @@ func _on_position_corrected(data: Dictionary) -> void:
 	var corrected := _predictor.apply_correction(server_pos, server_rot)
 	global_position = corrected
 	_facing_angle = server_rot
-	_mesh.rotation.y = _facing_angle
+	_model_pivot.rotation.y = _facing_angle
 	_cancel_click_to_move()
 	push_warning("Position corrected: %s (reason: %s)" % [server_pos, data.get("reason", "")])
 
@@ -313,9 +332,8 @@ func _setup_player_name() -> void:
 		_name_label.text = char_name
 
 
-## Set up the player appearance (placeholder gold capsule).
-func _setup_appearance() -> void:
-	if _mesh:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.85, 0.65, 0.13)  # Gold
-		_mesh.material_override = mat
+## Apply model Y-offset and scale from export vars.
+func _setup_model() -> void:
+	if _model_pivot:
+		_model_pivot.position.y = model_y_offset
+		_model_pivot.scale = Vector3.ONE * model_scale

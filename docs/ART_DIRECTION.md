@@ -87,6 +87,27 @@ Procedural shader-based (`terrain_noise.gdshader`) with:
 - Accents: banners, market stalls, warm lantern light
 - Sky: golden hour warmth
 
+## Pre-Made Asset Packs (Environment)
+
+For standard environment assets (trees, grass, rocks, buildings) that don't need to be custom, use cohesive pre-made packs. Custom/unique assets (characters, monsters, special props) are AI-generated per the pipeline above.
+
+### Quaternius MegaKit Series (Primary Choice)
+Both packs are confirmed to match stylistically — soft, rounded, Ghibli-inspired look.
+
+| Pack | Contents | Link |
+|------|----------|------|
+| Stylized Nature MegaKit | 110+ models: 40 trees, 35 plants/flowers, 27 rocks, grass, bushes | https://quaternius.itch.io/stylized-nature-megakit |
+| Medieval Village MegaKit | 300+ modular pieces: walls, roofs, stairs, props (grid-based) | https://quaternius.itch.io/medieval-village-megakit |
+
+- **Formats:** glTF, FBX, OBJ (free) — Godot source version with custom shaders via Patreon ($20/month)
+- **License:** Free for personal, educational, and commercial use
+- **Godot shaders included:** Wind movement for grass/leaves, stylized shading
+
+### Import Workflow (Pre-Made Packs)
+1. Import glTF/glb into Godot
+2. Apply `StandardMaterial3D` overrides if needed (roughness 0.7-0.9, metallic 0.0-0.1)
+3. Post-processing stack (ACES, bloom, warm color grading) unifies look with custom assets
+
 ## Tools
 
 | Tool | Purpose | Link |
