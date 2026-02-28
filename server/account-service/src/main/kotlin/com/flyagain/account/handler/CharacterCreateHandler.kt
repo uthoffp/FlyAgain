@@ -1,5 +1,6 @@
 package com.flyagain.account.handler
 
+import com.flyagain.common.CharacterClassMapping
 import com.flyagain.common.network.Packet
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.flyagain.common.grpc.CreateCharacterRequest
@@ -26,7 +27,7 @@ class CharacterCreateHandler(
         private const val MIN_NAME_LENGTH = 2
         private const val MAX_NAME_LENGTH = 16
         private val NAME_REGEX = Regex("^[a-zA-ZäöüÄÖÜß][a-zA-ZäöüÄÖÜß0-9]*$")
-        private val VALID_CLASSES = setOf("warrior", "mage", "assassin", "cleric")
+        private val VALID_CLASSES = CharacterClassMapping.VALID_NAMES
     }
 
     suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: String) {
@@ -57,13 +58,7 @@ class CharacterCreateHandler(
             return
         }
 
-        val classId = when (characterClass) {
-            "warrior"  -> 0
-            "mage"     -> 1
-            "assassin" -> 2
-            "cleric"   -> 3
-            else       -> -1 // unreachable: already validated against VALID_CLASSES
-        }
+        val classId = CharacterClassMapping.idForName(characterClass)
 
         // Create character via gRPC
         val grpcRequest = CreateCharacterRequest.newBuilder()

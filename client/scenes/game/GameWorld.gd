@@ -284,7 +284,7 @@ func _on_zone_data(data: Dictionary) -> void:
 	if _player and is_instance_valid(_player):
 		var spawn_pos: Vector3 = WorldConstants.ZONE_SPAWNS.get(
 			GameState.current_zone_id, WorldConstants.DEFAULT_SPAWN)
-		_player.position = spawn_pos
+		_player.teleport_to(spawn_pos)
 		GameState.player_position = spawn_pos
 
 	# Spawn all entities from zone data (skip our own entity)

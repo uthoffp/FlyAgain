@@ -28,6 +28,9 @@ import java.net.InetSocketAddress
  * Supported opcodes:
  * - ENTER_WORLD (0x0004) - initial world entry (must be first)
  * - HEARTBEAT (0x0601) - keep-alive
+ * - SELECT_TARGET (0x0201) - target selection
+ * - USE_SKILL (0x0202) - skill usage
+ * - TOGGLE_AUTO_ATTACK (0x0206) - auto-attack toggle
  * - ZONE_DATA (0x0701) - zone change request
  * - CHANNEL_SWITCH (0x0702) - channel switch
  * - CHANNEL_LIST (0x0703) - query available channels
@@ -36,6 +39,9 @@ import java.net.InetSocketAddress
 class PacketRouter(
     private val enterWorldHandler: EnterWorldHandler,
     private val zoneChangeHandler: ZoneChangeHandler,
+    private val selectTargetHandler: SelectTargetHandler,
+    private val useSkillHandler: UseSkillHandler,
+    private val toggleAutoAttackHandler: ToggleAutoAttackHandler,
     private val entityManager: EntityManager,
     private val sessionLifecycleManager: SessionLifecycleManager,
     private val heartbeatTracker: HeartbeatTracker,
@@ -121,6 +127,37 @@ class PacketRouter(
 
             Opcode.CHANNEL_LIST_VALUE -> {
                 zoneChangeHandler.sendChannelList(ctx, player)
+            }
+
+            // Combat opcodes
+            Opcode.SELECT_TARGET_VALUE -> {
+                try {
+                    val request = SelectTargetRequest.parseFrom(msg.payload)
+                    selectTargetHandler.handle(ctx, player, request)
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse SELECT_TARGET from player {}: {}", player.name, e.message)
+                    sendError(ctx, opcode, 400, "Malformed request.")
+                }
+            }
+
+            Opcode.USE_SKILL_VALUE -> {
+                try {
+                    val request = UseSkillRequest.parseFrom(msg.payload)
+                    useSkillHandler.handle(ctx, player, request)
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse USE_SKILL from player {}: {}", player.name, e.message)
+                    sendError(ctx, opcode, 400, "Malformed request.")
+                }
+            }
+
+            Opcode.TOGGLE_AUTO_ATTACK_VALUE -> {
+                try {
+                    val request = ToggleAutoAttackRequest.parseFrom(msg.payload)
+                    toggleAutoAttackHandler.handle(ctx, player, request)
+                } catch (e: Exception) {
+                    logger.warn("Failed to parse TOGGLE_AUTO_ATTACK from player {}: {}", player.name, e.message)
+                    sendError(ctx, opcode, 400, "Malformed request.")
+                }
             }
 
             else -> {

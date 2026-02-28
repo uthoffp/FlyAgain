@@ -194,29 +194,41 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 > Abhaengigkeit: 1.4
 
 **Server:**
-- [ ] `CombatEngine`:
+- [x] `CombatEngine`:
   - Schadensformel: `damage = attackerAtk - defenderDef + random(-2, +2)`
-  - Kritischer Treffer: `if (random < critChance) damage *= 1.5`
+  - Kritischer Treffer: `if (random < critChance) damage *= 1.5` (10% Crit-Chance, 1.5x Multiplikator)
   - Auto-Attack Timer (Waffen-Speed, z.B. 2000ms)
-- [ ] `SkillSystem`:
-  - Skill-Definitionen in DB laden (Seed-Daten fuer 3-4 Warrior-Skills)
+  - Minimum-Schaden: 1 (auch bei hoher DEF)
+- [x] `SkillSystem`:
+  - Skill-Definitionen aus DB laden (4 Warrior-Skills via Seed-Daten)
+  - Skills beim EnterWorld fuer den Spieler laden
   - `UseSkillHandler` (Opcode `0x0202`):
     - Pruefe: Skill existiert, Spieler hat Skill, genug MP, Cooldown abgelaufen
-    - Pruefe: Target in Range, Target existiert, selbe Zone
-    - Schaden berechnen, HP abziehen
+    - Pruefe: Target in Range, Target existiert, selbe Zone/Channel
+    - Schaden berechnen via CombatEngine, HP abziehen, MP abziehen
     - DamageEvent (`0x0203`) an alle in Sichtweite broadcasten
-- [ ] `AutoAttackHandler` (Opcode `0x0206`):
+- [x] `ToggleAutoAttackHandler` (Opcode `0x0206`):
   - Toggle Auto-Attack an/aus
-  - Server fuehrt Auto-Attacks im Game-Loop aus (Timer-basiert)
-- [ ] `MonsterEntity`:
-  - Monster-Definitionen aus DB laden
+  - Server fuehrt Auto-Attacks im Game-Loop aus (Timer-basiert via `processAutoAttack()`)
+  - Target-Validierung (existiert, selbe Zone/Channel)
+- [x] `SelectTargetHandler` (Opcode `0x0201`):
+  - Target-Validierung (existiert, selbe Zone/Channel)
+  - SelectTargetResponse mit Target-HP, Name, Level
+- [x] `MonsterEntity`:
+  - Monster-Definitionen aus DB laden (via GameDataService gRPC)
   - Spawning: Laut `monster_spawns` Tabelle instanziieren
   - Respawn-Timer nach Tod
-- [ ] `MonsterAI` (State Machine):
-  - IDLE: Warte am Spawn
+  - AI-State-Machine (IDLE/AGGRO/ATTACK/RETURN/DEAD)
+- [x] `MonsterAI` (State Machine):
+  - IDLE: Warte am Spawn, Aggro-Scan in Nachbar-Zellen
   - AGGRO: Spieler in `aggro_range` -> auf Spieler zubewegen
-  - ATTACK: In `attack_range` -> Auto-Attack ausfuehren
-  - RETURN: Ziel tot/zu weit -> zurueck zum Spawn, HP regenerieren
+  - ATTACK: In `attack_range` -> Auto-Attack ausfuehren (Cooldown-basiert)
+  - RETURN: Ziel tot/zu weit -> zurueck zum Spawn (2x Speed), HP voll regenerieren
+  - DEAD: Respawn-Timer pruefen, nach Ablauf neu spawnen
+- [x] DB-Migrationen: V9 (rotation-Spalte), V10 (Seed-Daten: 4 Warrior-Skills + 5 Monster-Definitionen + 9 Spawn-Records)
+- [x] Unit-Tests: CombatEngine (14 Testfaelle), SkillSystem, MonsterAI, AIState, MonsterEntity
+
+**Server — noch offen:**
 - [ ] `DeathHandler`:
   - Monster stirbt: XpGain (`0x0205`) an Killer, Loot berechnen
   - Spieler stirbt: Respawn in Stadt (Aerheim), kein Item-Verlust im MVP
@@ -240,7 +252,7 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [ ] XP-Balken: Fortschrittsanzeige, Level-Up-Effekt
 - [ ] Loot-Anzeige: Drop auf dem Boden, Klick zum Aufheben
 
-**Seed-Daten (Server DB):**
+**Seed-Daten (Server DB — implementiert in V10):**
 ```
 Warrior-Skills:
   - Strike (Lv1, 0 MP, 1.5s CD, 120% ATK damage, Range 2)
@@ -257,12 +269,12 @@ Monster (Green Plains):
 ```
 
 **Akzeptanzkriterien:**
-- Monster stehen in der Zone und haben AI (Aggro, Angriff, Return)
-- Tab-Targeting und Auto-Attack funktionieren
-- 4 Skills mit Cooldowns und MP-Kosten
-- Monster sterben, droppen Loot und XP
-- Level-Up von 1 auf 15 moeglich durch Grinding
-- Spieler-Tod -> Respawn in Aerheim
+- Monster stehen in der Zone und haben AI (Aggro, Angriff, Return, Dead/Respawn) ✅ (Server)
+- Tab-Targeting und Auto-Attack funktionieren ✅ (Server) / ❌ (Client-UI)
+- 4 Skills mit Cooldowns und MP-Kosten ✅ (Server) / ❌ (Client-UI)
+- Monster sterben, droppen Loot und XP — ❌ (Death/Loot/XP-System noch offen)
+- Level-Up von 1 auf 15 moeglich durch Grinding — ❌ (XP/Level-Up noch offen)
+- Spieler-Tod -> Respawn in Aerheim — ❌ (DeathHandler noch offen)
 
 ---
 
@@ -682,7 +694,21 @@ miteinander zu interagieren und gegeneinander anzutreten.
     - Sprung-Mechanik: Leertaste, Gravitation, Jump-Offset Sync ueber Netzwerk
     - Flugmechanik: Abheben/Landen-Toggle, Steigen/Sinken (fly_up/fly_down)
     - Zone-Wechsel: Ladescreen-Overlay, ZonePortal-Trigger, Terrain-/Entity-Swap, Player-Repositionierung
+**Schritt 1.5** (Kampfsystem/Monster-AI) — Server-seitig abgeschlossen (~50% gesamt). 🔧
+  - Server (abgeschlossen):
+    - CombatEngine: Schadensformel, Crit-System (10%, 1.5x), Min-Damage 1, Auto-Attack-Loop
+    - SkillSystem: Skill-Laden aus DB, Validierung (Existenz, MP, Cooldown, Range, Target), DamageEvent-Broadcast
+    - SelectTargetHandler: Target-Validierung, HP/Name/Level-Response
+    - ToggleAutoAttackHandler: Server-seitiger Auto-Attack-Toggle
+    - MonsterAI: Vollstaendige State-Machine (IDLE → AGGRO → ATTACK → RETURN → DEAD mit Respawn)
+    - MonsterEntity: Spawning aus DB, Respawn-Timer, AI-State-Tracking
+    - DB-Migrationen: V9 (rotation), V10 (4 Warrior-Skills + 5 Monster-Definitionen + 9 Spawns)
+    - Game-Loop-Integration: Monster-AI + Auto-Attack im 20Hz-Loop
+    - Tests: CombatEngine (14 Faelle), SkillSystem, MonsterAI, AIState, MonsterEntity
+  - Server (offen): DeathHandler, LootSystem, XP/Level-Up-System
+  - Client (offen): Tab-Targeting-UI, Skill-Bar, Damage-Numbers, HP/MP-Balken, XP-Balken, Tod-Screen
 
 **Naechste Prioritaeten:**
-1. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
-2. Phase 1.5: Kampfsystem und Monster-AI
+1. Phase 1.5 Server: DeathHandler, LootSystem, XP/Level-Up-System
+2. Phase 1.5 Client: Tab-Targeting-UI, Skill-Bar, Damage-Numbers, HP/MP-Balken, Monster-Modelle
+3. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist

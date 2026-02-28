@@ -25,14 +25,18 @@ class PacketRouterTest {
 
     private val enterWorldHandler = mockk<EnterWorldHandler>(relaxed = true)
     private val zoneChangeHandler = mockk<ZoneChangeHandler>(relaxed = true)
+    private val selectTargetHandler = mockk<SelectTargetHandler>(relaxed = true)
+    private val useSkillHandler = mockk<UseSkillHandler>(relaxed = true)
+    private val toggleAutoAttackHandler = mockk<ToggleAutoAttackHandler>(relaxed = true)
     private val entityManager = EntityManager()
     private val sessionLifecycleManager = mockk<SessionLifecycleManager>(relaxed = true)
     private val heartbeatTracker = mockk<HeartbeatTracker>(relaxed = true)
     private val testScope = TestScope()
 
     private val router = PacketRouter(
-        enterWorldHandler, zoneChangeHandler, entityManager,
-        sessionLifecycleManager, heartbeatTracker, testScope
+        enterWorldHandler, zoneChangeHandler,
+        selectTargetHandler, useSkillHandler, toggleAutoAttackHandler,
+        entityManager, sessionLifecycleManager, heartbeatTracker, testScope
     )
 
     private fun mockCtx(

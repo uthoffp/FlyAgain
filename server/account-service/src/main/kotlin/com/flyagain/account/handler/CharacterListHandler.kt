@@ -2,6 +2,7 @@ package com.flyagain.account.handler
 
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.flyagain.common.grpc.GetCharactersByAccountRequest
+import com.flyagain.common.CharacterClassMapping
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.CharacterInfo
 import com.flyagain.common.proto.CharacterListResponse
@@ -22,15 +23,6 @@ class CharacterListHandler(
 
     private val logger = LoggerFactory.getLogger(CharacterListHandler::class.java)
 
-    companion object {
-        private val CLASS_NAMES = mapOf(
-            0 to "Warrior",
-            1 to "Mage",
-            2 to "Assassin",
-            3 to "Cleric"
-        )
-    }
-
     suspend fun handle(ctx: ChannelHandlerContext, accountId: String) {
         val grpcRequest = GetCharactersByAccountRequest.newBuilder()
             .setAccountId(accountId)
@@ -48,7 +40,7 @@ class CharacterListHandler(
             CharacterInfo.newBuilder()
                 .setId(charRecord.id)
                 .setName(charRecord.name)
-                .setCharacterClass(CLASS_NAMES.getOrDefault(charRecord.characterClass, "Unknown"))
+                .setCharacterClass(CharacterClassMapping.nameForId(charRecord.characterClass))
                 .setLevel(charRecord.level)
                 .build()
         }

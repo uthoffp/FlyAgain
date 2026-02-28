@@ -26,6 +26,7 @@ class CombatEngine(
         const val CRIT_MULTIPLIER = 1.5
         const val MIN_DAMAGE = 1
         const val BASE_ATTACK_COOLDOWN_MS = 1500L
+        const val AUTO_ATTACK_RANGE = 3.0f
     }
 
     /**
@@ -158,13 +159,20 @@ class CombatEngine(
         // Check if target is a monster
         val monster = entityManager.getMonster(targetId)
         if (monster != null && monster.isAlive()) {
-            // TODO: Check range between player and monster
+            // Range check (melee range = 3 units)
+            val dx = player.x - monster.x
+            val dz = player.z - monster.z
+            val distSq = dx * dx + dz * dz
+            if (distSq > AUTO_ATTACK_RANGE * AUTO_ATTACK_RANGE) {
+                return null // Out of range, don't attack but keep auto-attack enabled
+            }
             player.lastAttackTime = System.currentTimeMillis()
             return calculatePlayerVsMonster(player, monster)
         }
 
-        // TODO: PvP auto-attack in Phase 3
-
+        // Target dead or gone — stop auto-attacking
+        player.autoAttacking = false
+        player.targetEntityId = null
         return null
     }
 }

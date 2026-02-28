@@ -12,6 +12,7 @@ import com.flyagain.common.proto.Opcode
 import com.flyagain.login.auth.JwtManager
 import com.flyagain.login.auth.PasswordHasher
 import com.flyagain.login.auth.SessionSecretGenerator
+import com.flyagain.common.CharacterClassMapping
 import com.flyagain.common.network.Packet
 import com.flyagain.common.logging.MdcHelper
 import com.flyagain.login.ratelimit.RateLimiter
@@ -48,18 +49,6 @@ class LoginHandler(
 ) {
 
     private val logger = LoggerFactory.getLogger(LoginHandler::class.java)
-
-    /**
-     * Character class ID to name mapping.
-     */
-    companion object {
-        private val CLASS_NAMES = mapOf(
-            1 to "Warrior",
-            2 to "Mage",
-            3 to "Assassin",
-            4 to "Cleric"
-        )
-    }
 
     /**
      * Process a login request.
@@ -156,7 +145,7 @@ class LoginHandler(
                 CharacterInfo.newBuilder()
                     .setId(charRecord.id)
                     .setName(charRecord.name)
-                    .setCharacterClass(CLASS_NAMES.getOrDefault(charRecord.characterClass, "Unknown"))
+                    .setCharacterClass(CharacterClassMapping.nameForId(charRecord.characterClass))
                     .setLevel(charRecord.level)
                     .build()
             }

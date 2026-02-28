@@ -16,6 +16,9 @@ import com.flyagain.world.gameloop.InputQueue
 import com.flyagain.world.handler.EnterWorldHandler
 import com.flyagain.world.handler.MovementHandler
 import com.flyagain.world.handler.PacketRouter
+import com.flyagain.world.handler.SelectTargetHandler
+import com.flyagain.world.handler.ToggleAutoAttackHandler
+import com.flyagain.world.handler.UseSkillHandler
 import com.flyagain.world.handler.ZoneChangeHandler
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
@@ -92,6 +95,9 @@ val worldServiceModule = module {
     }
     single { MovementHandler(get(), get(), get()) }
     single { ZoneChangeHandler(get(), get(), get(), get()) }
+    single { SelectTargetHandler(get(), get()) }
+    single { UseSkillHandler(get(), get(), get()) }
+    single { ToggleAutoAttackHandler(get(), get()) }
 
     // Heartbeat tracker
     single { HeartbeatTracker() }
@@ -101,6 +107,9 @@ val worldServiceModule = module {
         PacketRouter(
             enterWorldHandler = get(),
             zoneChangeHandler = get(),
+            selectTargetHandler = get(),
+            useSkillHandler = get(),
+            toggleAutoAttackHandler = get(),
             entityManager = get(),
             sessionLifecycleManager = get(),
             heartbeatTracker = get(),
@@ -143,6 +152,7 @@ val worldServiceModule = module {
             zoneManager = get(),
             movementHandler = get(),
             monsterAI = get(),
+            combatEngine = get(),
             broadcastService = get(),
             sessionLifecycleManager = get(),
             asyncScope = get(),

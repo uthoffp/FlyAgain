@@ -2,12 +2,9 @@
 
 [ext_resource type="Script" path="res://scenes/game/PlayerCharacter.gd" id="1_script"]
 [ext_resource type="Script" path="res://scenes/game/ThirdPersonCamera.gd" id="2_camera"]
+[ext_resource type="PackedScene" path="res://imported_models/meshy_model_1772185779.31419.glb" id="3_warrior"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
-radius = 0.4
-height = 1.8
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
 radius = 0.4
 height = 1.8
 
@@ -18,9 +15,10 @@ script = ExtResource("1_script")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("CapsuleShape3D_1")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-mesh = SubResource("CapsuleMesh_1")
+[node name="ModelPivot" type="Node3D" parent="."]
+
+[node name="WarriorModel" parent="ModelPivot" instance=ExtResource("3_warrior")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="NameLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)

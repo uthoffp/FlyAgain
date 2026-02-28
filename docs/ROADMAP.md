@@ -1,23 +1,26 @@
 # FlyAgain - Roadmap
 
-## Phase 1: Minimal MVP
+## Phase 1: Minimal MVP 🔧 (in Bearbeitung)
 
-- Engine-Auswahl und Projektsetup
-- Grundbewegung + Flugmechanik
-- Basis-Kampfsystem (Tab-Target, Auto-Attack, Skills)
-- Eine Klasse (Warrior)
-- Eine Zone (Green Plains) + Stadt (Aerheim)
-- Multiplayer-Grundgerüst (Spieler sehen sich, können chatten)
-- Level-System + Monster-Grinding
-- Basis-UI (HP/MP, Inventar, Chat)
+- ✅ Engine-Auswahl und Projektsetup (1.1)
+- ✅ Netzwerk-Grundgeruest — TCP/UDP, Heartbeat, Reconnect (1.2)
+- ✅ Datenbank und Auth-System — Login, Register, Character CRUD (1.3)
+- ✅ Grundbewegung + Flugmechanik — WASD, Click-to-Move, Flug, Sprung (1.4)
+- ✅ Alle 4 Klassen erstellbar (Warrior, Mage, Assassin, Cleric)
+- ✅ 3 Zonen (Aerheim Stadt + Green Plains + Dark Forest) mit Zone-Portalen
+- 🔧 Basis-Kampfsystem — Server: Tab-Target, Auto-Attack, Skills, Monster-AI fertig; Client-UI offen (1.5)
+- ❌ Level-System + Monster-Grinding — XP/Level-Up noch offen (1.5)
+- ❌ Inventar, Equipment, NPC-Shops (1.6)
+- ❌ Chat-System (1.7)
+- ❌ Basis-UI — HUD, HP/MP-Balken, Minimap, Polish (1.8)
 
 ## Phase 2: Core Gameplay
 
-- Weitere 3 Klassen (Mage, Assassin, Cleric)
+- Weitere 3 Klassen: Skills fuer Mage, Assassin, Cleric
 - Equipment-System mit Enhancement
 - Dungeon-System (1. Dungeon + Boss)
 - Quest-System (Daily/Weekly)
-- Zweite Zone (Dark Forest)
+- Zweite Zone: Dark Forest (Level 15-30 Content)
 
 ## Phase 3: PvP & Social
 
@@ -38,7 +41,7 @@
 ## Phase 5: Polish & Launch
 
 - Balancing aller Klassen und Systeme
-- Anti-Cheat-Maßnahmen
+- Anti-Cheat-Massnahmen
 - Performance-Optimierung
 - Closed Beta
 - Open Beta

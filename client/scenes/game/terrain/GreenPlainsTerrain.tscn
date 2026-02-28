@@ -1,13 +1,14 @@
 [gd_scene format=3 uid="uid://bt6mcl7iqdqn5"]
 
-[ext_resource type="Script" path="res://scenes/game/terrain/GreenPlainsTerrain.gd" id="1_script"]
-[ext_resource type="Shader" path="res://scenes/game/terrain/terrain_noise.gdshader" id="2_shader"]
+[ext_resource type="Script" uid="uid://cxd8w1mij68k2" path="res://scenes/game/terrain/GreenPlainsTerrain.gd" id="1_script"]
+[ext_resource type="Shader" uid="uid://bneyrihonw6gi" path="res://scenes/game/terrain/terrain_noise.gdshader" id="2_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+render_priority = 0
 shader = ExtResource("2_shader")
-shader_parameter/base_color = Vector3(0.28, 0.52, 0.18)
-shader_parameter/valley_color = Vector3(0.22, 0.42, 0.14)
-shader_parameter/hill_color = Vector3(0.34, 0.58, 0.22)
+shader_parameter/base_color = Color(0.28, 0.52, 0.18, 1)
+shader_parameter/valley_color = Color(0.22, 0.42, 0.14, 1)
+shader_parameter/hill_color = Color(0.34, 0.58, 0.22, 1)
 shader_parameter/amplitude = 0.4
 shader_parameter/frequency = 0.002
 shader_parameter/roughness = 0.9
@@ -20,12 +21,12 @@ subdivide_depth = 100
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[node name="GreenPlainsTerrain" type="StaticBody3D"]
+[node name="GreenPlainsTerrain" type="StaticBody3D" unique_id=198764455]
 script = ExtResource("1_script")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1368201966]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5050, 0, 5050)
 mesh = SubResource("PlaneMesh_1")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=418840110]
 shape = SubResource("WorldBoundaryShape3D_1")

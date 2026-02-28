@@ -80,50 +80,57 @@
 
 ### 1.4 Opcode-Tabelle (MVP)
 
-| Bereich | Opcode | Richtung | Transport | Beschreibung |
-|---------|--------|----------|-----------|-------------|
-| **Auth** | | | | |
-| | `0x0001` | C->S | TCP | LoginRequest (username, password) |
-| | `0x0002` | S->C | TCP | LoginResponse (jwt, characterList) |
-| | `0x0003` | C->S | TCP | CharacterSelect (characterId) |
-| | `0x0004` | S->C | TCP | EnterWorld (position, nearbyEntities) |
-| | `0x0005` | C->S | TCP | CharacterCreate (name, class) |
-| | `0x0006` | C->S | TCP | RegisterRequest (username, email, password) |
-| | `0x0007` | S->C | TCP | RegisterResponse (success/error) |
-| **Bewegung** | | | | |
-| | `0x0101` | C->S | UDP | MovementInput (position, direction, velocity, isFlying, tickNr) |
-| | `0x0102` | S->C | UDP | EntityPositionUpdate (entityId, position, direction, velocity, isFlying) |
-| | `0x0103` | S->C | UDP | PositionCorrection (correctedPosition, serverTick) |
-| **Kampf** | | | | |
-| | `0x0201` | C->S | TCP | SelectTarget (entityId) |
-| | `0x0202` | C->S | TCP | UseSkill (skillId) |
-| | `0x0203` | S->C | TCP | DamageEvent (attackerId, targetId, damage, isCrit) |
-| | `0x0204` | S->C | TCP | EntityDeath (entityId, killerId) |
-| | `0x0205` | S->C | TCP | XpGain (amount, newTotalXp, levelUp?) |
-| | `0x0206` | C->S | TCP | ToggleAutoAttack (on/off) |
-| **Entity** | | | | |
-| | `0x0301` | S->C | TCP | EntitySpawn (entityId, type, name, position, stats, appearance) |
-| | `0x0302` | S->C | TCP | EntityDespawn (entityId) |
-| | `0x0303` | S->C | TCP | EntityStatsUpdate (entityId, hp, mp, maxHp, maxMp) |
-| **Inventar** | | | | |
-| | `0x0401` | C->S | TCP | MoveItem (fromSlot, toSlot) |
-| | `0x0402` | S->C | TCP | InventoryUpdate (slot, itemId, amount, enhancement) |
-| | `0x0403` | C->S | TCP | EquipItem (inventorySlot, equipSlot) |
-| | `0x0404` | C->S | TCP | UnequipItem (equipSlot) |
-| | `0x0405` | C->S | TCP | NpcBuy (npcId, itemDefId, amount) |
-| | `0x0406` | C->S | TCP | NpcSell (inventorySlot, amount) |
-| | `0x0407` | S->C | TCP | GoldUpdate (newGoldAmount) |
-| **Chat** | | | | |
-| | `0x0501` | C->S | TCP | ChatMessage (channel, text) |
-| | `0x0502` | S->C | TCP | ChatBroadcast (channel, senderName, text) |
-| **System** | | | | |
-| | `0x0601` | C<>S | TCP | Heartbeat (clientTime) |
-| | `0x0602` | S->C | TCP | ServerMessage (type, text) |
-| | `0x0603` | S->C | TCP | ErrorResponse (opcode, errorCode, message) |
-| **Zone** | | | | |
-| | `0x0701` | S->C | TCP | ZoneData (mapId, entities[], spawns[]) |
-| | `0x0702` | C->S | TCP | ChannelSwitch (channelId) |
-| | `0x0703` | S->C | TCP | ChannelList (channels[]{id, playerCount}) |
+| Bereich | Opcode | Richtung | Transport | Beschreibung | Status |
+|---------|--------|----------|-----------|-------------|--------|
+| **Auth** | | | | | |
+| | `0x0001` | C->S | TCP | LoginRequest (username, password) | ✅ |
+| | `0x0002` | S->C | TCP | LoginResponse (jwt, hmacSecret, sessionToken, characterList, accountServiceHost/Port) | ✅ |
+| | `0x0003` | C->S | TCP | CharacterSelect (characterId) | ✅ |
+| | `0x0004` | C->S | TCP | EnterWorldRequest (jwt) | ✅ |
+| | `0x0004` | S->C | TCP | EnterWorldResponse (position, stats, worldServiceHost/Port) | ✅ |
+| | `0x0005` | C->S | TCP | CharacterCreate (name, class) | ✅ |
+| | `0x0006` | C->S | TCP | RegisterRequest (username, email, password) | ✅ |
+| | `0x0007` | S->C | TCP | RegisterResponse (success/error) | ✅ |
+| | `0x0008` | C->S | TCP | CharacterListRequest | ✅ |
+| | `0x0009` | S->C | TCP | CharacterListResponse (characters[]) | ✅ |
+| **Bewegung** | | | | | |
+| | `0x0101` | C->S | UDP | MovementInput (position, rotation, dx/dy/dz, isMoving, isFlying, sequence, jumpOffset) | ✅ |
+| | `0x0102` | S->C | UDP | EntityPositionUpdate (entityId, position, rotation, isMoving, isFlying, jumpOffset) | ✅ |
+| | `0x0103` | S->C | UDP | PositionCorrection (correctedPosition, serverTick) | ✅ |
+| **Kampf** | | | | | |
+| | `0x0201` | C->S | TCP | SelectTargetRequest (targetEntityId) | ✅ |
+| | `0x0201` | S->C | TCP | SelectTargetResponse (success, targetHp/maxHp/name/level) | ✅ |
+| | `0x0202` | C->S | TCP | UseSkillRequest (skillId, targetEntityId) | ✅ |
+| | `0x0202` | S->C | TCP | UseSkillResponse (success, skillId, errorMessage) | ✅ |
+| | `0x0203` | S->C | TCP | DamageEvent (attackerId, targetId, damage, isCrit, targetCurrentHp) | ✅ |
+| | `0x0204` | S->C | TCP | EntityDeath (entityId, killerId) | ✅ |
+| | `0x0205` | S->C | TCP | XpGain (xpGained, totalXp, xpToNextLevel, currentLevel, leveledUp) | geplant |
+| | `0x0206` | C->S | TCP | ToggleAutoAttackRequest (enable, targetEntityId) | ✅ |
+| | `0x0206` | S->C | TCP | ToggleAutoAttackResponse (autoAttacking, targetEntityId) | ✅ |
+| **Entity** | | | | | |
+| | `0x0301` | S->C | TCP | EntitySpawn (entityId, type, name, position, stats, appearance) | ✅ |
+| | `0x0302` | S->C | TCP | EntityDespawn (entityId) | ✅ |
+| | `0x0303` | S->C | TCP | EntityStatsUpdate (entityId, level, hp, maxHp, mp, maxMp, str, sta, dex, int) | geplant |
+| **Inventar** | | | | | |
+| | `0x0401` | C->S | TCP | MoveItem (fromSlot, toSlot) | geplant |
+| | `0x0402` | S->C | TCP | InventoryUpdate (slot, itemId, amount, enhancement) | geplant |
+| | `0x0403` | C->S | TCP | EquipItem (inventorySlot, equipSlot) | geplant |
+| | `0x0404` | C->S | TCP | UnequipItem (equipSlot) | geplant |
+| | `0x0405` | C->S | TCP | NpcBuy (npcId, itemDefId, amount) | geplant |
+| | `0x0406` | C->S | TCP | NpcSell (inventorySlot, amount) | geplant |
+| | `0x0407` | S->C | TCP | GoldUpdate (newGoldAmount) | geplant |
+| **Chat** | | | | | |
+| | `0x0501` | C->S | TCP | ChatMessage (channel, text) | geplant |
+| | `0x0502` | S->C | TCP | ChatBroadcast (channel, senderName, text) | geplant |
+| **System** | | | | | |
+| | `0x0601` | C<>S | TCP | Heartbeat (clientTime) | ✅ |
+| | `0x0602` | S->C | TCP | ServerMessage (type, text) | ✅ |
+| | `0x0603` | S->C | TCP | ErrorResponse (opcode, errorCode, message) | ✅ |
+| | `0x0604` | C->S | TCP | LogoutRequest | ✅ |
+| **Zone** | | | | | |
+| | `0x0701` | S->C | TCP | ZoneData (mapId, entities[], spawns[]) | ✅ |
+| | `0x0702` | C->S | TCP | ChannelSwitch (channelId) | ✅ |
+| | `0x0703` | S->C | TCP | ChannelList (channels[]{id, playerCount}) | ✅ |
 
 ### 1.5 Tick-Rate und Client-Side Prediction
 
@@ -311,12 +318,18 @@ class GameLoop {
 ┌──┴─────┐              zu weit weg     │
 │ RETURN │◄─────────────────────────────┘
 └────────┘
+   ▲                    HP <= 0
+   │  Respawn-Timer     │
+┌──┴─────┐◄────────────┘
+│  DEAD  │  (von ATTACK oder AGGRO)
+└────────┘
 ```
 
-- IDLE: Monster steht am Spawn-Punkt, wartet
+- IDLE: Monster steht am Spawn-Punkt, scannt Nachbar-Zellen nach Spielern in `aggro_range`
 - AGGRO: Bewegt sich auf naechsten Spieler zu
-- ATTACK: Fuehrt Auto-Attacks aus (attack_speed_ms Timer)
-- RETURN: Laeuft zurueck zum Spawn, HP regeneriert
+- ATTACK: Fuehrt Auto-Attacks aus (attack_speed_ms Timer, Cooldown-basiert)
+- RETURN: Laeuft zurueck zum Spawn (2x Geschwindigkeit), HP voll regenerieren bei Ankunft
+- DEAD: Wartet auf Respawn-Timer, spawnt dann am Original-Spawn-Punkt mit vollen HP
 
 ### 2.6 Concurrency-Modell
 
@@ -371,14 +384,14 @@ Gesamt:                   5.000 Spieler     5 Channels + 100 Instanzen
 
 ```sql
 CREATE TABLE accounts (
-    id              BIGSERIAL PRIMARY KEY,
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username        VARCHAR(32) UNIQUE NOT NULL,
     email           VARCHAR(255) UNIQUE NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login      TIMESTAMPTZ,
     is_banned       BOOLEAN NOT NULL DEFAULT FALSE,
-    ban_reason      TEXT,
+    ban_reason      VARCHAR(255),
     ban_until       TIMESTAMPTZ
 );
 ```
@@ -387,8 +400,8 @@ CREATE TABLE accounts (
 
 ```sql
 CREATE TABLE characters (
-    id              BIGSERIAL PRIMARY KEY,
-    account_id      BIGINT NOT NULL REFERENCES accounts(id),
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id      UUID NOT NULL REFERENCES accounts(id),
     name            VARCHAR(32) UNIQUE NOT NULL,
     class           SMALLINT NOT NULL,
     level           SMALLINT NOT NULL DEFAULT 1,
@@ -406,6 +419,7 @@ CREATE TABLE characters (
     pos_x           REAL NOT NULL DEFAULT 0,
     pos_y           REAL NOT NULL DEFAULT 0,
     pos_z           REAL NOT NULL DEFAULT 0,
+    rotation        REAL NOT NULL DEFAULT 0,  -- V9: Blickrichtung
     gold            BIGINT NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     play_time       BIGINT NOT NULL DEFAULT 0,
@@ -426,6 +440,7 @@ CREATE INDEX idx_characters_account ON characters(account_id);
 
 - Max. 3 Charaktere pro Account (Application-Level Constraint)
 - `class`: 0=Warrior, 1=Mage, 2=Assassin, 3=Cleric
+- `rotation`: Blickrichtung (hinzugefuegt in V9)
 - `is_deleted`: Soft-Delete statt hartem Loeschen
 - CHECK-Constraints als letzte Verteidigungslinie gegen korrupte Daten
 
@@ -461,7 +476,7 @@ CREATE TABLE item_definitions (
 ```sql
 CREATE TABLE inventory (
     id              BIGSERIAL PRIMARY KEY,
-    character_id    BIGINT NOT NULL REFERENCES characters(id),
+    character_id    UUID NOT NULL REFERENCES characters(id),
     slot            SMALLINT NOT NULL,
     item_id         INT NOT NULL REFERENCES item_definitions(id),
     amount          SMALLINT NOT NULL DEFAULT 1,
@@ -484,7 +499,7 @@ CREATE INDEX idx_inventory_character ON inventory(character_id);
 
 ```sql
 CREATE TABLE equipment (
-    character_id    BIGINT NOT NULL REFERENCES characters(id),
+    character_id    UUID NOT NULL REFERENCES characters(id),
     slot_type       SMALLINT NOT NULL,
     inventory_id    BIGINT NOT NULL REFERENCES inventory(id),
     PRIMARY KEY (character_id, slot_type)
@@ -511,7 +526,7 @@ CREATE TABLE skill_definitions (
 );
 
 CREATE TABLE character_skills (
-    character_id    BIGINT NOT NULL REFERENCES characters(id),
+    character_id    UUID NOT NULL REFERENCES characters(id),
     skill_id        INT NOT NULL REFERENCES skill_definitions(id),
     skill_level     SMALLINT NOT NULL DEFAULT 1,
     PRIMARY KEY (character_id, skill_id)
@@ -561,6 +576,16 @@ CREATE TABLE loot_table (
 );
 
 CREATE INDEX idx_loot_monster ON loot_table(monster_id);
+```
+
+#### Seed-Daten (V10)
+
+```sql
+-- 4 Warrior-Skills (Strike, Shield Bash, Whirlwind, War Cry)
+-- 5 Monster-Definitionen fuer Green Plains:
+--   Slime (Lv2), Forest Mushroom (Lv4), Wild Boar (Lv6),
+--   Forest Wolf (Lv10), Stone Golem (Lv13, Mini-Boss)
+-- 9 Monster-Spawn-Records fuer map_id=2 (Green Plains)
 ```
 
 ### 3.3 Redis-Schema
