@@ -68,24 +68,63 @@ godot --path client/ --editor
 
 ```
 client/
-├── project.godot          # Godot-Projektkonfiguration (Hauptszene, Autoloads, Export)
-├── autoloads/             # Globale Singletons (werden automatisch geladen)
-│   ├── NetworkManager.gd  # TCP + UDP Verbindungsverwaltung
-│   └── GameState.gd       # Globaler Spielzustand (eingeloggter Spieler etc.)
+├── project.godot              # Godot-Projektkonfiguration (Hauptszene, Autoloads, Export)
+├── autoloads/                 # Globale Singletons (werden automatisch geladen)
+│   ├── NetworkManager.gd      # TCP + UDP Verbindungsverwaltung (3-Phasen: Login→Account→World)
+│   ├── GameState.gd           # Globaler Spielzustand (JWT, Session, Stats, Character-Daten)
+│   └── UIManager.gd           # Szenen-Management fuer UI-Transitionen
 ├── scenes/
-│   └── ui/
-│       └── login/
-│           ├── LoginScreen.tscn   # Login-Szene
-│           └── LoginScreen.gd     # Login-Logik
+│   ├── ui/
+│   │   ├── screens/
+│   │   │   ├── LoginScreen.tscn/.gd        # Login-Szene
+│   │   │   ├── RegisterScreen.tscn/.gd     # Registrierungs-Szene
+│   │   │   ├── CharacterSelectScreen.tscn/.gd  # Charakter-Auswahl
+│   │   │   ├── CharacterCreateScreen.tscn/.gd  # Charakter-Erstellung (4 Klassen)
+│   │   │   └── LoadingScreen.tscn/.gd      # Ladebildschirm
+│   │   └── components/
+│   │       ├── FlyButton.tscn              # Custom Button (Primary/Secondary/Danger)
+│   │       ├── FlyLineEdit.tscn            # Styled Text-Eingabe
+│   │       ├── LoadingSpinner.tscn         # Lade-Animation
+│   │       └── StatusLabel.tscn            # Status-/Fehlermeldungen
+│   └── game/
+│       ├── GameWorld.tscn/.gd              # Root 3D-Szene (Zone-Switching, Entity-Management)
+│       ├── PlayerCharacter.tscn/.gd        # Lokaler Spieler (CharacterBody3D, WASD, Flug)
+│       ├── RemoteEntity.tscn/.gd           # Remote-Spieler/Monster (Interpolation)
+│       ├── ThirdPersonCamera.gd            # SpringArm3D + Camera3D (Orbit, Zoom)
+│       ├── ZonePortal.tscn/.gd             # Zone-Wechsel-Trigger (Area3D)
+│       └── terrain/
+│           ├── AerheimTerrain.tscn         # Stadt-Terrain (Mauer, Gebaeude, Marktplatz)
+│           ├── GreenPlainsTerrain.tscn     # Noise-Shader Huegel, warme Farben
+│           ├── DarkForestTerrain.tscn      # Dunkles Terrain, Biolumineszenz
+│           └── BaseTerrain.tscn            # Fallback-Terrain
 ├── scripts/
 │   ├── network/
-│   │   └── PacketProtocol.gd     # Opcode-Konstanten + Paket-Serialisierung
-│   └── proto/
-│       ├── ProtoEncoder.gd        # Manuelle Protobuf-Codierung (GDScript)
-│       └── ProtoDecoder.gd        # Manuelle Protobuf-Decodierung (GDScript)
-└── themes/
-    ├── Colors.gd                  # Farbpalette
-    └── ThemeFactory.gd            # UI-Theme-Fabrik
+│   │   ├── PacketProtocol.gd              # Opcode-Konstanten + Paket-Serialisierung
+│   │   └── UdpConnection.gd               # UDP-Socket mit HMAC-SHA256 Signierung
+│   ├── proto/
+│   │   ├── ProtoEncoder.gd                # Manuelle Protobuf-Codierung (GDScript)
+│   │   └── ProtoDecoder.gd                # Manuelle Protobuf-Decodierung (GDScript)
+│   ├── movement/
+│   │   ├── MovementPredictor.gd           # Client-Side Prediction + Server-Reconciliation
+│   │   └── EntityInterpolator.gd          # Snapshot-basierte Interpolation (100ms Buffer)
+│   ├── entities/
+│   │   ├── EntityFactory.gd               # Spawn/Despawn/Update von Remote-Entities
+│   │   └── WorldConstants.gd              # Bewegungs-Speeds, Zone-IDs, Spawn-Positionen
+│   └── ui/
+│       └── InputValidator.gd              # Client-seitige Eingabe-Validierung
+├── themes/
+│   ├── Colors.gd                          # Farbpalette
+│   └── ThemeFactory.gd                    # UI-Theme-Fabrik
+└── tests/                                 # gdUnit4 Test-Suite
+    ├── InputValidatorTest.gd
+    ├── GameStateTest.gd
+    ├── NetworkManagerTest.gd
+    ├── PacketProtocolTest.gd
+    ├── UdpConnectionTest.gd
+    ├── ProtoEncoderTest.gd / ProtoDecoderTest.gd
+    ├── ProtoEncoderWorldTest.gd / ProtoDecoderWorldTest.gd
+    ├── EntityInterpolatorTest.gd
+    └── MovementPredictorTest.gd
 ```
 
 ---
@@ -97,10 +136,11 @@ Autoloads sind in `client/project.godot` bereits eingetragen. Zur Überprüfung:
 1. Godot Editor → **Project → Project Settings → Autoloads**
 2. Folgende Einträge müssen vorhanden sein:
 
-| Name           | Pfad                          |
-|----------------|-------------------------------|
-| NetworkManager | `res://autoloads/NetworkManager.gd` |
-| GameState      | `res://autoloads/GameState.gd`      |
+| Name           | Pfad                                | Aufgabe |
+|----------------|-------------------------------------|---------|
+| NetworkManager | `res://autoloads/NetworkManager.gd` | TCP + UDP Verbindungen (Login→Account→World) |
+| GameState      | `res://autoloads/GameState.gd`      | Session-Daten, Character-Stats, Auth-State |
+| UIManager      | `res://autoloads/UIManager.gd`      | Szenen-Management fuer UI-Transitionen |
 
 Falls ein Eintrag fehlt: **"+"**-Button → Pfad eintragen → Namen vergeben → **"Add"**.
 
@@ -108,15 +148,16 @@ Falls ein Eintrag fehlt: **"+"**-Button → Pfad eintragen → Namen vergeben �
 
 ## Spiel starten (im Editor)
 
-1. Godot Editor öffnen, Projekt geladen
-2. Server starten (siehe [SETUP.md](../SETUP.md)):
+1. Godot Editor oeffnen, Projekt geladen
+2. Server starten — alle 6 Services (PostgreSQL, Redis + 4 Kotlin-Services) via Docker:
    ```bash
    docker compose up -d
-   cd server && ./gradlew :login-service:run   # macOS
-   cd server && .\gradlew.bat :login-service:run  # Windows
    ```
-3. Im Godot Editor **F5** drücken (oder **"Play"**-Button oben rechts)
-4. Der LoginScreen erscheint – Verbindung zum Server auf `localhost:7777`
+   Services: `postgres:5432`, `redis:6379`, `database-service:9090` (gRPC),
+   `login-service:7777` (TCP), `account-service:7779` (TCP), `world-service:7780/7781` (TCP+UDP)
+3. Im Godot Editor **F5** druecken (oder **"Play"**-Button oben rechts)
+4. Der LoginScreen erscheint — Verbindung zum Login-Service auf `localhost:7777`
+5. Login-Flow: Login :7777 → Character-Select :7779 → Game-World :7780/:7781
 
 ---
 

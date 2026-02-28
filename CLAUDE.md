@@ -27,7 +27,7 @@ FlyAgain is an original MMORPG with a Godot 4 (GDScript) client, Kotlin (Netty) 
 
 - **Engine:** Godot 4 (GDScript), project root at `client/`
 - **Scenes:** UI scenes at `client/scenes/ui/`, game scenes at `client/scenes/game/`
-- **Autoloads:** Global singletons at `client/autoloads/` (NetworkManager, GameState)
+- **Autoloads:** Global singletons at `client/autoloads/` (NetworkManager, GameState, UIManager)
 - **Scripts:** Logic scripts at `client/scripts/` (network/, proto/)
 - **Themes:** UI themes and colors at `client/themes/`
 - **Input:** Use Godot's `Input` singleton and `InputMap` for all input handling
@@ -45,7 +45,7 @@ FlyAgain is an original MMORPG with a Godot 4 (GDScript) client, Kotlin (Netty) 
 - **Write-back persistence:** RAM → Redis (60s) → PostgreSQL (5min + on logout/zone change)
 - **Interest management:** SpatialGrid (50×50 units) to limit network fan-out
 - **Zone/Channel system:** max 1,000 players per channel, auto channel creation
-- **Monster AI:** State machine (IDLE → AGGRO → ATTACK → RETURN)
+- **Monster AI:** State machine (IDLE → AGGRO → ATTACK → RETURN → DEAD with respawn)
 - **Target scale:** 5,000 CCU, 10,000 accounts
 
 ## MMO Development Best Practices
