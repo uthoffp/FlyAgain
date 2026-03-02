@@ -163,7 +163,6 @@ func _try_click_to_move(screen_pos: Vector2) -> void:
 		return
 
 	_click_target = result["position"]
-	_click_target.y = 0.0
 	_has_click_target = true
 	_click_stall_timer = 0.0
 	_last_click_distance = (_click_target - global_position).length()
