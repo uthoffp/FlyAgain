@@ -9,7 +9,6 @@ func _ready() -> void:
 	terrain_valley_color = Color(0.38, 0.35, 0.28)
 	terrain_hill_color = Color(0.5, 0.47, 0.38)
 	terrain_amplitude = 3.0
-	terrain_frequency = 0.0008
 	terrain_roughness = 0.85
 	setup_terrain()
 	_load_city()

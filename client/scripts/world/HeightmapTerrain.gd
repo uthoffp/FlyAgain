@@ -2,6 +2,8 @@
 ## Base class for heightmap-based terrain zones.
 ## Loads a pre-computed .heightmap binary file, generates terrain collision
 ## via HeightMapShape3D, and visual mesh via PlaneMesh with the terrain shader.
+## The shader samples a heightmap texture for vertex displacement so that
+## the visual surface exactly matches the collision surface.
 class_name HeightmapTerrain
 extends StaticBody3D
 
@@ -16,9 +18,9 @@ var terrain_valley_color: Color = Color(0.22, 0.42, 0.14)
 var terrain_hill_color: Color = Color(0.34, 0.58, 0.22)
 var terrain_roughness: float = 0.9
 var terrain_amplitude: float = 8.0
-var terrain_frequency: float = 0.002
 
 var _heights: PackedFloat32Array
+var _heightmap_texture: ImageTexture = null
 var _mesh_instance: MeshInstance3D = null
 var _collision_shape: CollisionShape3D = null
 
@@ -67,6 +69,8 @@ func _create_collision() -> void:
 
 
 func _create_visual_mesh() -> void:
+	_build_heightmap_texture()
+
 	_mesh_instance = MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(WORLD_SIZE, WORLD_SIZE)
@@ -75,17 +79,29 @@ func _create_visual_mesh() -> void:
 
 	var shader_mat := ShaderMaterial.new()
 	shader_mat.shader = preload("res://scenes/game/terrain/terrain_noise.gdshader")
+	shader_mat.set_shader_parameter("heightmap_texture", _heightmap_texture)
+	shader_mat.set_shader_parameter("world_size", WORLD_SIZE)
+	shader_mat.set_shader_parameter("amplitude", terrain_amplitude)
 	shader_mat.set_shader_parameter("base_color", Vector3(terrain_base_color.r, terrain_base_color.g, terrain_base_color.b))
 	shader_mat.set_shader_parameter("valley_color", Vector3(terrain_valley_color.r, terrain_valley_color.g, terrain_valley_color.b))
 	shader_mat.set_shader_parameter("hill_color", Vector3(terrain_hill_color.r, terrain_hill_color.g, terrain_hill_color.b))
-	shader_mat.set_shader_parameter("amplitude", terrain_amplitude)
-	shader_mat.set_shader_parameter("frequency", terrain_frequency)
 	shader_mat.set_shader_parameter("roughness", terrain_roughness)
 	plane.material = shader_mat
 
 	_mesh_instance.mesh = plane
 	_mesh_instance.position = Vector3(WORLD_SIZE / 2.0, 0.0, WORLD_SIZE / 2.0)
 	add_child(_mesh_instance)
+
+
+## Converts the PackedFloat32Array heightmap into an ImageTexture (RF format)
+## so the shader can sample it for vertex displacement.
+func _build_heightmap_texture() -> void:
+	var img := Image.create(HEIGHTMAP_SIZE, HEIGHTMAP_SIZE, false, Image.FORMAT_RF)
+	for z in range(HEIGHTMAP_SIZE):
+		for x in range(HEIGHTMAP_SIZE):
+			var h := _heights[z * HEIGHTMAP_SIZE + x]
+			img.set_pixel(x, z, Color(h, 0.0, 0.0, 1.0))
+	_heightmap_texture = ImageTexture.create_from_image(img)
 
 
 ## Returns the interpolated height at world coordinates.
