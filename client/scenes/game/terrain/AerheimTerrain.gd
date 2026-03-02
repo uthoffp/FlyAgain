@@ -1,22 +1,18 @@
 ## AerheimTerrain.gd
 ## Zone-specific terrain for Aerheim (zone_id=1).
-## Flat stone/earth ground with city geometry loaded as child scene.
-extends StaticBody3D
+extends HeightmapTerrain
 
 
 func _ready() -> void:
-	_apply_ground_material()
+	heightmap_path = "res://../../shared/heightmaps/aerheim.heightmap"
+	terrain_base_color = Color(0.45, 0.42, 0.35)
+	terrain_valley_color = Color(0.38, 0.35, 0.28)
+	terrain_hill_color = Color(0.5, 0.47, 0.38)
+	terrain_amplitude = 3.0
+	terrain_frequency = 0.0008
+	terrain_roughness = 0.85
+	setup_terrain()
 	_load_city()
-
-
-func _apply_ground_material() -> void:
-	var mesh_instance: MeshInstance3D = $MeshInstance3D
-	if not mesh_instance:
-		return
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.45, 0.42, 0.35)  # Light stone/earth
-	mat.roughness = 0.85
-	mesh_instance.material_override = mat
 
 
 func _load_city() -> void:
