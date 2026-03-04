@@ -39,6 +39,15 @@ signal entity_despawned(data: Dictionary)
 signal entity_position_updated(data: Dictionary)
 signal position_corrected(data: Dictionary)
 
+# ---- Signals (combat) ----
+
+signal select_target_response(data: Dictionary)
+signal damage_event(data: Dictionary)
+signal entity_death(data: Dictionary)
+signal xp_gained(data: Dictionary)
+signal auto_attack_response(data: Dictionary)
+signal entity_stats_updated(data: Dictionary)
+
 
 # ---- Configuration ----
 
@@ -247,6 +256,21 @@ func send_movement_input(
 	_udp.send_packet(PacketProtocol.OPCODE_MOVEMENT_INPUT,
 		ProtoEncoder.encode_movement_input(position, rotation, dx, dy, dz,
 			is_moving, is_flying, sequence, jump_offset))
+
+
+func send_select_target(target_entity_id: int) -> void:
+	var payload := ProtoEncoder.encode_select_target_request(target_entity_id)
+	_send_world(PacketProtocol.OPCODE_SELECT_TARGET, payload)
+
+
+func send_toggle_auto_attack(enable: bool, target_entity_id: int) -> void:
+	var payload := ProtoEncoder.encode_toggle_auto_attack(enable, target_entity_id)
+	_send_world(PacketProtocol.OPCODE_TOGGLE_AUTO_ATTACK, payload)
+
+
+func send_use_skill(skill_id: int, target_entity_id: int) -> void:
+	var payload := ProtoEncoder.encode_use_skill_request(skill_id, target_entity_id)
+	_send_world(PacketProtocol.OPCODE_USE_SKILL, payload)
 
 
 # ---- Auth/account TCP connection handling ----
@@ -527,6 +551,30 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			error_response.emit(data)
 		PacketProtocol.OPCODE_SERVER_MESSAGE:
 			server_message.emit(ProtoDecoder.new(payload).decode_server_message())
+		PacketProtocol.OPCODE_SELECT_TARGET:
+			var data := ProtoDecoder.new(payload).decode_select_target_response()
+			print("[NET] SELECT_TARGET: success=%s target=%d name=%s" % [
+				data.get("success", false), data.get("target_entity_id", 0), data.get("target_name", "")])
+			select_target_response.emit(data)
+		PacketProtocol.OPCODE_DAMAGE_EVENT:
+			var data := ProtoDecoder.new(payload).decode_damage_event()
+			damage_event.emit(data)
+		PacketProtocol.OPCODE_ENTITY_DEATH:
+			var data := ProtoDecoder.new(payload).decode_entity_death()
+			print("[NET] ENTITY_DEATH: entity=%d killer=%d" % [
+				data.get("entity_id", 0), data.get("killer_entity_id", 0)])
+			entity_death.emit(data)
+		PacketProtocol.OPCODE_XP_GAIN:
+			var data := ProtoDecoder.new(payload).decode_xp_gain()
+			print("[NET] XP_GAIN: +%d xp (level=%d leveled_up=%s)" % [
+				data.get("xp_gained", 0), data.get("current_level", 0), data.get("leveled_up", false)])
+			xp_gained.emit(data)
+		PacketProtocol.OPCODE_TOGGLE_AUTO_ATTACK:
+			var data := ProtoDecoder.new(payload).decode_toggle_auto_attack_response()
+			auto_attack_response.emit(data)
+		PacketProtocol.OPCODE_ENTITY_STATS_UPDATE:
+			var data := ProtoDecoder.new(payload).decode_entity_stats_update()
+			entity_stats_updated.emit(data)
 		PacketProtocol.OPCODE_HEARTBEAT:
 			pass
 		_:

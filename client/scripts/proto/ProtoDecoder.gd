@@ -372,6 +372,144 @@ func decode_entity_despawn() -> Dictionary:
 	return result
 
 
+# ---- Combat message decoders ----
+
+## Decodes a SelectTargetResponse message.
+## Returns: { success: bool, target_entity_id: int, target_hp: int,
+##            target_max_hp: int, target_name: String, target_level: int }
+func decode_select_target_response() -> Dictionary:
+	var result := {
+		"success": false, "target_entity_id": 0, "target_hp": 0,
+		"target_max_hp": 0, "target_name": "", "target_level": 0,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]          = _read_varint() != 0
+			2: result["target_entity_id"] = _read_varint()
+			3: result["target_hp"]        = _read_varint()
+			4: result["target_max_hp"]    = _read_varint()
+			5: result["target_name"]      = _read_string()
+			6: result["target_level"]     = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a DamageEvent message.
+## Returns: { attacker_entity_id: int, target_entity_id: int, damage: int,
+##            is_critical: bool, target_current_hp: int }
+func decode_damage_event() -> Dictionary:
+	var result := {
+		"attacker_entity_id": 0, "target_entity_id": 0, "damage": 0,
+		"is_critical": false, "target_current_hp": 0,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["attacker_entity_id"] = _read_varint()
+			2: result["target_entity_id"]   = _read_varint()
+			3: result["damage"]             = _read_varint()
+			4: result["is_critical"]        = _read_varint() != 0
+			5: result["target_current_hp"]  = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes an EntityDeath message.
+## Returns: { entity_id: int, killer_entity_id: int }
+func decode_entity_death() -> Dictionary:
+	var result := {"entity_id": 0, "killer_entity_id": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["entity_id"]        = _read_varint()
+			2: result["killer_entity_id"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes an XpGain message.
+## Returns: { xp_gained: int, total_xp: int, xp_to_next_level: int,
+##            current_level: int, leveled_up: bool }
+func decode_xp_gain() -> Dictionary:
+	var result := {
+		"xp_gained": 0, "total_xp": 0, "xp_to_next_level": 0,
+		"current_level": 0, "leveled_up": false,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["xp_gained"]        = _read_varint()
+			2: result["total_xp"]         = _read_varint()
+			3: result["xp_to_next_level"] = _read_varint()
+			4: result["current_level"]    = _read_varint()
+			5: result["leveled_up"]       = _read_varint() != 0
+			_: _skip(wt)
+	return result
+
+
+## Decodes a ToggleAutoAttackResponse message.
+## Returns: { auto_attacking: bool, target_entity_id: int }
+func decode_toggle_auto_attack_response() -> Dictionary:
+	var result := {"auto_attacking": false, "target_entity_id": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["auto_attacking"]   = _read_varint() != 0
+			2: result["target_entity_id"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes an EntityStatsUpdate message.
+## Returns: { entity_id: int, level: int, hp: int, max_hp: int,
+##            mp: int, max_mp: int, str: int, sta: int, dex: int, int_: int }
+func decode_entity_stats_update() -> Dictionary:
+	var result := {
+		"entity_id": 0, "level": 0, "hp": 0, "max_hp": 0,
+		"mp": 0, "max_mp": 0, "str": 0, "sta": 0, "dex": 0, "int_": 0,
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:  result["entity_id"] = _read_varint()
+			2:  result["level"]     = _read_varint()
+			3:  result["hp"]        = _read_varint()
+			4:  result["max_hp"]    = _read_varint()
+			5:  result["mp"]        = _read_varint()
+			6:  result["max_mp"]    = _read_varint()
+			7:  result["str"]       = _read_varint()
+			8:  result["sta"]       = _read_varint()
+			9:  result["dex"]       = _read_varint()
+			10: result["int_"]     = _read_varint()
+			_:  _skip(wt)
+	return result
+
+
 # ---- Private helpers ----
 
 func _has_bytes() -> bool:
