@@ -44,6 +44,11 @@ class MovementHandler(
         const val WORLD_BOUNDARY_MIN = -100f
         const val WORLD_BOUNDARY_MAX = 10100f
 
+        // Generous tolerance for heightmap terrain (max amplitude ~15m + 2m tolerance).
+        // Future anti-cheat hardening can add exact heightmap lookup server-side.
+        const val MAX_TERRAIN_HEIGHT = 15.0f
+        const val GROUND_TOLERANCE = 2.0f
+
         /** Only log one correction per player per this interval to avoid log spam at scale. */
         private const val CORRECTION_LOG_INTERVAL_MS = 5000L
     }
@@ -179,9 +184,11 @@ class MovementHandler(
             return ValidationResult(false, "Invalid height")
         }
 
-        // Non-flying players must stay at ground level (Y=0 for flat terrain)
-        if (!player.isFlying && newY > 1.0f) {
-            return ValidationResult(false, "Cannot fly without flight mode")
+        // Non-flying players must stay within the possible terrain height range.
+        // Uses generous tolerance to accommodate heightmap terrain without requiring
+        // the server to load heightmap files. Future anti-cheat can add exact lookup.
+        if (!player.isFlying && newY > MAX_TERRAIN_HEIGHT + GROUND_TOLERANCE) {
+            return ValidationResult(false, "above_ground")
         }
 
         // Speed check: distance traveled should not exceed max speed * time * tolerance

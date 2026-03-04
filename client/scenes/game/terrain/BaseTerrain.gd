@@ -8,6 +8,10 @@ func _ready() -> void:
 	_apply_ground_material()
 
 
+func get_height_at(_world_x: float, _world_z: float) -> float:
+	return 0.0
+
+
 func _apply_ground_material() -> void:
 	var mesh_instance: MeshInstance3D = $MeshInstance3D
 	if not mesh_instance:

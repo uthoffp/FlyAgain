@@ -106,5 +106,5 @@ func _clamp_to_world_bounds(pos: Vector3, flying: bool) -> Vector3:
 	if flying:
 		pos.y = clampf(pos.y, WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_Y_POSITION)
 	else:
-		pos.y = clampf(pos.y, WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_GROUND_Y)
+		pos.y = clampf(pos.y, WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_TERRAIN_HEIGHT)
 	return pos

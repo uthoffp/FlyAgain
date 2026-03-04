@@ -81,7 +81,7 @@ func test_ground_y_clamped_to_max_ground_y() -> void:
 	var dir := Vector3(0.0, 1.0, 0.0).normalized()
 	var result := pred.apply_input(dir, true, false, 0, 1.0)
 	# Non-flying: vertical displacement is zeroed, Y stays clamped
-	assert_float(result.y).is_less_equal(WorldConstants.MAX_GROUND_Y)
+	assert_float(result.y).is_less_equal(WorldConstants.MAX_TERRAIN_HEIGHT)
 
 
 func test_flying_y_clamped_to_max_y() -> void:
@@ -108,7 +108,7 @@ func test_non_flying_zeroes_y_displacement() -> void:
 	var dir := Vector3(1.0, 1.0, 0.0).normalized()
 	var result := pred.apply_input(dir, true, false, 0, 1.0)
 	# Y should not change for non-flying
-	assert_float(result.y).is_less_equal(WorldConstants.MAX_GROUND_Y)
+	assert_float(result.y).is_less_equal(WorldConstants.MAX_TERRAIN_HEIGHT)
 
 
 # ---- Correction snap-back ----

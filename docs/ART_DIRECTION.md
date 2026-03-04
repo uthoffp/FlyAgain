@@ -91,22 +91,68 @@ Procedural shader-based (`terrain_noise.gdshader`) with:
 
 For standard environment assets (trees, grass, rocks, buildings) that don't need to be custom, use cohesive pre-made packs. Custom/unique assets (characters, monsters, special props) are AI-generated per the pipeline above.
 
-### Quaternius MegaKit Series (Primary Choice)
-Both packs are confirmed to match stylistically — soft, rounded, Ghibli-inspired look.
+### Quaternius Stylized Nature MegaKit (Selected)
 
-| Pack | Contents | Link |
-|------|----------|------|
-| Stylized Nature MegaKit | 110+ models: 40 trees, 35 plants/flowers, 27 rocks, grass, bushes | https://quaternius.itch.io/stylized-nature-megakit |
-| Medieval Village MegaKit | 300+ modular pieces: walls, roofs, stairs, props (grid-based) | https://quaternius.itch.io/medieval-village-megakit |
+**Decision:** The Stylized Nature MegaKit by Quaternius is the primary environment asset pack for all nature/outdoor zones. Its soft, rounded, Ghibli-inspired aesthetic matches FlyAgain's Stylized PBR direction.
 
-- **Formats:** glTF, FBX, OBJ (free) — Godot source version with custom shaders via Patreon ($20/month)
-- **License:** Free for personal, educational, and commercial use
-- **Godot shaders included:** Wind movement for grass/leaves, stylized shading
+- **Source:** https://quaternius.itch.io/stylized-nature-megakit
+- **License:** CC0 1.0 Universal (Public Domain) — free for all use
+- **Version used:** Godot Source version (includes stylized shaders)
+- **Godot compatibility:** 4.2.2+ (confirmed working with Godot 4.6)
 
-### Import Workflow (Pre-Made Packs)
-1. Import glTF/glb into Godot
-2. Apply `StandardMaterial3D` overrides if needed (roughness 0.7-0.9, metallic 0.0-0.1)
-3. Post-processing stack (ACES, bloom, warm color grading) unifies look with custom assets
+#### Asset Inventory (116 models)
+
+| Category | Count | Models |
+|----------|-------|--------|
+| **Trees** | 40 | Birch (5), CherryBlossom (5), CommonTree (5), DeadTree (5), GiantPine (5), Pine (5), TallThick (5), TwistedTree (5) |
+| **Bushes** | 6 | Bush_Common, Bush_Common_Flowers, Bush_Large, Bush_Large_Flowers, Bush_Long_1, Bush_Long_2 |
+| **Plants** | 10 | Plant_1–7 (incl. _Big variants) |
+| **Flowers** | 14 | Flower_1–4 (Group + Single), Flower_6, Flower_6_2, Flower_7 (Group + Single) |
+| **Grass** | 7 | Common (Short/Tall), Wide (Short/Tall), Wispy (Short/Tall), Wheat |
+| **Ground Cover** | 12 | Clover (2), Fern (2), Mushroom (4), Petal (6) |
+| **Rocks** | 17 | Rock_Big (2), Rock_Medium (4), Pebble_Round (5), Pebble_Square (6) |
+| **Rock Paths** | 10 | RockPath_Round (5), RockPath_Square (5) |
+
+#### Included Shaders
+
+The Godot source version includes custom stylized shaders:
+
+| Shader | Purpose |
+|--------|---------|
+| `M_Bark.gdshader` | Stylized bark rendering for tree trunks |
+| `M_BaseFoliage.gdshader` | Base shader for bush/plant foliage |
+| `M_Grass.gdshader` | Grass with wind animation |
+| `M_Leaves.gdshader` | Tree leaves with wind sway |
+| `M_Leaves_Pine.gdshader` | Pine-specific leaf shader |
+| `M_Leaves_GiantPine.gdshader` | Giant pine leaf shader variant |
+
+#### Textures (36 files)
+
+Bark textures (diffuse + normal) for each tree type, leaf textures (diffuse + color variants), flower/grass/mushroom/rock atlas textures, and utility textures (Perlin noise, wind noise).
+
+#### Zone-to-Asset Mapping
+
+| Zone | Primary Trees | Ground Cover | Accents |
+|------|--------------|--------------|---------|
+| **Green Plains** | CommonTree, Birch, CherryBlossom | Grass (all), Clover, Fern | Flowers, Bushes with flowers |
+| **Dark Forest** | TwistedTree, TallThick, DeadTree, GiantPine | Fern, Mushrooms | Petals, Plants (dark variants) |
+| **Aerheim Outskirts** | CommonTree, Pine, Birch | Grass (short), Clover | Bushes, Rock paths |
+
+### Future: Medieval Village MegaKit
+
+For Aerheim City buildings and structures, the **Medieval Village MegaKit** (300+ modular pieces) from Quaternius is a planned addition. Same stylistic family.
+
+- **Source:** https://quaternius.itch.io/medieval-village-megakit
+
+### Import Workflow (Stylized Nature MegaKit)
+
+The Godot source version provides ready-to-use `.tscn` mesh scenes with materials pre-applied:
+
+1. Extract Godot project zip to `client/assets/nature/`
+2. Copy `Materials/` (shaders + material instances) and `Mesh Scenes/` (per-model `.tscn`)
+3. Copy `assets/` (textures with `.import` metadata)
+4. Scenes are ready to instantiate — shaders, wind animation, and materials are pre-configured
+5. Post-processing stack (ACES, bloom, warm color grading) further unifies the look
 
 ## Tools
 
