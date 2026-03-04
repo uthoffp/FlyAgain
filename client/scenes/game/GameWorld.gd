@@ -41,6 +41,8 @@ var _terrain: Node3D = null
 var _logout_dialog: ConfirmationDialog = null
 var _portals: Array[Area3D] = []
 var _is_zone_transitioning: bool = false
+var _current_cycle_index: int = -1
+var _target_frame: PanelContainer = null
 
 # Loading overlay nodes
 var _loading_layer: CanvasLayer = null
@@ -90,6 +92,13 @@ func _connect_signals() -> void:
 	NetworkManager.entity_despawned.connect(_on_entity_despawned)
 	NetworkManager.entity_position_updated.connect(_on_entity_position_updated)
 	NetworkManager.world_disconnected.connect(_on_world_disconnected)
+	# Combat signals
+	NetworkManager.select_target_response.connect(_on_select_target_response)
+	NetworkManager.damage_event.connect(_on_damage_event)
+	NetworkManager.entity_death.connect(_on_entity_death)
+	NetworkManager.xp_gained.connect(_on_xp_gained)
+	NetworkManager.auto_attack_response.connect(_on_auto_attack_response)
+	NetworkManager.entity_stats_updated.connect(_on_entity_stats_updated)
 
 
 func _disconnect_signals() -> void:
@@ -103,6 +112,19 @@ func _disconnect_signals() -> void:
 		NetworkManager.entity_position_updated.disconnect(_on_entity_position_updated)
 	if NetworkManager.world_disconnected.is_connected(_on_world_disconnected):
 		NetworkManager.world_disconnected.disconnect(_on_world_disconnected)
+	# Combat signals
+	if NetworkManager.select_target_response.is_connected(_on_select_target_response):
+		NetworkManager.select_target_response.disconnect(_on_select_target_response)
+	if NetworkManager.damage_event.is_connected(_on_damage_event):
+		NetworkManager.damage_event.disconnect(_on_damage_event)
+	if NetworkManager.entity_death.is_connected(_on_entity_death):
+		NetworkManager.entity_death.disconnect(_on_entity_death)
+	if NetworkManager.xp_gained.is_connected(_on_xp_gained):
+		NetworkManager.xp_gained.disconnect(_on_xp_gained)
+	if NetworkManager.auto_attack_response.is_connected(_on_auto_attack_response):
+		NetworkManager.auto_attack_response.disconnect(_on_auto_attack_response)
+	if NetworkManager.entity_stats_updated.is_connected(_on_entity_stats_updated):
+		NetworkManager.entity_stats_updated.disconnect(_on_entity_stats_updated)
 
 
 # ---- Loading overlay ----
@@ -196,6 +218,18 @@ func _setup_hud() -> void:
 	_logout_dialog.confirmed.connect(_on_logout_confirmed)
 	hud_root.add_child(_logout_dialog)
 
+	# Target frame — top-center
+	var target_center := CenterContainer.new()
+	target_center.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	target_center.add_theme_constant_override("margin_top", 16)
+	target_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_root.add_child(target_center)
+
+	var TargetFrameScript := preload("res://scenes/ui/game_hud/TargetFrame.gd")
+	_target_frame = PanelContainer.new()
+	_target_frame.set_script(TargetFrameScript)
+	target_center.add_child(_target_frame)
+
 
 func _on_logout_pressed() -> void:
 	_logout_dialog.popup_centered()
@@ -280,7 +314,10 @@ func _on_zone_data(data: Dictionary) -> void:
 	# Swap portals for the new zone
 	_spawn_portals(GameState.current_zone_id)
 
-	# Clear existing remote entities
+	# Clear target and existing remote entities
+	_deselect_current_target()
+	GameState.auto_attack_active = false
+	_current_cycle_index = -1
 	_entity_factory.clear_all()
 
 	# Reposition local player to zone spawn
@@ -355,3 +392,133 @@ func _spawn_local_player() -> void:
 		spawn_pos.y = _terrain.get_height_at(spawn_pos.x, spawn_pos.z)
 	_player.position = spawn_pos
 	add_child(_player)
+	# Connect player targeting signals
+	_player.target_selected.connect(_on_player_target_selected)
+	_player.target_cleared.connect(_on_player_target_cleared)
+	_player.auto_attack_toggled.connect(_on_player_auto_attack_toggled)
+
+
+# ---- Combat / Targeting ----
+
+## Player requested a target selection (right-click on entity, or Tab cycle).
+func _on_player_target_selected(entity_id: int) -> void:
+	if entity_id == -1:
+		# Tab cycle: pick next nearby monster
+		if not _player:
+			return
+		var monsters := _entity_factory.get_nearby_monsters(_player.global_position)
+		if monsters.is_empty():
+			return
+		_current_cycle_index = (_current_cycle_index + 1) % monsters.size()
+		var next_id: int = monsters[_current_cycle_index]["entity_id"]
+		NetworkManager.send_select_target(next_id)
+	else:
+		_current_cycle_index = -1
+		NetworkManager.send_select_target(entity_id)
+
+
+## Player pressed Escape to clear their target.
+func _on_player_target_cleared() -> void:
+	NetworkManager.send_select_target(0)
+	_deselect_current_target()
+	_current_cycle_index = -1
+
+
+## Player toggled auto-attack (F key).
+func _on_player_auto_attack_toggled(enable: bool, target_id: int) -> void:
+	if target_id > 0:
+		NetworkManager.send_toggle_auto_attack(enable, target_id)
+
+
+## Server confirmed target selection.
+func _on_select_target_response(data: Dictionary) -> void:
+	if not data.get("success", false):
+		return
+	# Deselect the old target visually
+	_deselect_current_target()
+	# Update GameState with the new target
+	var target_id: int = data.get("target_entity_id", 0)
+	GameState.selected_target_id = target_id
+	GameState.selected_target_name = data.get("target_name", "")
+	GameState.selected_target_level = data.get("target_level", 0)
+	GameState.selected_target_hp = data.get("target_hp", 0)
+	GameState.selected_target_max_hp = data.get("target_max_hp", 0)
+	# Highlight the new target entity
+	if target_id > 0:
+		var entity := _entity_factory.get_entity(target_id)
+		if entity and is_instance_valid(entity) and entity.has_method("set_selected"):
+			entity.set_selected(true)
+
+
+## A damage event occurred (us hitting something, or something hitting us).
+func _on_damage_event(data: Dictionary) -> void:
+	var target_id: int = data.get("target_entity_id", 0)
+	var new_hp: int = data.get("target_hp", 0)
+	# Update the entity's HP in the scene
+	var entity := _entity_factory.get_entity(target_id)
+	if entity and is_instance_valid(entity) and entity.has_method("update_hp"):
+		entity.update_hp(new_hp)
+	# Update GameState target HP if this is our current target
+	if target_id == GameState.selected_target_id:
+		GameState.selected_target_hp = new_hp
+	# Spawn floating damage number (stub for Task 9)
+	_spawn_damage_number(data)
+
+
+## An entity died.
+func _on_entity_death(data: Dictionary) -> void:
+	var dead_id: int = data.get("entity_id", 0)
+	# If our current target died, deselect and stop auto-attack
+	if dead_id == GameState.selected_target_id:
+		_deselect_current_target()
+		GameState.auto_attack_active = false
+		_current_cycle_index = -1
+
+
+## We gained XP (e.g. from killing a monster).
+func _on_xp_gained(data: Dictionary) -> void:
+	GameState.player_xp = data.get("current_xp", GameState.player_xp)
+	GameState.player_xp_to_next_level = data.get("xp_to_next_level", GameState.player_xp_to_next_level)
+	var new_level: int = data.get("current_level", 0)
+	if new_level > 0:
+		GameState.player_level = new_level
+
+
+## Server confirmed auto-attack toggle.
+func _on_auto_attack_response(data: Dictionary) -> void:
+	GameState.auto_attack_active = data.get("active", false)
+
+
+## Server sent updated stats for an entity (could be us or our target).
+func _on_entity_stats_updated(data: Dictionary) -> void:
+	var entity_id: int = data.get("entity_id", 0)
+	if entity_id == GameState.my_entity_id:
+		# Update our own stats
+		GameState.player_hp = data.get("hp", GameState.player_hp)
+		GameState.player_max_hp = data.get("max_hp", GameState.player_max_hp)
+		GameState.player_mp = data.get("mp", GameState.player_mp)
+		GameState.player_max_mp = data.get("max_mp", GameState.player_max_mp)
+		GameState.player_str = data.get("str", GameState.player_str)
+		GameState.player_sta = data.get("sta", GameState.player_sta)
+		GameState.player_dex = data.get("dex", GameState.player_dex)
+		GameState.player_int = data.get("int", GameState.player_int)
+		GameState.player_level = data.get("level", GameState.player_level)
+
+
+## Deselect the currently selected target and clear GameState target fields.
+func _deselect_current_target() -> void:
+	if GameState.selected_target_id > 0:
+		var old_entity := _entity_factory.get_entity(GameState.selected_target_id)
+		if old_entity and is_instance_valid(old_entity) and old_entity.has_method("set_selected"):
+			old_entity.set_selected(false)
+	GameState.selected_target_id = 0
+	GameState.selected_target_name = ""
+	GameState.selected_target_level = 0
+	GameState.selected_target_hp = 0
+	GameState.selected_target_max_hp = 0
+
+
+## Spawn a floating damage number above the damaged entity.
+## Stub for now — full implementation in Task 9.
+func _spawn_damage_number(_data: Dictionary) -> void:
+	pass

@@ -6,6 +6,10 @@
 extends CharacterBody3D
 
 
+signal target_selected(entity_id: int)
+signal target_cleared()
+signal auto_attack_toggled(enable: bool, target_id: int)
+
 ## Adjust in the editor if the model clips into or floats above the ground.
 @export var model_y_offset: float = 0.0
 ## Uniform scale for the character model.
@@ -40,6 +44,11 @@ const CLICK_ARRIVE_THRESHOLD := 0.5
 const CLICK_RAYCAST_LENGTH := 1000.0
 const CLICK_STALL_TIMEOUT := 1.5
 
+# Right-click targeting state (distinguishes quick clicks from camera drags)
+var _right_click_start_pos: Vector2 = Vector2.ZERO
+var _right_click_pressed: bool = false
+const TARGET_CLICK_THRESHOLD := 5.0  # Max pixel movement to count as a click
+
 
 func _ready() -> void:
 	_predictor.set_position(global_position)
@@ -65,12 +74,38 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Left-click: click-to-move
 	if event is InputEventMouseButton \
 			and event.button_index == MOUSE_BUTTON_LEFT \
 			and event.pressed \
 			and not _is_flying \
 			and not _camera_pivot.is_rotating():
 		_try_click_to_move(event.position)
+
+	# Right-click: target entity (only on quick clicks, not camera drags)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		if event.pressed:
+			_right_click_start_pos = event.position
+			_right_click_pressed = true
+		elif _right_click_pressed:
+			_right_click_pressed = false
+			if event.position.distance_to(_right_click_start_pos) < TARGET_CLICK_THRESHOLD:
+				_try_target_entity(_right_click_start_pos)
+
+	# Tab: cycle to next nearby monster
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_TAB:
+				target_selected.emit(-1)
+				get_viewport().set_input_as_handled()
+			KEY_F:
+				auto_attack_toggled.emit(
+					not GameState.auto_attack_active,
+					GameState.selected_target_id)
+				get_viewport().set_input_as_handled()
+			KEY_ESCAPE:
+				target_cleared.emit()
+				get_viewport().set_input_as_handled()
 
 
 func _physics_process(delta: float) -> void:
@@ -154,6 +189,39 @@ func _get_wasd_direction() -> Vector3:
 			input_dir.y -= 1.0
 
 	return input_dir.normalized() if input_dir.length() > 0.01 else Vector3.ZERO
+
+
+# ---- Target selection ----
+
+## Raycast from camera to find a targetable entity at the clicked screen position.
+func _try_target_entity(screen_pos: Vector2) -> void:
+	var camera: Camera3D = _camera_pivot.get_node("SpringArm3D/Camera3D")
+	if not camera:
+		return
+	var from: Vector3 = camera.project_ray_origin(screen_pos)
+	var to: Vector3 = from + camera.project_ray_normal(screen_pos) * CLICK_RAYCAST_LENGTH
+
+	var space_state := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 0xFFFFFFFF  # Check all layers for entities
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return
+
+	# Check if we hit an entity (directly or via parent)
+	var collider: Node = result.get("collider")
+	if not collider:
+		return
+
+	var entity: Node = null
+	if collider is CharacterBody3D and collider.has_method("set_selected"):
+		entity = collider
+	elif collider.get_parent() is CharacterBody3D and collider.get_parent().has_method("set_selected"):
+		entity = collider.get_parent()
+
+	if entity and entity.hp > 0:
+		target_selected.emit(entity.entity_id)
 
 
 # ---- Click-to-Move ----
