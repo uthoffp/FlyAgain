@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://dim8p2gq1djm"]
+[gd_scene format=3 uid="uid://dim8p2gq1djm"]
 
 [ext_resource type="PackedScene" uid="uid://dsoi0a2kugtfd" path="res://assets/nature/textures/Rock_Big_1.gltf" id="1_npdar"]
 

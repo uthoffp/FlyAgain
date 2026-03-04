@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=4 format=3 uid="uid://cwu1hc5pnivip"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://cwu1hc5pnivip"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Bark.gdshader" id="1_kc5pn"]
 [ext_resource type="Texture2D" uid="uid://dklg51wqugtrj" path="res://assets/nature/textures/Bark_BirchTree_Normal.png" id="2_lstot"]

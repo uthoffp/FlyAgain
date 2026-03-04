@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://byrr0hiu0rvpg"]
+[gd_scene format=3 uid="uid://byrr0hiu0rvpg"]
 
 [ext_resource type="PackedScene" uid="uid://h8ccj4gcdifs" path="res://assets/nature/textures/Mushroom_Laetiporus.gltf" id="1_no4ms"]
 

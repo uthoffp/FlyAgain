@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://dmugpscerbixi"]
+[gd_scene format=3 uid="uid://dmugpscerbixi"]
 
 [ext_resource type="PackedScene" uid="uid://dtsgoweyvxpc2" path="res://assets/nature/textures/Pebble_Round_2.gltf" id="1_7ur80"]
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://b4lckhtpweenq"]
+[gd_scene format=3 uid="uid://b4lckhtpweenq"]
 
 [ext_resource type="Material" uid="uid://baq4sm60ea2hl" path="res://assets/nature/materials/MI_Grass_Wispy.tres" id="1_eluln"]
 

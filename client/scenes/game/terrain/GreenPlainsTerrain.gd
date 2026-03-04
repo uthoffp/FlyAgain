@@ -1,20 +1,37 @@
 ## GreenPlainsTerrain.gd
 ## Zone-specific terrain for Green Plains (zone_id=2).
-## Lush meadows with common trees, cherry blossoms, wildflowers, and grass.
-extends HeightmapTerrain
+## Lush meadows with wildflowers and grass. Terrain sculpted via Terrain3D plugin.
+extends Node3D
 
 const SPAWN := Vector3(200.0, 0.0, 200.0)
+const TERRAIN_DATA_DIR := "res://assets/terrain_data/green_plains/"
+
+var _terrain3d: Terrain3D = null
 
 
 func _ready() -> void:
-	heightmap_path = "res://../../shared/heightmaps/green_plains.heightmap"
-	terrain_base_color = Color(0.28, 0.52, 0.18)
-	terrain_valley_color = Color(0.22, 0.42, 0.14)
-	terrain_hill_color = Color(0.34, 0.58, 0.22)
-	terrain_amplitude = 8.0
-	terrain_roughness = 0.9
-	setup_terrain()
+	_find_or_create_terrain()
 	_setup_scatter()
+
+
+func _find_or_create_terrain() -> void:
+	for child in get_children():
+		if child is Terrain3D:
+			_terrain3d = child
+			return
+	_terrain3d = Terrain3D.new()
+	_terrain3d.name = "Terrain3D"
+	_terrain3d.data_directory = TERRAIN_DATA_DIR
+	_terrain3d.assets = Terrain3DAssets.new()
+	add_child(_terrain3d)
+
+
+func get_height_at(world_x: float, world_z: float) -> float:
+	if _terrain3d and _terrain3d.data:
+		var h: float = _terrain3d.data.get_height(Vector3(world_x, 0.0, world_z))
+		if is_finite(h):
+			return h
+	return 0.0
 
 
 func _setup_scatter() -> void:
@@ -23,23 +40,6 @@ func _setup_scatter() -> void:
 	add_child(scatter)
 	var area_min := Vector2(SPAWN.x - 200, SPAWN.z - 200)
 	var area_max := Vector2(SPAWN.x + 200, SPAWN.z + 200)
-
-	# Trees — CommonTree, Birch, CherryBlossom
-	var tree_rule := ScatterRule.new()
-	tree_rule.scenes = [
-		preload("res://assets/nature/models/trees/CommonTree_1.tscn"),
-		preload("res://assets/nature/models/trees/CommonTree_2.tscn"),
-		preload("res://assets/nature/models/trees/CommonTree_3.tscn"),
-		preload("res://assets/nature/models/trees/Birch_1.tscn"),
-		preload("res://assets/nature/models/trees/Birch_2.tscn"),
-		preload("res://assets/nature/models/trees/CherryBlossom_1.tscn"),
-		preload("res://assets/nature/models/trees/CherryBlossom_2.tscn"),
-	]
-	tree_rule.density = 0.3
-	tree_rule.scale_variation = 0.25
-	tree_rule.collision_enabled = true
-	tree_rule.min_spacing = 8.0
-	scatter.scatter(tree_rule, area_min, area_max)
 
 	# Grass (MultiMesh) — all grass types
 	var grass_rule := ScatterRule.new()
@@ -90,29 +90,3 @@ func _setup_scatter() -> void:
 	flower_rule.use_multimesh = true
 	flower_rule.scale_variation = 0.2
 	scatter.scatter(flower_rule, area_min, area_max)
-
-	# Rocks — Medium rocks, Pebbles
-	var rock_rule := ScatterRule.new()
-	rock_rule.scenes = [
-		preload("res://assets/nature/models/rocks/Rock_Medium_1.tscn"),
-		preload("res://assets/nature/models/rocks/Rock_Medium_2.tscn"),
-		preload("res://assets/nature/models/rocks/Rock_Medium_3.tscn"),
-		preload("res://assets/nature/models/rocks/Rock_Medium_4.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Round_1.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Round_2.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Round_3.tscn"),
-	]
-	rock_rule.density = 0.2
-	rock_rule.collision_enabled = true
-	rock_rule.scale_variation = 0.3
-	scatter.scatter(rock_rule, area_min, area_max)
-
-	# Bushes — flower variants
-	var bush_rule := ScatterRule.new()
-	bush_rule.scenes = [
-		preload("res://assets/nature/models/bushes/Bush_Common_Flowers.tscn"),
-		preload("res://assets/nature/models/bushes/Bush_Large_Flowers.tscn"),
-	]
-	bush_rule.density = 0.15
-	bush_rule.scale_variation = 0.2
-	scatter.scatter(bush_rule, area_min, area_max)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://by3xu3qlbxjqr"]
+[gd_scene format=3 uid="uid://by3xu3qlbxjqr"]
 
 [ext_resource type="Material" uid="uid://c6f3stcwe8j2c" path="res://assets/nature/materials/MI_Bark_Pine.tres" id="1_lmojb"]
 [ext_resource type="Material" uid="uid://bbqudof6appuo" path="res://assets/nature/materials/MI_Leaves_GiantPine.tres" id="2_rfrmh"]

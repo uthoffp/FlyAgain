@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://slb4t4v6tg1q"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://slb4t4v6tg1q"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Leaves.gdshader" id="1_6mc4a"]
 [ext_resource type="Texture2D" uid="uid://dxddybe2nxnxp" path="res://assets/nature/textures/Leaves_CherryBlossom.png" id="2_1l786"]

@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://co2ewloownkli"]
+[gd_scene format=3 uid="uid://co2ewloownkli"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Bark.gdshader" id="1_hexbv"]
 [ext_resource type="Texture2D" uid="uid://bl84l7jvckl2k" path="res://assets/nature/textures/Bark_PineTree_Normal.png" id="2_3isvk"]

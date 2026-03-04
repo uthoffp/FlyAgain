@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://deta1nvia6o4n"]
+[gd_scene format=3 uid="uid://deta1nvia6o4n"]
 
 [ext_resource type="Material" uid="uid://gvqde2ppgd4q" path="res://assets/nature/materials/MI_Bark_TwistedTree.tres" id="1_8d8xd"]
 [ext_resource type="Material" uid="uid://beo5l0vwx1ieq" path="res://assets/nature/materials/MI_Leaves_TwistedTree.tres" id="2_1rvmc"]

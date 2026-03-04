@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://d3vaus0v8wfcc"]
+[gd_scene format=3 uid="uid://d3vaus0v8wfcc"]
 
 [ext_resource type="Texture2D" uid="uid://c8iu4e4awgrgu" path="res://assets/nature/textures/Bark_NormalTree.png" id="1_lc32t"]
 [ext_resource type="Texture2D" uid="uid://cplmapaijbd57" path="res://assets/nature/textures/Bark_NormalTree_Normal.png" id="2_jvhg0"]

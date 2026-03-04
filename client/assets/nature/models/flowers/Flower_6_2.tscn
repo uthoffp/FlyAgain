@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://dmh24ximhjppg"]
+[gd_scene format=3 uid="uid://dmh24ximhjppg"]
 
 [ext_resource type="Material" uid="uid://b43nm87c4l54o" path="res://assets/nature/materials/MI_Leaves.tres" id="1_e2he2"]
 [ext_resource type="Material" uid="uid://bhatmxlwha13o" path="res://assets/nature/materials/MI_Flowers.tres" id="2_p87r1"]

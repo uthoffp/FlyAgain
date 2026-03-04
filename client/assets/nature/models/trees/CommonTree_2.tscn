@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://shofamvxggnk"]
+[gd_scene format=3 uid="uid://shofamvxggnk"]
 
 [ext_resource type="Material" uid="uid://salx13f41xn5" path="res://assets/nature/materials/MI_Bark_NormalTree.tres" id="1_f800i"]
 [ext_resource type="Material" uid="uid://jxmgrllc6jdj" path="res://assets/nature/materials/MI_Leaves_Common.tres" id="2_h6vwm"]

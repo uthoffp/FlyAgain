@@ -1,27 +1,38 @@
 ## AerheimTerrain.gd
 ## Zone-specific terrain for Aerheim (zone_id=1).
-## Sparse outskirts vegetation around the city with rock paths and low grass.
-extends HeightmapTerrain
+## Sparse outskirts vegetation around the city with low grass and clover.
+## Terrain sculpted via Terrain3D plugin.
+extends Node3D
 
 const SPAWN := Vector3(500.0, 0.0, 500.0)
+const TERRAIN_DATA_DIR := "res://assets/terrain_data/aerheim/"
+
+var _terrain3d: Terrain3D = null
 
 
 func _ready() -> void:
-	heightmap_path = "res://../../shared/heightmaps/aerheim.heightmap"
-	terrain_base_color = Color(0.45, 0.42, 0.35)
-	terrain_valley_color = Color(0.38, 0.35, 0.28)
-	terrain_hill_color = Color(0.5, 0.47, 0.38)
-	terrain_amplitude = 3.0
-	terrain_roughness = 0.85
-	setup_terrain()
-	_load_city()
+	_find_or_create_terrain()
 	_setup_scatter()
 
 
-func _load_city() -> void:
-	var city_scene := preload("res://scenes/game/terrain/AerheimCity.tscn")
-	var city := city_scene.instantiate()
-	add_child(city)
+func _find_or_create_terrain() -> void:
+	for child in get_children():
+		if child is Terrain3D:
+			_terrain3d = child
+			return
+	_terrain3d = Terrain3D.new()
+	_terrain3d.name = "Terrain3D"
+	_terrain3d.data_directory = TERRAIN_DATA_DIR
+	_terrain3d.assets = Terrain3DAssets.new()
+	add_child(_terrain3d)
+
+
+func get_height_at(world_x: float, world_z: float) -> float:
+	if _terrain3d and _terrain3d.data:
+		var h: float = _terrain3d.data.get_height(Vector3(world_x, 0.0, world_z))
+		if is_finite(h):
+			return h
+	return 0.0
 
 
 func _setup_scatter() -> void:
@@ -30,22 +41,6 @@ func _setup_scatter() -> void:
 	add_child(scatter)
 	var area_min := Vector2(SPAWN.x - 200, SPAWN.z - 200)
 	var area_max := Vector2(SPAWN.x + 200, SPAWN.z + 200)
-
-	# Trees — CommonTree, Pine, Birch (sparse)
-	var tree_rule := ScatterRule.new()
-	tree_rule.scenes = [
-		preload("res://assets/nature/models/trees/CommonTree_1.tscn"),
-		preload("res://assets/nature/models/trees/CommonTree_2.tscn"),
-		preload("res://assets/nature/models/trees/Pine_1.tscn"),
-		preload("res://assets/nature/models/trees/Pine_2.tscn"),
-		preload("res://assets/nature/models/trees/Birch_1.tscn"),
-		preload("res://assets/nature/models/trees/Birch_2.tscn"),
-	]
-	tree_rule.density = 0.1
-	tree_rule.scale_variation = 0.2
-	tree_rule.collision_enabled = true
-	tree_rule.min_spacing = 10.0
-	scatter.scatter(tree_rule, area_min, area_max)
 
 	# Grass (MultiMesh) — short grass only
 	var grass_rule := ScatterRule.new()
@@ -81,32 +76,3 @@ func _setup_scatter() -> void:
 	flower_rule.use_multimesh = true
 	flower_rule.scale_variation = 0.2
 	scatter.scatter(flower_rule, area_min, area_max)
-
-	# Rocks — Rock paths, Pebbles
-	var rock_rule := ScatterRule.new()
-	rock_rule.scenes = [
-		preload("res://assets/nature/models/rocks/RockPath_Round_Small_1.tscn"),
-		preload("res://assets/nature/models/rocks/RockPath_Round_Small_2.tscn"),
-		preload("res://assets/nature/models/rocks/RockPath_Round_Small_3.tscn"),
-		preload("res://assets/nature/models/rocks/RockPath_Square_Small_1.tscn"),
-		preload("res://assets/nature/models/rocks/RockPath_Square_Small_2.tscn"),
-		preload("res://assets/nature/models/rocks/RockPath_Square_Small_3.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Round_1.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Round_2.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Square_1.tscn"),
-		preload("res://assets/nature/models/rocks/Pebble_Square_2.tscn"),
-	]
-	rock_rule.density = 0.15
-	rock_rule.collision_enabled = true
-	rock_rule.scale_variation = 0.2
-	scatter.scatter(rock_rule, area_min, area_max)
-
-	# Bushes — Bush_Common, Bush_Large
-	var bush_rule := ScatterRule.new()
-	bush_rule.scenes = [
-		preload("res://assets/nature/models/bushes/Bush_Common.tscn"),
-		preload("res://assets/nature/models/bushes/Bush_Large.tscn"),
-	]
-	bush_rule.density = 0.1
-	bush_rule.scale_variation = 0.15
-	scatter.scatter(bush_rule, area_min, area_max)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://ckd5tyta3huyi"]
+[gd_scene format=3 uid="uid://ckd5tyta3huyi"]
 
 [ext_resource type="Material" uid="uid://dkuc6gmr0nav3" path="res://assets/nature/materials/MI_Leaves_DryBush.tres" id="1_xtpev"]
 

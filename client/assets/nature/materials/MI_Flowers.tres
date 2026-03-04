@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=4 format=3 uid="uid://bhatmxlwha13o"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bhatmxlwha13o"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_BaseFoliage.gdshader" id="1_lotj7"]
 [ext_resource type="Texture2D" uid="uid://h35uej8tofad" path="res://assets/nature/materials/T_FoliageNoise.tres" id="2_obh4c"]

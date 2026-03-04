@@ -16,6 +16,7 @@ extends CharacterBody3D
 @onready var _name_label: Label3D = $NameLabel
 
 var _predictor: MovementPredictor = MovementPredictor.new()
+var _terrain: Node3D = null
 var _is_flying: bool = false
 var _facing_angle: float = 0.0
 var _send_timer: float = 0.0
@@ -27,6 +28,7 @@ var _jump_offset: float = 0.0
 var _is_grounded: bool = true
 var _pivot_base_y: float = 0.0
 var _label_base_y: float = 0.0
+var _camera_base_y: float = 0.0
 
 # Click-to-Move state
 var _click_target: Vector3 = Vector3.ZERO
@@ -45,11 +47,14 @@ func _ready() -> void:
 	_setup_model()
 	_create_click_marker()
 	NetworkManager.position_corrected.connect(_on_position_corrected)
+	_find_terrain()
 	# Store base Y offsets for jump visual
 	if _model_pivot:
 		_pivot_base_y = _model_pivot.position.y
 	if _name_label:
 		_label_base_y = _name_label.position.y
+	if _camera_pivot:
+		_camera_base_y = _camera_pivot.position.y
 
 
 func _exit_tree() -> void:
@@ -100,6 +105,13 @@ func _physics_process(delta: float) -> void:
 	# Client-side prediction
 	var new_pos := _predictor.apply_input(
 		direction, is_moving, _is_flying, GameState.player_dex, delta)
+
+	# Snap to terrain height when on the ground
+	if not _is_flying:
+		var terrain_y := _get_terrain_height(new_pos.x, new_pos.z)
+		new_pos.y = terrain_y
+		_predictor.set_position(new_pos)
+
 	global_position = new_pos
 
 	# Rotate only the model toward movement direction (NOT the root node,
@@ -241,6 +253,8 @@ func _apply_jump_visual() -> void:
 		_model_pivot.position.y = _pivot_base_y + _jump_offset
 	if _name_label:
 		_name_label.position.y = _label_base_y + _jump_offset
+	if _camera_pivot:
+		_camera_pivot.position.y = _camera_base_y + _jump_offset
 
 
 ## Send the current movement state to the server via UDP.
@@ -257,6 +271,7 @@ func _send_movement(direction: Vector3, is_moving: bool) -> void:
 ## Teleport to a new position (e.g. after zone change).
 ## Updates both the node position and the movement predictor.
 func teleport_to(pos: Vector3) -> void:
+	_find_terrain()
 	global_position = pos
 	_predictor.set_position(pos)
 	_cancel_click_to_move()
@@ -336,3 +351,23 @@ func _setup_model() -> void:
 	if _model_pivot:
 		_model_pivot.position.y = model_y_offset
 		_model_pivot.scale = Vector3.ONE * model_scale
+
+
+## Find the terrain node (sibling via GameWorld parent) for height queries.
+func _find_terrain() -> void:
+	var parent := get_parent()
+	if parent and parent.has_method("get_height_at"):
+		_terrain = parent
+		return
+	if parent:
+		for child in parent.get_children():
+			if child.has_method("get_height_at"):
+				_terrain = child
+				return
+
+
+## Query terrain height at the given world XZ position.
+func _get_terrain_height(world_x: float, world_z: float) -> float:
+	if _terrain and _terrain.has_method("get_height_at"):
+		return _terrain.get_height_at(world_x, world_z)
+	return 0.0

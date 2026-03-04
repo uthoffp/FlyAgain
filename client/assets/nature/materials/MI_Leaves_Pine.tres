@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://edm3d5ibv8k4"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://edm3d5ibv8k4"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Leaves_Pine.gdshader" id="1_27w1x"]
 [ext_resource type="Texture2D" uid="uid://c85bsrkadylgw" path="res://assets/nature/textures/Leaf_Pine.png" id="2_qfyrf"]

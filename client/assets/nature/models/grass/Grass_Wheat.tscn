@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://bhj8ebwqste5i"]
+[gd_scene format=3 uid="uid://bhj8ebwqste5i"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Grass.gdshader" id="1_kccq0"]
 [ext_resource type="Texture2D" uid="uid://h35uej8tofad" path="res://assets/nature/materials/T_FoliageNoise.tres" id="2_2q4g6"]

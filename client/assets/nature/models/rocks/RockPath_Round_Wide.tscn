@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://b7h1hricaae67"]
+[gd_scene format=3 uid="uid://b7h1hricaae67"]
 
 [ext_resource type="PackedScene" uid="uid://bau7nohybb6fe" path="res://assets/nature/textures/RockPath_Round_Wide.gltf" id="1_gig3q"]
 

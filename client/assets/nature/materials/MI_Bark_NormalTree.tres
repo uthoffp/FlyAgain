@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=4 format=3 uid="uid://salx13f41xn5"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://salx13f41xn5"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Bark.gdshader" id="1_de0wv"]
 [ext_resource type="Texture2D" uid="uid://cplmapaijbd57" path="res://assets/nature/textures/Bark_NormalTree_Normal.png" id="2_iey0d"]

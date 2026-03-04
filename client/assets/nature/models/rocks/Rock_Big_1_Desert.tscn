@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://bn87vp8yb6ruf"]
+[gd_scene format=3 uid="uid://bn87vp8yb6ruf"]
 
 [ext_resource type="Material" uid="uid://djf3whq43b43a" path="res://assets/nature/materials/M_Rocks_Desert.tres" id="1_uebek"]
 

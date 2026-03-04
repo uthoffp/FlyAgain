@@ -1,14 +1,15 @@
 ## ZoneScatter.gd
 ## Places assets on terrain using scatter rules.
 ## MultiMeshInstance3D for grass/flowers, individual scenes for trees/rocks.
+## The terrain node must provide a get_height_at(x, z) -> float method.
 class_name ZoneScatter
 extends Node3D
 
-var _terrain: HeightmapTerrain = null
+var _terrain: Node = null
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
-func initialize(terrain: HeightmapTerrain, seed: int) -> void:
+func initialize(terrain: Node, seed: int) -> void:
 	_terrain = terrain
 	_rng.seed = seed
 
@@ -25,6 +26,14 @@ func scatter(rule: ScatterRule, area_min: Vector2, area_max: Vector2) -> void:
 		_scatter_multimesh(rule, area_min, area_max, count)
 	else:
 		_scatter_individual(rule, area_min, area_max, count)
+
+
+func _get_height(x: float, z: float) -> float:
+	if _terrain and _terrain.has_method("get_height_at"):
+		var h: float = _terrain.get_height_at(x, z)
+		if is_finite(h):
+			return h
+	return 0.0
 
 
 func _scatter_multimesh(rule: ScatterRule, area_min: Vector2, area_max: Vector2, count: int) -> void:
@@ -51,7 +60,7 @@ func _scatter_multimesh(rule: ScatterRule, area_min: Vector2, area_max: Vector2,
 				break
 			var x := _rng.randf_range(area_min.x, area_max.x)
 			var z := _rng.randf_range(area_min.y, area_max.y)
-			var y := _terrain.get_height_at(x, z)
+			var y := _get_height(x, z)
 			if y < rule.height_range.x or y > rule.height_range.y:
 				continue
 
@@ -76,7 +85,7 @@ func _scatter_individual(rule: ScatterRule, area_min: Vector2, area_max: Vector2
 			break
 		var x := _rng.randf_range(area_min.x, area_max.x)
 		var z := _rng.randf_range(area_min.y, area_max.y)
-		var y := _terrain.get_height_at(x, z)
+		var y := _get_height(x, z)
 		if y < rule.height_range.x or y > rule.height_range.y:
 			continue
 

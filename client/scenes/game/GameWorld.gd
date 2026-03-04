@@ -233,7 +233,7 @@ func _spawn_portals(zone_id: int) -> void:
 		portal.portal_label = WorldConstants.get_zone_name(def["target"])
 		portal.portal_color = def.get("color", Color(0.3, 0.5, 1.0, 0.8))
 		var pos: Vector3 = def["position"]
-		if _terrain and _terrain is HeightmapTerrain:
+		if _terrain and _terrain.has_method("get_height_at"):
 			pos.y = _terrain.get_height_at(pos.x, pos.z)
 		portal.position = pos
 		portal.portal_entered.connect(_on_portal_entered)
@@ -287,7 +287,7 @@ func _on_zone_data(data: Dictionary) -> void:
 	if _player and is_instance_valid(_player):
 		var spawn_pos: Vector3 = WorldConstants.ZONE_SPAWNS.get(
 			GameState.current_zone_id, WorldConstants.DEFAULT_SPAWN)
-		if _terrain and _terrain is HeightmapTerrain:
+		if _terrain and _terrain.has_method("get_height_at"):
 			spawn_pos.y = _terrain.get_height_at(spawn_pos.x, spawn_pos.z)
 		_player.teleport_to(spawn_pos)
 		GameState.player_position = spawn_pos
@@ -351,7 +351,7 @@ func _spawn_local_player() -> void:
 	var spawn_pos := GameState.player_position
 	if spawn_pos == Vector3.ZERO:
 		spawn_pos = WorldConstants.DEFAULT_SPAWN
-	if _terrain and _terrain is HeightmapTerrain:
+	if _terrain and _terrain.has_method("get_height_at"):
 		spawn_pos.y = _terrain.get_height_at(spawn_pos.x, spawn_pos.z)
 	_player.position = spawn_pos
 	add_child(_player)

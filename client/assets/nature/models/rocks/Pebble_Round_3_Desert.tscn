@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://cs1cgg5eyi1se"]
+[gd_scene format=3 uid="uid://cs1cgg5eyi1se"]
 
 [ext_resource type="Material" uid="uid://y07v6shfgqqn" path="res://assets/nature/materials/M_PathRocks_Desert.tres" id="1_erymj"]
 

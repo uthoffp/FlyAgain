@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dm2l0ktbenvbg"]
+[gd_scene format=3 uid="uid://dm2l0ktbenvbg"]
 
 [ext_resource type="Material" uid="uid://b84scjo5cjjii" path="res://assets/nature/materials/MI_Grass_Common.tres" id="1_ygedy"]
 

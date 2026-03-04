@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://b7yi2ddmqd0b0"]
+[gd_scene format=3 uid="uid://b7yi2ddmqd0b0"]
 
 [ext_resource type="PackedScene" uid="uid://cfln0auae245d" path="res://assets/nature/textures/Mushroom_RedCap.gltf" id="1_15khb"]
 

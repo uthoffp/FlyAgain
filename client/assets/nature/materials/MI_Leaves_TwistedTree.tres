@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://beo5l0vwx1ieq"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://beo5l0vwx1ieq"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Leaves.gdshader" id="1_ylh76"]
 [ext_resource type="Texture2D" uid="uid://cx3f8uevsda3j" path="res://assets/nature/textures/Leaves_TwistedTree.png" id="2_y7ylu"]

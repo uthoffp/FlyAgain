@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://dkm187r4wwo47"]
+[gd_scene format=3 uid="uid://dkm187r4wwo47"]
 
 [ext_resource type="Material" uid="uid://crf0mgti7cejm" path="res://assets/nature/materials/MI_Leaves_Normal.tres" id="1_py2td"]
 

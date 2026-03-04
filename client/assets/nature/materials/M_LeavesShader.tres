@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://c8afab7rlg4sq"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://c8afab7rlg4sq"]
 
 [ext_resource type="Shader" path="res://assets/nature/materials/M_Leaves.gdshader" id="1_ioess"]
 [ext_resource type="Texture2D" uid="uid://c7nytlmjhhr7r" path="res://assets/nature/textures/Leaves_Birch.png" id="2_qu0go"]

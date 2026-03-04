@@ -1,4 +1,4 @@
-[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://djf3whq43b43a"]
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://djf3whq43b43a"]
 
 [ext_resource type="Texture2D" uid="uid://ctmxs321eidwi" path="res://assets/nature/textures/Rocks_Desert_Diffuse.png" id="1_32rs6"]
 
