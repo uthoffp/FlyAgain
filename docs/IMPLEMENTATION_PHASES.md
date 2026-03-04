@@ -228,29 +228,34 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] DB-Migrationen: V9 (rotation-Spalte), V10 (Seed-Daten: 4 Warrior-Skills + 5 Monster-Definitionen + 9 Spawn-Records)
 - [x] Unit-Tests: CombatEngine (14 Testfaelle), SkillSystem, MonsterAI, AIState, MonsterEntity
 
-**Server — noch offen:**
-- [ ] `DeathHandler`:
+**Server — abgeschlossen:**
+- [x] `DeathHandler`:
   - Monster stirbt: XpGain (`0x0205`) an Killer, Loot berechnen
   - Spieler stirbt: Respawn in Stadt (Aerheim), kein Item-Verlust im MVP
-- [ ] `LootSystem`:
+- [x] `LootSystem`:
   - Drop-Chance aus `loot_table` wuerfeln
-  - Loot-Ownership: 30 Sekunden fuer Killer, danach frei
-  - Loot als Entity spawnen (EntitySpawn an Spieler in Sichtweite)
-- [ ] XP + Level-Up:
-  - XP-Tabelle: Level 1-15 (z.B. Level 2 = 100 XP, Level 15 = 50.000 XP)
-  - Level-Up: Stats erhoehen, HP/MP voll auffuellen, stat_points vergeben
+  - Loot direkt ins Inventar (MVP — kein Ground-Loot)
+- [x] XP + Level-Up:
+  - XP-Kurve: `floor(100 * level^1.5)`, Level-Cap 200
+  - Level-Up: Stats erhoehen (klassenbasiert), HP/MP voll auffuellen, +3 stat_points/Level
+  - XpSystem mit 27 Tests, LootSystem mit 15 Tests, DeathHandler mit 12 Tests
+- [x] DB-Migration V11: Seed-Daten fuer 8 Items + 15 Loot-Table-Eintraege
 
-**Client:**
-- [ ] Tab-Targeting: Monster anklicken -> SelectTarget (`0x0201`)
-- [ ] Target-Frame UI: Name, HP-Balken des Targets
-- [ ] Auto-Attack: F-Taste oder Doppelklick auf Target
+**Client — abgeschlossen:**
+- [x] Tab-Targeting: Rechtsklick auf Monster + Tab-Cycling durch nahe Monster -> SelectTarget (`0x0201`)
+- [x] Target-Frame UI: Name, Level, HP-Balken des Targets (TargetFrame.gd)
+- [x] Auto-Attack: F-Taste Toggle -> ToggleAutoAttack (`0x0206`)
+- [x] Damage-Numbers: Schwebe-Zahlen bei Treffern (weiss normal, gelb Crit, rot Selbst-Schaden)
+- [x] Monster-Formen: Farbige Geometrien pro Typ (Kugel=Slime, Zylinder=Mushroom, Box=Boar, Prisma=Wolf, Wuerfel=Golem)
+- [x] Proto-Encoder/Decoder: 9 neue Combat-Nachrichten
+- [x] NetworkManager: 6 Combat-Signals + 3 Send-Methoden
+
+**Client — noch offen:**
 - [ ] Skill-Bar: 4 Slots (Tasten 1-4), Cooldown-Anzeige
-- [ ] Damage-Numbers: Schwebe-Zahlen bei Treffern (DamageEvent empfangen)
 - [ ] Tod-Screen: "Du bist gestorben" + Respawn-Button
-- [ ] Monster-Modelle: Platzhalter-Assets (z.B. Low-Poly Slimes, Pilze)
 - [ ] HP/MP-Balken: Eigene HP/MP in der UI
 - [ ] XP-Balken: Fortschrittsanzeige, Level-Up-Effekt
-- [ ] Loot-Anzeige: Drop auf dem Boden, Klick zum Aufheben
+- [ ] Loot-Anzeige: Inventar-Popup bei Loot-Erhalt
 
 **Seed-Daten (Server DB — implementiert in V10):**
 ```
@@ -270,11 +275,11 @@ Monster (Green Plains):
 
 **Akzeptanzkriterien:**
 - Monster stehen in der Zone und haben AI (Aggro, Angriff, Return, Dead/Respawn) ✅ (Server)
-- Tab-Targeting und Auto-Attack funktionieren ✅ (Server) / ❌ (Client-UI)
-- 4 Skills mit Cooldowns und MP-Kosten ✅ (Server) / ❌ (Client-UI)
-- Monster sterben, droppen Loot und XP — ❌ (Death/Loot/XP-System noch offen)
-- Level-Up von 1 auf 15 moeglich durch Grinding — ❌ (XP/Level-Up noch offen)
-- Spieler-Tod -> Respawn in Aerheim — ❌ (DeathHandler noch offen)
+- Tab-Targeting und Auto-Attack funktionieren ✅ (Server + Client)
+- 4 Skills mit Cooldowns und MP-Kosten ✅ (Server) / ❌ (Client Skill-Bar UI)
+- Monster sterben, droppen Loot und XP ✅ (Server: DeathHandler + LootSystem + XpSystem)
+- Level-Up von 1 auf 200 moeglich durch Grinding ✅ (Server: XP-Kurve 100*lvl^1.5)
+- Spieler-Tod -> Respawn in Aerheim ✅ (Server: DeathHandler) / ❌ (Client Tod-Screen)
 
 ---
 
@@ -694,21 +699,23 @@ miteinander zu interagieren und gegeneinander anzutreten.
     - Sprung-Mechanik: Leertaste, Gravitation, Jump-Offset Sync ueber Netzwerk
     - Flugmechanik: Abheben/Landen-Toggle, Steigen/Sinken (fly_up/fly_down)
     - Zone-Wechsel: Ladescreen-Overlay, ZonePortal-Trigger, Terrain-/Entity-Swap, Player-Repositionierung
-**Schritt 1.5** (Kampfsystem/Monster-AI) — Server-seitig abgeschlossen (~50% gesamt). 🔧
-  - Server (abgeschlossen):
+**Schritt 1.5** (Kampfsystem/Monster-AI) — Server komplett, Client Kern-Combat fertig (~80% gesamt). 🔧
+  - Server (komplett abgeschlossen):
     - CombatEngine: Schadensformel, Crit-System (10%, 1.5x), Min-Damage 1, Auto-Attack-Loop
     - SkillSystem: Skill-Laden aus DB, Validierung (Existenz, MP, Cooldown, Range, Target), DamageEvent-Broadcast
     - SelectTargetHandler: Target-Validierung, HP/Name/Level-Response
     - ToggleAutoAttackHandler: Server-seitiger Auto-Attack-Toggle
     - MonsterAI: Vollstaendige State-Machine (IDLE → AGGRO → ATTACK → RETURN → DEAD mit Respawn)
     - MonsterEntity: Spawning aus DB, Respawn-Timer, AI-State-Tracking
-    - DB-Migrationen: V9 (rotation), V10 (4 Warrior-Skills + 5 Monster-Definitionen + 9 Spawns)
-    - Game-Loop-Integration: Monster-AI + Auto-Attack im 20Hz-Loop
-    - Tests: CombatEngine (14 Faelle), SkillSystem, MonsterAI, AIState, MonsterEntity
-  - Server (offen): DeathHandler, LootSystem, XP/Level-Up-System
-  - Client (offen): Tab-Targeting-UI, Skill-Bar, Damage-Numbers, HP/MP-Balken, XP-Balken, Tod-Screen
+    - DeathHandler: Monster-Tod (XP/Loot), Spieler-Tod (Respawn, kein Item-Verlust)
+    - XpSystem: XP-Kurve (100*lvl^1.5), Multi-Level-Up, klassenbasierte Stats, Level-Cap 200
+    - LootSystem: Drop-Chance-Rolling, Gold-Berechnung, direkt ins Inventar
+    - DB-Migrationen: V9 (rotation), V10 (Skills/Monster/Spawns), V11 (Items/Loot-Tables)
+    - Game-Loop-Integration: Monster-AI + Auto-Attack + Death-Resolution im 20Hz-Loop
+    - Tests: CombatEngine (14), SkillSystem, MonsterAI, AIState, MonsterEntity, XpSystem (27), LootSystem (15), DeathHandler (12)
+  - Client (abgeschlossen): Tab-Targeting, Target-Frame, Auto-Attack, Damage-Numbers, Monster-Formen, Proto-Encoder/Decoder, Combat-Signals
+  - Client (offen): Skill-Bar, Tod-Screen, HP/MP-Balken, XP-Balken, Loot-Anzeige
 
 **Naechste Prioritaeten:**
-1. Phase 1.5 Server: DeathHandler, LootSystem, XP/Level-Up-System
-2. Phase 1.5 Client: Tab-Targeting-UI, Skill-Bar, Damage-Numbers, HP/MP-Balken, Monster-Modelle
-3. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
+1. Phase 1.5 Client: Skill-Bar, Tod-Screen, HP/MP-Balken, XP-Balken, Loot-Anzeige
+2. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
