@@ -3,6 +3,7 @@ package com.flyagain.world.gameloop
 import com.flyagain.common.logging.MdcHelper
 import com.flyagain.world.ai.MonsterAI
 import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.DeathHandler
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.handler.MovementHandler
@@ -35,6 +36,7 @@ class GameLoop(
     private val movementHandler: MovementHandler,
     private val monsterAI: MonsterAI,
     private val combatEngine: CombatEngine,
+    private val deathHandler: DeathHandler,
     private val broadcastService: BroadcastService,
     private val sessionLifecycleManager: SessionLifecycleManager,
     private val asyncScope: CoroutineScope,
@@ -184,6 +186,13 @@ class GameLoop(
             // Broadcast damage events from monster attacks
             for (damageEvent in result.damageEvents) {
                 broadcastService.broadcastDamageEvent(channel, damageEvent)
+
+                if (damageEvent.targetKilled) {
+                    val killedPlayer = entityManager.getPlayer(damageEvent.targetEntityId)
+                    if (killedPlayer != null) {
+                        deathHandler.handlePlayerDeath(killedPlayer, channel)
+                    }
+                }
             }
 
             // Broadcast monster respawns
@@ -205,6 +214,18 @@ class GameLoop(
                 val damageResult = combatEngine.processAutoAttack(player)
                 if (damageResult != null) {
                     broadcastService.broadcastDamageEvent(channel, damageResult)
+
+                    if (damageResult.targetKilled) {
+                        val killedMonster = entityManager.getMonster(damageResult.targetEntityId)
+                        if (killedMonster != null) {
+                            deathHandler.handleMonsterDeath(killedMonster, player, channel)
+                        } else {
+                            val killedPlayer = entityManager.getPlayer(damageResult.targetEntityId)
+                            if (killedPlayer != null) {
+                                deathHandler.handlePlayerDeath(killedPlayer, channel)
+                            }
+                        }
+                    }
                 }
             }
         }

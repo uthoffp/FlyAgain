@@ -3,6 +3,7 @@ package com.flyagain.world.network
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
 import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.XpSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
@@ -211,5 +212,42 @@ class BroadcastService(
      */
     fun sendToPlayer(player: PlayerEntity, packet: Packet) {
         player.tcpChannel?.writeAndFlush(packet)
+    }
+
+    /**
+     * Send an XP gain notification to a specific player.
+     */
+    fun sendXpGain(player: PlayerEntity, xpResult: XpSystem.XpResult) {
+        val xpGainMsg = XpGainMessage.newBuilder()
+            .setXpGained(xpResult.xpGained)
+            .setTotalXp(xpResult.totalXp)
+            .setXpToNextLevel(xpResult.xpToNextLevel)
+            .setCurrentLevel(xpResult.currentLevel)
+            .setLeveledUp(xpResult.leveledUp)
+            .build()
+
+        val packet = Packet(Opcode.XP_GAIN_VALUE, xpGainMsg.toByteArray())
+        sendToPlayer(player, packet)
+    }
+
+    /**
+     * Broadcast an entity stats update (e.g. after level-up) to nearby players.
+     */
+    fun broadcastEntityStatsUpdate(channel: ZoneChannel, player: PlayerEntity) {
+        val statsUpdate = EntityStatsUpdate.newBuilder()
+            .setEntityId(player.entityId)
+            .setLevel(player.level)
+            .setHp(player.hp)
+            .setMaxHp(player.maxHp)
+            .setMp(player.mp)
+            .setMaxMp(player.maxMp)
+            .setStr(player.str)
+            .setSta(player.sta)
+            .setDex(player.dex)
+            .setInt(player.`int`)
+            .build()
+
+        val packet = Packet(Opcode.ENTITY_STATS_UPDATE_VALUE, statsUpdate.toByteArray())
+        sendToNearby(channel, player.x, player.z, -1, packet)
     }
 }
