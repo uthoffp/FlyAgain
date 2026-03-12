@@ -12,3 +12,5 @@ extends Resource
 @export var use_multimesh: bool = false     # GPU instancing (no collision)
 @export var collision_enabled: bool = false
 @export var min_spacing: float = 1.0
+@export var visibility_range: float = 80.0  # max render distance (0 = unlimited)
+@export var visibility_fade_margin: float = 10.0  # fade-out zone before cutoff

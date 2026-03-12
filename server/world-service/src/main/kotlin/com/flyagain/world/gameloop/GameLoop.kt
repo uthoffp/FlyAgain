@@ -5,6 +5,7 @@ import com.flyagain.world.ai.MonsterAI
 import com.flyagain.world.combat.CombatEngine
 import com.flyagain.world.combat.DeathHandler
 import com.flyagain.world.entity.EntityManager
+import com.flyagain.world.entity.EntitySpawnBuilder
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.handler.MovementHandler
 import com.flyagain.world.network.BroadcastService
@@ -140,10 +141,13 @@ class GameLoop(
         // 4. Process player auto-attacks
         processAutoAttacks()
 
-        // 5. Broadcast state changes
+        // 5. Update entity visibility (spawn/despawn entities entering/leaving range)
+        updateVisibility()
+
+        // 6. Broadcast state changes
         broadcastStateChanges()
 
-        // 6. Periodic persistence
+        // 7. Periodic persistence
         if (now - lastPersistenceTime >= persistenceIntervalMs) {
             lastPersistenceTime = now
             persistDirtyCharacters()
@@ -174,6 +178,9 @@ class GameLoop(
             for (player in channel.getAllPlayers()) {
                 if (player.isMoving) {
                     movementHandler.applyMovement(player, deltaMs, channel)
+                } else if (player.jumpOffset != 0f) {
+                    // Player is jumping in place — broadcast the visual offset
+                    broadcastService.queuePositionUpdate(player, channel)
                 }
             }
         }
@@ -182,6 +189,11 @@ class GameLoop(
     private fun updateMonsterAI(deltaMs: Long) {
         for (channel in zoneManager.getAllChannels()) {
             val result = monsterAI.updateChannel(channel, deltaMs)
+
+            // Broadcast monster position updates
+            for (monster in result.movedMonsters) {
+                broadcastService.broadcastMonsterPositionUpdate(channel, monster)
+            }
 
             // Broadcast damage events from monster attacks
             for (damageEvent in result.damageEvents) {
@@ -225,6 +237,57 @@ class GameLoop(
                                 deathHandler.handlePlayerDeath(killedPlayer, channel)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * For each player, compare the current set of nearby entities against knownEntities.
+     * Send ENTITY_SPAWN for newly visible entities and ENTITY_DESPAWN for entities that left range.
+     * Also removes dead monsters from knownEntities so respawns trigger a fresh spawn message.
+     */
+    private fun updateVisibility() {
+        for (channel in zoneManager.getAllChannels()) {
+            for (player in channel.getAllPlayers()) {
+                val currentNearby = channel.getNearbyEntities(player.x, player.z)
+                val known = player.knownEntities
+
+                // Entities that entered range: in currentNearby but not in known
+                for (entityId in currentNearby) {
+                    if (entityId == player.entityId) continue
+                    if (known.contains(entityId)) continue
+
+                    // New entity — send spawn
+                    val otherPlayer = entityManager.getPlayer(entityId)
+                    if (otherPlayer != null) {
+                        broadcastService.sendEntitySpawnToPlayer(player, EntitySpawnBuilder.buildPlayerSpawn(otherPlayer))
+                        known.add(entityId)
+                        continue
+                    }
+
+                    val monster = entityManager.getMonster(entityId)
+                    if (monster != null && monster.isAlive()) {
+                        broadcastService.sendEntitySpawnToPlayer(player, EntitySpawnBuilder.buildMonsterSpawn(monster))
+                        known.add(entityId)
+                    }
+                }
+
+                // Entities that left range: in known but not in currentNearby
+                val iter = known.iterator()
+                while (iter.hasNext()) {
+                    val entityId = iter.next()
+                    if (!currentNearby.contains(entityId)) {
+                        broadcastService.sendEntityDespawnToPlayer(player, entityId)
+                        iter.remove()
+                        continue
+                    }
+                    // Also remove dead monsters so respawn triggers a fresh spawn
+                    val monster = entityManager.getMonster(entityId)
+                    if (monster != null && !monster.isAlive()) {
+                        broadcastService.sendEntityDespawnToPlayer(player, entityId)
+                        iter.remove()
                     }
                 }
             }

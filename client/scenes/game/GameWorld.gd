@@ -8,6 +8,7 @@ extends Node3D
 const PlayerCharacterScene := preload("res://scenes/game/PlayerCharacter.tscn")
 const ZonePortalScene := preload("res://scenes/game/ZonePortal.tscn")
 const FlyButtonScene := preload("res://scenes/ui/components/FlyButton.tscn")
+const DamageNumber := preload("res://scenes/game/DamageNumber.gd")
 
 const ZONE_TERRAINS: Dictionary = {
 	WorldConstants.ZONE_AERHEIM: preload("res://scenes/game/terrain/AerheimTerrain.tscn"),
@@ -41,7 +42,6 @@ var _terrain: Node3D = null
 var _logout_dialog: ConfirmationDialog = null
 var _portals: Array[Area3D] = []
 var _is_zone_transitioning: bool = false
-var _current_cycle_index: int = -1
 var _target_frame: PanelContainer = null
 
 # Loading overlay nodes
@@ -218,6 +218,19 @@ func _setup_hud() -> void:
 	_logout_dialog.confirmed.connect(_on_logout_confirmed)
 	hud_root.add_child(_logout_dialog)
 
+	# Player frame — top-left
+	var player_margin := MarginContainer.new()
+	player_margin.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	player_margin.add_theme_constant_override("margin_top", 16)
+	player_margin.add_theme_constant_override("margin_left", 16)
+	player_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_root.add_child(player_margin)
+
+	var PlayerFrameScript := preload("res://scenes/ui/game_hud/PlayerFrame.gd")
+	var player_frame := PanelContainer.new()
+	player_frame.set_script(PlayerFrameScript)
+	player_margin.add_child(player_frame)
+
 	# Target frame — top-center
 	var target_center := CenterContainer.new()
 	target_center.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -317,13 +330,20 @@ func _on_zone_data(data: Dictionary) -> void:
 	# Clear target and existing remote entities
 	_deselect_current_target()
 	GameState.auto_attack_active = false
-	_current_cycle_index = -1
+	if _player:
+		_player.cancel_approach()
 	_entity_factory.clear_all()
 
-	# Reposition local player to zone spawn
+	# Reposition local player to server-authoritative position
 	if _player and is_instance_valid(_player):
-		var spawn_pos: Vector3 = WorldConstants.ZONE_SPAWNS.get(
-			GameState.current_zone_id, WorldConstants.DEFAULT_SPAWN)
+		var pos_data: Dictionary = data.get("player_position", {})
+		var spawn_pos := Vector3(
+			pos_data.get("x", 0.0),
+			pos_data.get("y", 0.0),
+			pos_data.get("z", 0.0))
+		if spawn_pos == Vector3.ZERO:
+			spawn_pos = WorldConstants.ZONE_SPAWNS.get(
+				GameState.current_zone_id, WorldConstants.DEFAULT_SPAWN)
 		if _terrain and _terrain.has_method("get_height_at"):
 			spawn_pos.y = _terrain.get_height_at(spawn_pos.x, spawn_pos.z)
 		_player.teleport_to(spawn_pos)
@@ -396,38 +416,35 @@ func _spawn_local_player() -> void:
 	_player.target_selected.connect(_on_player_target_selected)
 	_player.target_cleared.connect(_on_player_target_cleared)
 	_player.auto_attack_toggled.connect(_on_player_auto_attack_toggled)
+	_player.approach_in_range.connect(_on_player_approach_in_range)
 
 
 # ---- Combat / Targeting ----
 
-## Player requested a target selection (right-click on entity, or Tab cycle).
+## Player requested a target selection (click on entity).
 func _on_player_target_selected(entity_id: int) -> void:
-	if entity_id == -1:
-		# Tab cycle: pick next nearby monster
-		if not _player:
-			return
-		var monsters := _entity_factory.get_nearby_monsters(_player.global_position)
-		if monsters.is_empty():
-			return
-		_current_cycle_index = (_current_cycle_index + 1) % monsters.size()
-		var next_id: int = monsters[_current_cycle_index]["entity_id"]
-		NetworkManager.send_select_target(next_id)
-	else:
-		_current_cycle_index = -1
-		NetworkManager.send_select_target(entity_id)
+	NetworkManager.send_select_target(entity_id)
 
 
 ## Player pressed Escape to clear their target.
 func _on_player_target_cleared() -> void:
 	NetworkManager.send_select_target(0)
 	_deselect_current_target()
-	_current_cycle_index = -1
+	if _player:
+		_player.cancel_approach()
 
 
 ## Player toggled auto-attack (F key).
 func _on_player_auto_attack_toggled(enable: bool, target_id: int) -> void:
 	if target_id > 0:
 		NetworkManager.send_toggle_auto_attack(enable, target_id)
+
+
+## Player approached target and is now in attack range.
+func _on_player_approach_in_range(entity_id: int) -> void:
+	if entity_id > 0:
+		print("[Combat] Sending auto-attack toggle (enable=true) for entity %d" % entity_id)
+		NetworkManager.send_toggle_auto_attack(true, entity_id)
 
 
 ## Server confirmed target selection.
@@ -452,16 +469,21 @@ func _on_select_target_response(data: Dictionary) -> void:
 
 ## A damage event occurred (us hitting something, or something hitting us).
 func _on_damage_event(data: Dictionary) -> void:
+	print("[Combat] Damage event: %s" % str(data))
 	var target_id: int = data.get("target_entity_id", 0)
-	var new_hp: int = data.get("target_hp", 0)
-	# Update the entity's HP in the scene
-	var entity := _entity_factory.get_entity(target_id)
-	if entity and is_instance_valid(entity) and entity.has_method("update_hp"):
-		entity.update_hp(new_hp)
+	var new_hp: int = data.get("target_current_hp", 0)
+	# If we are the target, update our own HP
+	if target_id == GameState.my_entity_id:
+		GameState.player_hp = new_hp
+	else:
+		# Update the remote entity's HP in the scene
+		var entity := _entity_factory.get_entity(target_id)
+		if entity and is_instance_valid(entity) and entity.has_method("update_hp"):
+			entity.update_hp(new_hp)
 	# Update GameState target HP if this is our current target
 	if target_id == GameState.selected_target_id:
 		GameState.selected_target_hp = new_hp
-	# Spawn floating damage number (stub for Task 9)
+	# Spawn floating damage number
 	_spawn_damage_number(data)
 
 
@@ -472,12 +494,20 @@ func _on_entity_death(data: Dictionary) -> void:
 	if dead_id == GameState.selected_target_id:
 		_deselect_current_target()
 		GameState.auto_attack_active = false
-		_current_cycle_index = -1
+		if _player:
+			_player.cancel_approach()
+	# Untrack the entity so it won't receive further updates, then play
+	# a death animation. The node frees itself after the animation.
+	var entity := _entity_factory.untrack_entity(dead_id)
+	if entity and is_instance_valid(entity) and entity.has_method("play_death_effect"):
+		entity.play_death_effect()
+	elif entity and is_instance_valid(entity):
+		entity.queue_free()
 
 
 ## We gained XP (e.g. from killing a monster).
 func _on_xp_gained(data: Dictionary) -> void:
-	GameState.player_xp = data.get("current_xp", GameState.player_xp)
+	GameState.player_xp = data.get("total_xp", GameState.player_xp)
 	GameState.player_xp_to_next_level = data.get("xp_to_next_level", GameState.player_xp_to_next_level)
 	var new_level: int = data.get("current_level", 0)
 	if new_level > 0:
@@ -486,7 +516,7 @@ func _on_xp_gained(data: Dictionary) -> void:
 
 ## Server confirmed auto-attack toggle.
 func _on_auto_attack_response(data: Dictionary) -> void:
-	GameState.auto_attack_active = data.get("active", false)
+	GameState.auto_attack_active = data.get("auto_attacking", false)
 
 
 ## Server sent updated stats for an entity (could be us or our target).
@@ -519,6 +549,26 @@ func _deselect_current_target() -> void:
 
 
 ## Spawn a floating damage number above the damaged entity.
-## Stub for now — full implementation in Task 9.
-func _spawn_damage_number(_data: Dictionary) -> void:
-	pass
+func _spawn_damage_number(data: Dictionary) -> void:
+	var target_id: int = data.get("target_entity_id", 0)
+	var damage: int = data.get("damage", 0)
+	var is_critical: bool = data.get("is_critical", false)
+	var attacker_id: int = data.get("attacker_entity_id", 0)
+
+	# Determine spawn position: above the target entity or above the player
+	var spawn_pos := Vector3.ZERO
+	var is_self_damage := (target_id == GameState.my_entity_id)
+
+	if is_self_damage and _player and is_instance_valid(_player):
+		spawn_pos = _player.global_position + Vector3(0, 2.5, 0)
+	else:
+		var entity := _entity_factory.get_entity(target_id)
+		if entity and is_instance_valid(entity):
+			spawn_pos = entity.global_position + Vector3(0, 2.5, 0)
+		else:
+			return  # No entity to attach the number to
+
+	var dmg_label := DamageNumber.new()
+	dmg_label.setup(damage, is_critical, is_self_damage)
+	get_tree().current_scene.add_child(dmg_label)
+	dmg_label.global_position = spawn_pos

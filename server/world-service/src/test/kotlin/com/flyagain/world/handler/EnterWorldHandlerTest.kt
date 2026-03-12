@@ -318,6 +318,7 @@ class EnterWorldHandlerTest {
         // Since ZoneManager is not an interface, we mock it directly.
         val mockedZoneManager = mockk<ZoneManager>()
         every { mockedZoneManager.zoneExists(any()) } returns true
+        every { mockedZoneManager.getSpawnPosition(any()) } returns Triple(500f, 0f, 500f)
         every { mockedZoneManager.addPlayerToZone(any(), any()) } returns null
 
         val mockedHandler = EnterWorldHandler(

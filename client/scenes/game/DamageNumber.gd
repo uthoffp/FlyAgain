@@ -13,8 +13,8 @@ var _velocity: Vector3
 func _ready() -> void:
 	billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	no_depth_test = true
-	font_size = 32
-	outline_size = 4
+	font_size = 64
+	outline_size = 8
 	outline_modulate = Color(0, 0, 0, 0.8)
 	# Random horizontal spread
 	var rng_x := randf_range(-SPREAD, SPREAD)
@@ -27,7 +27,7 @@ func setup(damage: int, is_critical: bool, is_self_damage: bool) -> void:
 	if is_critical:
 		text = str(damage) + "!"
 		modulate = Color(1.0, 0.9, 0.2)  # Yellow for crits
-		font_size = 42
+		font_size = 80
 	elif is_self_damage:
 		modulate = Color(1.0, 0.3, 0.3)  # Red for damage taken
 	else:

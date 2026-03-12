@@ -102,6 +102,58 @@ class MovementHandler(
 
         // Pass through jump offset for visual sync (client-authoritative visual)
         player.jumpOffset = input.jumpOffset
+
+        // Reconcile server position with the client's claimed position when the
+        // player stops moving. The server independently computes position from
+        // direction vectors, which can drift from the client's predicted position
+        // due to frame-rate and float-precision differences. Reconciling on stop
+        // ensures combat range checks and monster aggro use an accurate position.
+        if (!input.isMoving && input.hasPosition()) {
+            reconcileStoppedPosition(player, input.position)
+        }
+    }
+
+    /**
+     * Accept the client's claimed position when the player stops, if it passes
+     * basic speed and bounds validation. Also updates the spatial grid so that
+     * monster aggro and interest management reflect the correct position.
+     */
+    private fun reconcileStoppedPosition(player: PlayerEntity, clientPos: Position) {
+        val cx = clientPos.x
+        val cy = clientPos.y
+        val cz = clientPos.z
+
+        // Reject NaN/Infinity
+        if (!cx.isFinite() || !cy.isFinite() || !cz.isFinite()) return
+
+        // World boundary check
+        if (cx < WORLD_BOUNDARY_MIN || cx > WORLD_BOUNDARY_MAX ||
+            cz < WORLD_BOUNDARY_MIN || cz > WORLD_BOUNDARY_MAX ||
+            cy < MIN_Y_POSITION || cy > MAX_Y_POSITION) return
+
+        // Ground height check for non-flying
+        if (!player.isFlying && cy > MAX_TERRAIN_HEIGHT + GROUND_TOLERANCE) return
+
+        // Speed check: client position must be reachable (within 1s of movement)
+        val ddx = cx - player.x
+        val ddy = cy - player.y
+        val ddz = cz - player.z
+        val dist = sqrt((ddx * ddx + ddy * ddy + ddz * ddz).toDouble()).toFloat()
+        val speed = if (player.isFlying) FLY_MOVE_SPEED else GROUND_MOVE_SPEED
+        val maxDrift = (speed + player.dex * 0.05f) * SPEED_TOLERANCE
+
+        if (dist > maxDrift) {
+            // Drift too large — keep server position; applyMovement will correct
+            return
+        }
+
+        player.x = cx
+        player.y = cy
+        player.z = cz
+        player.markDirty()
+
+        val channel = zoneManager.getChannel(player.zoneId, player.channelId)
+        channel?.updatePlayerPosition(player.entityId, cx, cz)
     }
 
     /**

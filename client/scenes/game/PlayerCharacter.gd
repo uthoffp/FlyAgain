@@ -9,6 +9,7 @@ extends CharacterBody3D
 signal target_selected(entity_id: int)
 signal target_cleared()
 signal auto_attack_toggled(enable: bool, target_id: int)
+signal approach_in_range(entity_id: int)
 
 ## Adjust in the editor if the model clips into or floats above the ground.
 @export var model_y_offset: float = 0.0
@@ -44,10 +45,22 @@ const CLICK_ARRIVE_THRESHOLD := 0.5
 const CLICK_RAYCAST_LENGTH := 1000.0
 const CLICK_STALL_TIMEOUT := 1.5
 
+# Auto-run (double-tap W to toggle)
+var _auto_run: bool = false
+var _last_forward_press_time: float = 0.0
+const DOUBLE_TAP_THRESHOLD := 0.3  # seconds
+
 # Right-click targeting state (distinguishes quick clicks from camera drags)
 var _right_click_start_pos: Vector2 = Vector2.ZERO
 var _right_click_pressed: bool = false
-const TARGET_CLICK_THRESHOLD := 5.0  # Max pixel movement to count as a click
+var _right_click_press_time: float = 0.0
+const TARGET_CLICK_TIME_THRESHOLD := 0.25  # Max seconds to count as a click (not drag)
+
+# Approach-to-attack state (walk toward selected entity, auto-attack when in range)
+var _approach_entity: Node3D = null
+var _approach_entity_id: int = 0
+var _pending_target_id: int = 0  # Set on first click, before server confirms
+const APPROACH_ATTACK_RANGE := 2.0
 
 
 func _ready() -> void:
@@ -74,36 +87,45 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Left-click: click-to-move
+	# Left-click: target entity if hit, otherwise click-to-move
 	if event is InputEventMouseButton \
 			and event.button_index == MOUSE_BUTTON_LEFT \
 			and event.pressed \
-			and not _is_flying \
 			and not _camera_pivot.is_rotating():
-		_try_click_to_move(event.position)
+		if not _try_target_entity(event.position):
+			if not _is_flying:
+				_try_click_to_move(event.position)
 
 	# Right-click: target entity (only on quick clicks, not camera drags)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		if event.pressed:
 			_right_click_start_pos = event.position
 			_right_click_pressed = true
+			_right_click_press_time = Time.get_ticks_msec() / 1000.0
 		elif _right_click_pressed:
 			_right_click_pressed = false
-			if event.position.distance_to(_right_click_start_pos) < TARGET_CLICK_THRESHOLD:
+			var held_time := Time.get_ticks_msec() / 1000.0 - _right_click_press_time
+			if held_time < TARGET_CLICK_TIME_THRESHOLD:
 				_try_target_entity(_right_click_start_pos)
 
-	# Tab: cycle to next nearby monster
+	# Double-tap W: toggle auto-run
+	if event.is_action_pressed("move_forward") and not event.is_echo():
+		var now := Time.get_ticks_msec() / 1000.0
+		if _auto_run:
+			_auto_run = false
+		elif now - _last_forward_press_time < DOUBLE_TAP_THRESHOLD:
+			_auto_run = true
+		_last_forward_press_time = now
+
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
-			KEY_TAB:
-				target_selected.emit(-1)
-				get_viewport().set_input_as_handled()
 			KEY_F:
 				auto_attack_toggled.emit(
 					not GameState.auto_attack_active,
 					GameState.selected_target_id)
 				get_viewport().set_input_as_handled()
 			KEY_ESCAPE:
+				_pending_target_id = 0
 				target_cleared.emit()
 				get_viewport().set_input_as_handled()
 
@@ -115,9 +137,11 @@ func _physics_process(delta: float) -> void:
 	_handle_flight_input()
 	_handle_jump_input()
 
-	# WASD cancels click-to-move
+	# WASD cancels click-to-move and approach
 	if has_wasd and _has_click_target:
 		_cancel_click_to_move()
+	if has_wasd and _approach_entity:
+		cancel_approach()
 
 	# Determine final movement direction
 	var direction: Vector3
@@ -126,6 +150,25 @@ func _physics_process(delta: float) -> void:
 	if has_wasd:
 		direction = wasd_direction
 		is_moving = true
+	elif _approach_entity:
+		if not is_instance_valid(_approach_entity) or _approach_entity.hp <= 0:
+			cancel_approach()
+			direction = Vector3.ZERO
+			is_moving = false
+		else:
+			var to_entity := _approach_entity.global_position - global_position
+			to_entity.y = 0.0
+			var dist := to_entity.length()
+			if dist <= APPROACH_ATTACK_RANGE:
+				var eid := _approach_entity_id
+				print("[Combat] Approach in range (dist=%.2f, threshold=%.1f) -> entity %d" % [dist, APPROACH_ATTACK_RANGE, eid])
+				cancel_approach()
+				approach_in_range.emit(eid)
+				direction = Vector3.ZERO
+				is_moving = false
+			else:
+				direction = to_entity.normalized()
+				is_moving = true
 	elif _has_click_target and not _is_flying:
 		direction = _get_click_direction()
 		is_moving = direction.length_squared() > 0.001
@@ -169,17 +212,14 @@ func _physics_process(delta: float) -> void:
 ## Build the WASD movement direction vector relative to the camera.
 func _get_wasd_direction() -> Vector3:
 	var cam_forward: Vector3 = _camera_pivot.get_camera_forward()
-	var cam_right: Vector3 = _camera_pivot.get_camera_right()
 
 	var input_dir := Vector3.ZERO
-	if Input.is_action_pressed("move_forward"):
+	if _auto_run or Input.is_action_pressed("move_forward"):
 		input_dir += cam_forward
 	if Input.is_action_pressed("move_backward"):
 		input_dir -= cam_forward
-	if Input.is_action_pressed("move_left"):
-		input_dir -= cam_right
-	if Input.is_action_pressed("move_right"):
-		input_dir += cam_right
+		_auto_run = false
+	# A/D handled by ThirdPersonCamera (yaw rotation), not strafing
 
 	# Vertical movement when flying
 	if _is_flying:
@@ -194,25 +234,27 @@ func _get_wasd_direction() -> Vector3:
 # ---- Target selection ----
 
 ## Raycast from camera to find a targetable entity at the clicked screen position.
-func _try_target_entity(screen_pos: Vector2) -> void:
+## Returns true if an entity was found and targeted.
+func _try_target_entity(screen_pos: Vector2) -> bool:
 	var camera: Camera3D = _camera_pivot.get_node("SpringArm3D/Camera3D")
 	if not camera:
-		return
+		return false
 	var from: Vector3 = camera.project_ray_origin(screen_pos)
 	var to: Vector3 = from + camera.project_ray_normal(screen_pos) * CLICK_RAYCAST_LENGTH
 
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 0xFFFFFFFF  # Check all layers for entities
+	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 
 	if result.is_empty():
-		return
+		return false
 
 	# Check if we hit an entity (directly or via parent)
 	var collider: Node = result.get("collider")
 	if not collider:
-		return
+		return false
 
 	var entity: Node = null
 	if collider is CharacterBody3D and collider.has_method("set_selected"):
@@ -221,7 +263,14 @@ func _try_target_entity(screen_pos: Vector2) -> void:
 		entity = collider.get_parent()
 
 	if entity and entity.hp > 0:
-		target_selected.emit(entity.entity_id)
+		if entity.entity_id == GameState.selected_target_id or entity.entity_id == _pending_target_id:
+			_start_approach(entity)
+		else:
+			cancel_approach()
+			_pending_target_id = entity.entity_id
+			target_selected.emit(entity.entity_id)
+		return true
+	return false
 
 
 # ---- Click-to-Move ----
@@ -237,16 +286,49 @@ func _try_click_to_move(screen_pos: Vector2) -> void:
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.collision_mask = 1
+	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 
 	if result.is_empty():
+		# Physics raycast missed — fall back to projecting onto terrain heightmap.
+		var fallback := _project_click_to_terrain(camera, screen_pos)
+		if fallback == Vector3.ZERO:
+			return
+		_auto_run = false
+		cancel_approach()
+		_click_target = fallback
+		_has_click_target = true
+		_click_stall_timer = 0.0
+		_last_click_distance = (_click_target - global_position).length()
+		_show_click_marker(_click_target)
 		return
 
+	_auto_run = false
+	cancel_approach()
 	_click_target = result["position"]
 	_has_click_target = true
 	_click_stall_timer = 0.0
 	_last_click_distance = (_click_target - global_position).length()
 	_show_click_marker(_click_target)
+
+
+## Project a screen click onto the terrain heightmap (fallback when physics raycast misses).
+func _project_click_to_terrain(camera: Camera3D, screen_pos: Vector2) -> Vector3:
+	if not _terrain:
+		return Vector3.ZERO
+	var origin := camera.project_ray_origin(screen_pos)
+	var dir := camera.project_ray_normal(screen_pos)
+	# Ray must be pointing downward to hit the ground plane.
+	if absf(dir.y) < 0.001:
+		return Vector3.ZERO
+	var ground_y := global_position.y
+	var t := (ground_y - origin.y) / dir.y
+	if t < 0.0:
+		return Vector3.ZERO
+	var hit_x := origin.x + dir.x * t
+	var hit_z := origin.z + dir.z * t
+	var terrain_y := _get_terrain_height(hit_x, hit_z)
+	return Vector3(hit_x, terrain_y, hit_z)
 
 
 ## Compute direction toward the click-to-move target (XZ plane only).
@@ -263,6 +345,20 @@ func _cancel_click_to_move() -> void:
 	_has_click_target = false
 	_click_stall_timer = 0.0
 	_hide_click_marker()
+
+
+## Start approaching the given entity for melee attack.
+func _start_approach(entity_node: Node3D) -> void:
+	_approach_entity = entity_node
+	_approach_entity_id = entity_node.entity_id
+	_cancel_click_to_move()
+	_auto_run = false
+
+
+## Cancel the current approach-to-attack.
+func cancel_approach() -> void:
+	_approach_entity = null
+	_approach_entity_id = 0
 
 
 ## Detect if click-to-move is stuck (at boundary or obstacle).
@@ -343,6 +439,8 @@ func teleport_to(pos: Vector3) -> void:
 	global_position = pos
 	_predictor.set_position(pos)
 	_cancel_click_to_move()
+	cancel_approach()
+	_auto_run = false
 	_is_flying = false
 	_predictor.set_flying(false)
 	_jump_offset = 0.0

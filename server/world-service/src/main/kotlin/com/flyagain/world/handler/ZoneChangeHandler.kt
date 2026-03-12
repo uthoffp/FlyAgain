@@ -3,6 +3,7 @@ package com.flyagain.world.handler
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
 import com.flyagain.world.entity.EntityManager
+import com.flyagain.world.entity.EntitySpawnBuilder
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.session.SessionLifecycleManager
@@ -66,6 +67,11 @@ class ZoneChangeHandler(
         val oldChannel = zoneManager.getChannel(player.zoneId, player.channelId)
         if (oldChannel != null) {
             broadcastService.broadcastEntityDespawn(oldChannel, player.entityId, player.x, player.z)
+            // Remove departing player from nearby players' knownEntities
+            for (entityId in oldChannel.getNearbyEntities(player.x, player.z)) {
+                val otherPlayer = oldChannel.getPlayer(entityId) ?: continue
+                otherPlayer.knownEntities.remove(player.entityId)
+            }
             oldChannel.removePlayer(player.entityId)
         }
 
@@ -162,23 +168,10 @@ class ZoneChangeHandler(
     }
 
     private fun setDefaultSpawnPosition(player: PlayerEntity, zoneId: Int) {
-        when (zoneId) {
-            ZoneManager.ZONE_AERHEIM -> {
-                player.x = ZoneManager.DEFAULT_SPAWN_X
-                player.y = ZoneManager.DEFAULT_SPAWN_Y
-                player.z = ZoneManager.DEFAULT_SPAWN_Z
-            }
-            ZoneManager.ZONE_GREEN_PLAINS -> {
-                player.x = 200f
-                player.y = 0f
-                player.z = 200f
-            }
-            ZoneManager.ZONE_DARK_FOREST -> {
-                player.x = 100f
-                player.y = 0f
-                player.z = 100f
-            }
-        }
+        val (spawnX, spawnY, spawnZ) = zoneManager.getSpawnPosition(zoneId)
+        player.x = spawnX
+        player.y = spawnY
+        player.z = spawnZ
         player.isFlying = false
     }
 
@@ -190,18 +183,23 @@ class ZoneChangeHandler(
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
         val spawnMessages = mutableListOf<EntitySpawnMessage>()
 
+        // Clear and re-seed knownEntities for the new zone/channel
+        player.knownEntities.clear()
+
         for (entityId in nearbyEntityIds) {
             if (entityId == player.entityId) continue
 
             val otherPlayer = entityManager.getPlayer(entityId)
             if (otherPlayer != null) {
-                spawnMessages.add(buildPlayerSpawn(otherPlayer))
+                spawnMessages.add(EntitySpawnBuilder.buildPlayerSpawn(otherPlayer))
+                player.knownEntities.add(entityId)
                 continue
             }
 
             val monster = entityManager.getMonster(entityId)
             if (monster != null && monster.isAlive()) {
-                spawnMessages.add(buildMonsterSpawn(monster))
+                spawnMessages.add(EntitySpawnBuilder.buildMonsterSpawn(monster))
+                player.knownEntities.add(entityId)
             }
         }
 
@@ -210,13 +208,16 @@ class ZoneChangeHandler(
             .setChannelId(player.channelId)
             .setZoneName(zoneManager.getZoneName(player.zoneId))
             .addAllEntities(spawnMessages)
+            .setMyEntityId(player.entityId)
+            .setPlayerPosition(Position.newBuilder()
+                .setX(player.x).setY(player.y).setZ(player.z).build())
             .build()
 
         ctx.writeAndFlush(Packet(Opcode.ZONE_DATA_VALUE, zoneData.toByteArray()))
     }
 
     private fun broadcastPlayerSpawn(player: PlayerEntity, channel: ZoneChannel) {
-        val spawnMsg = buildPlayerSpawn(player)
+        val spawnMsg = EntitySpawnBuilder.buildPlayerSpawn(player)
         val packet = Packet(Opcode.ENTITY_SPAWN_VALUE, spawnMsg.toByteArray())
 
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
@@ -224,36 +225,9 @@ class ZoneChangeHandler(
             if (entityId == player.entityId) continue
             val otherPlayer = channel.getPlayer(entityId) ?: continue
             otherPlayer.tcpChannel?.writeAndFlush(packet)
+            // Add new player to nearby players' knownEntities
+            otherPlayer.knownEntities.add(player.entityId)
         }
-    }
-
-    private fun buildPlayerSpawn(player: PlayerEntity): EntitySpawnMessage {
-        return EntitySpawnMessage.newBuilder()
-            .setEntityId(player.entityId)
-            .setEntityType(0)
-            .setName(player.name)
-            .setPosition(Position.newBuilder()
-                .setX(player.x).setY(player.y).setZ(player.z).build())
-            .setRotation(player.rotation)
-            .setLevel(player.level)
-            .setHp(player.hp)
-            .setMaxHp(player.maxHp)
-            .setCharacterClass(player.characterClass)
-            .setIsFlying(player.isFlying)
-            .build()
-    }
-
-    private fun buildMonsterSpawn(monster: com.flyagain.world.entity.MonsterEntity): EntitySpawnMessage {
-        return EntitySpawnMessage.newBuilder()
-            .setEntityId(monster.entityId)
-            .setEntityType(1)
-            .setName(monster.name)
-            .setPosition(Position.newBuilder()
-                .setX(monster.x).setY(monster.y).setZ(monster.z).build())
-            .setLevel(monster.level)
-            .setHp(monster.hp)
-            .setMaxHp(monster.maxHp)
-            .build()
     }
 
     private fun sendError(ctx: ChannelHandlerContext, message: String) {

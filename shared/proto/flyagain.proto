@@ -242,6 +242,7 @@ message ZoneDataMessage {
     string zone_name = 3;
     repeated EntitySpawnMessage entities = 4;
     int64 my_entity_id = 5;
+    Position player_position = 6;
 }
 
 // Client -> Server: Request to switch channel

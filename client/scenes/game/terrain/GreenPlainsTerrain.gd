@@ -52,9 +52,10 @@ func _setup_scatter() -> void:
 		preload("res://assets/nature/models/grass/Grass_Wispy_Tall.tscn"),
 		preload("res://assets/nature/models/grass/Grass_Wheat.tscn"),
 	]
-	grass_rule.density = 50.0
+	grass_rule.density = 12.0
 	grass_rule.use_multimesh = true
 	grass_rule.scale_variation = 0.3
+	grass_rule.visibility_range = 80.0
 	scatter.scatter(grass_rule, area_min, area_max)
 
 	# Ground cover — Clover, Fern (MultiMesh)
@@ -65,9 +66,10 @@ func _setup_scatter() -> void:
 		preload("res://assets/nature/models/ground_cover/Fern_1.tscn"),
 		preload("res://assets/nature/models/ground_cover/Fern_2.tscn"),
 	]
-	ground_rule.density = 8.0
+	ground_rule.density = 3.0
 	ground_rule.use_multimesh = true
 	ground_rule.scale_variation = 0.2
+	ground_rule.visibility_range = 100.0
 	scatter.scatter(ground_rule, area_min, area_max)
 
 	# Flowers (MultiMesh) — all flower types
@@ -86,7 +88,8 @@ func _setup_scatter() -> void:
 		preload("res://assets/nature/models/flowers/Flower_7_Group.tscn"),
 		preload("res://assets/nature/models/flowers/Flower_7_Single.tscn"),
 	]
-	flower_rule.density = 5.0
+	flower_rule.density = 2.0
 	flower_rule.use_multimesh = true
 	flower_rule.scale_variation = 0.2
+	flower_rule.visibility_range = 100.0
 	scatter.scatter(flower_rule, area_min, area_max)

@@ -52,9 +52,10 @@ func _setup_scatter() -> void:
 		preload("res://assets/nature/models/ground_cover/Mushroom_Oyster.tscn"),
 		preload("res://assets/nature/models/ground_cover/Mushroom_RedCap.tscn"),
 	]
-	ground_rule.density = 12.0
+	ground_rule.density = 5.0
 	ground_rule.use_multimesh = true
 	ground_rule.scale_variation = 0.25
+	ground_rule.visibility_range = 100.0
 	scatter.scatter(ground_rule, area_min, area_max)
 
 	# Petals only (MultiMesh) — no flowers, dark forest atmosphere
@@ -67,7 +68,8 @@ func _setup_scatter() -> void:
 		preload("res://assets/nature/models/ground_cover/Petal_5.tscn"),
 		preload("res://assets/nature/models/ground_cover/Petal_6.tscn"),
 	]
-	petal_rule.density = 3.0
+	petal_rule.density = 1.5
 	petal_rule.use_multimesh = true
 	petal_rule.scale_variation = 0.2
+	petal_rule.visibility_range = 80.0
 	scatter.scatter(petal_rule, area_min, area_max)

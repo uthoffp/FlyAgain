@@ -1,6 +1,7 @@
 ## RemoteEntity.gd
 ## Represents a non-local entity (other player, monster, NPC, loot).
 ## Uses EntityInterpolator for smooth movement between server updates.
+class_name RemoteEntity
 extends CharacterBody3D
 
 
@@ -192,6 +193,36 @@ func update_hp(new_hp: int) -> void:
 	hp = new_hp
 	if hp <= 0:
 		set_selected(false)
+
+
+## Play a death effect (shrink + fade), then free this node.
+func play_death_effect() -> void:
+	# Disable physics processing so the entity stops moving
+	set_physics_process(false)
+	set_selected(false)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+
+	# Shrink to zero
+	tween.tween_property(self, "scale", Vector3(0.3, 0.01, 0.3), 0.5) \
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+
+	# Fade out the mesh material
+	if _mesh and _mesh.material_override:
+		_mesh.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tween.tween_property(_mesh.material_override, "albedo_color:a", 0.0, 0.5) \
+			.set_ease(Tween.EASE_IN)
+
+	# Fade out the name label
+	if _name_label:
+		tween.tween_property(_name_label, "modulate:a", 0.0, 0.3)
+
+	# Fade out the selection ring if visible
+	if _selection_ring and _selection_ring.visible:
+		_selection_ring.visible = false
+
+	tween.chain().tween_callback(queue_free)
 
 
 ## Create a golden torus at the entity's feet as a selection indicator.

@@ -56,6 +56,16 @@ func despawn_entity(entity_id: int) -> void:
 		entity.queue_free()
 
 
+## Remove an entity from tracking without freeing it.
+## Used for death animations where the node manages its own cleanup.
+func untrack_entity(entity_id: int) -> Node3D:
+	if not _entities.has(entity_id):
+		return null
+	var entity: Node3D = _entities[entity_id]
+	_entities.erase(entity_id)
+	return entity
+
+
 ## Update position for a remote entity from an EntityPositionUpdate dictionary.
 func update_entity_position(data: Dictionary) -> void:
 	var entity_id: int = data.get("entity_id", 0)

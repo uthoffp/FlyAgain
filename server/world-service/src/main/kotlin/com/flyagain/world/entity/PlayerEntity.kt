@@ -34,10 +34,12 @@ data class PlayerEntity(
     var xpToNextLevel: Long = 100L,
     var gold: Long = 0L,
 
-    // Combat
-    var targetEntityId: Long? = null,
-    var autoAttacking: Boolean = false,
-    var lastAttackTime: Long = 0L,
+    // Combat — @Volatile because these are set on Netty I/O threads
+    // (ToggleAutoAttackHandler, SelectTargetHandler) but read on the game loop thread
+    // (GameLoop.processAutoAttacks → CombatEngine.processAutoAttack).
+    @Volatile var targetEntityId: Long? = null,
+    @Volatile var autoAttacking: Boolean = false,
+    @Volatile var lastAttackTime: Long = 0L,
 
     // Cooldowns: skillId -> timestamp when cooldown expires
     val skillCooldowns: MutableMap<Int, Long> = mutableMapOf(),
@@ -71,6 +73,10 @@ data class PlayerEntity(
     var playTimeAccumulated: Long = 0L,
     @Volatile var dirty: Boolean = false
 ) {
+    /** Entity IDs that this player's client currently knows about (in-range entities).
+     *  Only accessed from the game loop thread — no synchronization needed. */
+    val knownEntities: MutableSet<Long> = HashSet(128)
+
     /**
      * Computed attack power based on class and stats.
      * TODO: Refine per-class formulas in later phases.

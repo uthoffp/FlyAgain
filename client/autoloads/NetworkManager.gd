@@ -571,6 +571,7 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			xp_gained.emit(data)
 		PacketProtocol.OPCODE_TOGGLE_AUTO_ATTACK:
 			var data := ProtoDecoder.new(payload).decode_toggle_auto_attack_response()
+			print("[Combat] Auto-attack response: %s" % str(data))
 			auto_attack_response.emit(data)
 		PacketProtocol.OPCODE_ENTITY_STATS_UPDATE:
 			var data := ProtoDecoder.new(payload).decode_entity_stats_update()

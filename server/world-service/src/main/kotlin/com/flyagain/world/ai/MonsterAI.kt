@@ -7,6 +7,7 @@ import com.flyagain.world.combat.CombatEngine
 import com.flyagain.world.zone.ZoneChannel
 import org.slf4j.LoggerFactory
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 /**
  * Processes AI behavior for all monsters in a zone channel.
@@ -30,6 +31,10 @@ class MonsterAI(
     companion object {
         const val RETURN_SPEED_MULTIPLIER = 2.0f
         const val SPAWN_REACH_THRESHOLD = 2.0f
+        const val WANDER_MIN_INTERVAL_MS = 3000L
+        const val WANDER_MAX_INTERVAL_MS = 8000L
+        const val WANDER_SPEED_MULTIPLIER = 0.5f
+        const val WANDER_REACH_THRESHOLD = 1.0f
     }
 
     /**
@@ -37,7 +42,8 @@ class MonsterAI(
      */
     data class AITickResult(
         val damageEvents: MutableList<CombatEngine.DamageResult> = mutableListOf(),
-        val respawnedMonsters: MutableList<MonsterEntity> = mutableListOf()
+        val respawnedMonsters: MutableList<MonsterEntity> = mutableListOf(),
+        val movedMonsters: MutableList<MonsterEntity> = mutableListOf()
     )
 
     /**
@@ -49,10 +55,10 @@ class MonsterAI(
 
         for (monster in channel.getAllMonsters()) {
             when (monster.aiState) {
-                AIState.IDLE -> updateIdle(monster, channel)
-                AIState.AGGRO -> updateAggro(monster, channel, tickDeltaMs)
+                AIState.IDLE -> updateIdle(monster, channel, tickDeltaMs, currentTime, result)
+                AIState.AGGRO -> updateAggro(monster, channel, tickDeltaMs, result)
                 AIState.ATTACK -> updateAttack(monster, channel, currentTime, result)
-                AIState.RETURN -> updateReturn(monster, channel, tickDeltaMs)
+                AIState.RETURN -> updateReturn(monster, channel, tickDeltaMs, result)
                 AIState.DEAD -> updateDead(monster, channel, currentTime, result)
             }
         }
@@ -62,10 +68,17 @@ class MonsterAI(
 
     /**
      * IDLE state: scan for nearby players within aggro range.
+     * When no player is nearby, wander randomly around the spawn point.
      */
-    private fun updateIdle(monster: MonsterEntity, channel: ZoneChannel) {
+    private fun updateIdle(
+        monster: MonsterEntity,
+        channel: ZoneChannel,
+        tickDeltaMs: Long,
+        currentTime: Long,
+        result: AITickResult
+    ) {
+        // Check for nearby players to aggro
         val nearbyEntityIds = channel.getNearbyEntities(monster.x, monster.z)
-
         for (entityId in nearbyEntityIds) {
             val player = entityManager.getPlayer(entityId) ?: continue
             if (player.hp <= 0) continue
@@ -79,12 +92,34 @@ class MonsterAI(
                 return
             }
         }
+
+        // Idle wandering: pick a random point near spawn and walk to it
+        if (currentTime >= monster.nextWanderTime) {
+            // Pick a new wander target within spawnRadius
+            val angle = Random.nextFloat() * 2f * Math.PI.toFloat()
+            val dist = Random.nextFloat() * monster.spawnRadius
+            monster.wanderTargetX = monster.spawnX + kotlin.math.cos(angle.toDouble()).toFloat() * dist
+            monster.wanderTargetY = monster.spawnY
+            monster.wanderTargetZ = monster.spawnZ + kotlin.math.sin(angle.toDouble()).toFloat() * dist
+            monster.nextWanderTime = currentTime + Random.nextLong(WANDER_MIN_INTERVAL_MS, WANDER_MAX_INTERVAL_MS)
+        }
+
+        // Move toward wander target
+        val wanderDist = monster.distanceTo(monster.wanderTargetX, monster.wanderTargetY, monster.wanderTargetZ)
+        if (wanderDist > WANDER_REACH_THRESHOLD) {
+            moveToward(
+                monster, monster.wanderTargetX, monster.wanderTargetY, monster.wanderTargetZ,
+                monster.moveSpeed * WANDER_SPEED_MULTIPLIER, tickDeltaMs
+            )
+            channel.updateMonsterPosition(monster.entityId, monster.x, monster.z)
+            result.movedMonsters.add(monster)
+        }
     }
 
     /**
      * AGGRO state: pursue the target. Transition to ATTACK if in range, RETURN if leashed.
      */
-    private fun updateAggro(monster: MonsterEntity, channel: ZoneChannel, tickDeltaMs: Long) {
+    private fun updateAggro(monster: MonsterEntity, channel: ZoneChannel, tickDeltaMs: Long, result: AITickResult) {
         val targetId = monster.targetEntityId
         val target = if (targetId != null) entityManager.getPlayer(targetId) else null
 
@@ -113,6 +148,7 @@ class MonsterAI(
         // Move toward target
         moveToward(monster, target.x, target.y, target.z, monster.moveSpeed, tickDeltaMs)
         channel.updateMonsterPosition(monster.entityId, monster.x, monster.z)
+        result.movedMonsters.add(monster)
     }
 
     /**
@@ -160,7 +196,7 @@ class MonsterAI(
     /**
      * RETURN state: move back toward spawn point. Full heal on arrival.
      */
-    private fun updateReturn(monster: MonsterEntity, channel: ZoneChannel, tickDeltaMs: Long) {
+    private fun updateReturn(monster: MonsterEntity, channel: ZoneChannel, tickDeltaMs: Long, result: AITickResult) {
         val distToSpawn = monster.distanceToSpawn()
 
         if (distToSpawn <= SPAWN_REACH_THRESHOLD) {
@@ -172,6 +208,7 @@ class MonsterAI(
             monster.aiState = AIState.IDLE
             monster.targetEntityId = null
             channel.updateMonsterPosition(monster.entityId, monster.x, monster.z)
+            result.movedMonsters.add(monster)
             return
         }
 
@@ -181,6 +218,7 @@ class MonsterAI(
             monster.moveSpeed * RETURN_SPEED_MULTIPLIER, tickDeltaMs
         )
         channel.updateMonsterPosition(monster.entityId, monster.x, monster.z)
+        result.movedMonsters.add(monster)
     }
 
     /**

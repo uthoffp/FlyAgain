@@ -89,6 +89,8 @@ class WriteBackScheduler(
                         .setDex(data["dex"]?.toIntOrNull() ?: 0)
                         .setIntStat(data["int_stat"]?.toIntOrNull() ?: 0)
                         .setStatPoints(data["stat_points"]?.toIntOrNull() ?: 0)
+                        .setMaxHp(data["max_hp"]?.toIntOrNull() ?: 0)
+                        .setMaxMp(data["max_mp"]?.toIntOrNull() ?: 0)
                         .build()
 
                     characterRepo.save(request)
