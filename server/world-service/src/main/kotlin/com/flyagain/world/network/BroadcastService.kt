@@ -3,7 +3,9 @@ package com.flyagain.world.network
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
 import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.XpSystem
 import com.flyagain.world.entity.EntityManager
+import com.flyagain.world.entity.EntitySpawnBuilder
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.zone.ZoneChannel
@@ -76,25 +78,56 @@ class BroadcastService(
     }
 
     /**
-     * Broadcast an entity spawn to all nearby players in the channel.
+     * Broadcast a monster position update to all nearby players.
      */
-    fun broadcastEntitySpawn(channel: ZoneChannel, monster: MonsterEntity) {
-        val spawnMsg = EntitySpawnMessage.newBuilder()
+    fun broadcastMonsterPositionUpdate(channel: ZoneChannel, monster: MonsterEntity) {
+        val positionUpdate = EntityPositionUpdate.newBuilder()
             .setEntityId(monster.entityId)
-            .setEntityType(1) // monster
-            .setName(monster.name)
             .setPosition(Position.newBuilder()
                 .setX(monster.x)
                 .setY(monster.y)
                 .setZ(monster.z)
                 .build())
-            .setLevel(monster.level)
-            .setHp(monster.hp)
-            .setMaxHp(monster.maxHp)
+            .setRotation(0f)
+            .setIsMoving(monster.aiState != com.flyagain.world.ai.AIState.IDLE && monster.aiState != com.flyagain.world.ai.AIState.DEAD)
+            .setIsFlying(false)
+            .setJumpOffset(0f)
             .build()
 
+        val packet = Packet(Opcode.ENTITY_POSITION_VALUE, positionUpdate.toByteArray())
+        sendToNearby(channel, monster.x, monster.z, -1, packet)
+    }
+
+    /**
+     * Broadcast an entity spawn to all nearby players in the channel.
+     */
+    fun broadcastEntitySpawn(channel: ZoneChannel, monster: MonsterEntity) {
+        val spawnMsg = EntitySpawnBuilder.buildMonsterSpawn(monster)
         val packet = Packet(Opcode.ENTITY_SPAWN_VALUE, spawnMsg.toByteArray())
         sendToNearby(channel, monster.x, monster.z, -1, packet)
+    }
+
+    /**
+     * Send an ENTITY_SPAWN to a single player. Uses deferred write() —
+     * caller must ensure [flushNetworkWrites] is called at end of tick.
+     */
+    fun sendEntitySpawnToPlayer(player: PlayerEntity, spawnMsg: EntitySpawnMessage) {
+        val tcp = player.tcpChannel ?: return
+        tcp.write(Packet(Opcode.ENTITY_SPAWN_VALUE, spawnMsg.toByteArray()))
+        channelsToFlush.add(tcp)
+    }
+
+    /**
+     * Send an ENTITY_DESPAWN to a single player. Uses deferred write() —
+     * caller must ensure [flushNetworkWrites] is called at end of tick.
+     */
+    fun sendEntityDespawnToPlayer(player: PlayerEntity, entityId: Long) {
+        val tcp = player.tcpChannel ?: return
+        val despawnMsg = EntityDespawnMessage.newBuilder()
+            .setEntityId(entityId)
+            .build()
+        tcp.write(Packet(Opcode.ENTITY_DESPAWN_VALUE, despawnMsg.toByteArray()))
+        channelsToFlush.add(tcp)
     }
 
     /**
@@ -211,5 +244,42 @@ class BroadcastService(
      */
     fun sendToPlayer(player: PlayerEntity, packet: Packet) {
         player.tcpChannel?.writeAndFlush(packet)
+    }
+
+    /**
+     * Send an XP gain notification to a specific player.
+     */
+    fun sendXpGain(player: PlayerEntity, xpResult: XpSystem.XpResult) {
+        val xpGainMsg = XpGainMessage.newBuilder()
+            .setXpGained(xpResult.xpGained)
+            .setTotalXp(xpResult.totalXp)
+            .setXpToNextLevel(xpResult.xpToNextLevel)
+            .setCurrentLevel(xpResult.currentLevel)
+            .setLeveledUp(xpResult.leveledUp)
+            .build()
+
+        val packet = Packet(Opcode.XP_GAIN_VALUE, xpGainMsg.toByteArray())
+        sendToPlayer(player, packet)
+    }
+
+    /**
+     * Broadcast an entity stats update (e.g. after level-up) to nearby players.
+     */
+    fun broadcastEntityStatsUpdate(channel: ZoneChannel, player: PlayerEntity) {
+        val statsUpdate = EntityStatsUpdate.newBuilder()
+            .setEntityId(player.entityId)
+            .setLevel(player.level)
+            .setHp(player.hp)
+            .setMaxHp(player.maxHp)
+            .setMp(player.mp)
+            .setMaxMp(player.maxMp)
+            .setStr(player.str)
+            .setSta(player.sta)
+            .setDex(player.dex)
+            .setInt(player.`int`)
+            .build()
+
+        val packet = Packet(Opcode.ENTITY_STATS_UPDATE_VALUE, statsUpdate.toByteArray())
+        sendToNearby(channel, player.x, player.z, -1, packet)
     }
 }

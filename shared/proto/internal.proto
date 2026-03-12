@@ -148,6 +148,8 @@ message SaveCharacterRequest {
     int32 int_stat = 15;
     int32 stat_points = 16;
     float rotation = 17;
+    int32 max_hp = 18;
+    int32 max_mp = 19;
 }
 
 message DeleteCharacterRequest {

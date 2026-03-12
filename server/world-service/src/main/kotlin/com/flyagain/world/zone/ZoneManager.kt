@@ -49,6 +49,13 @@ class ZoneManager(
         const val DEFAULT_SPAWN_X = 500f
         const val DEFAULT_SPAWN_Y = 0f
         const val DEFAULT_SPAWN_Z = 500f
+
+        /** Per-zone spawn positions. Must stay in sync with client WorldConstants.ZONE_SPAWNS. */
+        val ZONE_SPAWNS: Map<Int, Triple<Float, Float, Float>> = mapOf(
+            ZONE_AERHEIM to Triple(500f, 0f, 500f),
+            ZONE_GREEN_PLAINS to Triple(200f, 0f, 200f),
+            ZONE_DARK_FOREST to Triple(100f, 0f, 100f)
+        )
     }
 
     private val logger = LoggerFactory.getLogger(ZoneManager::class.java)
@@ -221,6 +228,13 @@ class ZoneManager(
      * Get the zone name for a zone ID.
      */
     fun getZoneName(zoneId: Int): String = ZONE_NAMES[zoneId] ?: "Unknown"
+
+    /**
+     * Get the default spawn position for a zone, falling back to Aerheim.
+     */
+    fun getSpawnPosition(zoneId: Int): Triple<Float, Float, Float> {
+        return ZONE_SPAWNS[zoneId] ?: ZONE_SPAWNS[ZONE_AERHEIM]!!
+    }
 
     /**
      * Check if a zone exists.

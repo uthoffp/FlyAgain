@@ -1,12 +1,19 @@
-[gd_scene load_steps=5 format=3 uid="uid://bplayerchar001"]
+[gd_scene load_steps=6 format=3 uid="uid://bplayerchar001"]
 
 [ext_resource type="Script" path="res://scenes/game/PlayerCharacter.gd" id="1_script"]
 [ext_resource type="Script" path="res://scenes/game/ThirdPersonCamera.gd" id="2_camera"]
-[ext_resource type="PackedScene" path="res://imported_models/meshy_model_1772185779.31419.glb" id="3_warrior"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
+radius = 0.35
+height = 1.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.3, 0.55, 0.75, 1)
+roughness = 0.6
 
 [node name="PlayerCharacter" type="CharacterBody3D"]
 script = ExtResource("1_script")
@@ -17,8 +24,10 @@ shape = SubResource("CapsuleShape3D_1")
 
 [node name="ModelPivot" type="Node3D" parent="."]
 
-[node name="WarriorModel" parent="ModelPivot" instance=ExtResource("3_warrior")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+[node name="BodyMesh" type="MeshInstance3D" parent="ModelPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("CapsuleMesh_1")
+surface_material_override/0 = SubResource("StandardMaterial3D_1")
 
 [node name="NameLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2, 0)
