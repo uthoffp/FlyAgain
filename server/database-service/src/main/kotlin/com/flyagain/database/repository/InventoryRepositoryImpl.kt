@@ -185,12 +185,38 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
     }
 
     override suspend fun removeItem(characterId: String, slot: Int, amount: Int): Unit = withTransaction { conn ->
-        conn.prepareStatement(
-            "DELETE FROM inventory WHERE character_id = ? AND slot = ?"
+        val charUuid = UUID.fromString(characterId)
+
+        // Get current amount in slot
+        val currentAmount = conn.prepareStatement(
+            "SELECT amount FROM inventory WHERE character_id = ? AND slot = ?"
         ).use { stmt ->
-            stmt.setObject(1, UUID.fromString(characterId))
+            stmt.setObject(1, charUuid)
             stmt.setInt(2, slot)
-            stmt.executeUpdate()
+            stmt.executeQuery().use { rs -> if (rs.next()) rs.getInt("amount") else 0 }
+        }
+
+        if (currentAmount <= 0) return@withTransaction
+
+        if (amount >= currentAmount) {
+            // Remove entire stack
+            conn.prepareStatement(
+                "DELETE FROM inventory WHERE character_id = ? AND slot = ?"
+            ).use { stmt ->
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, slot)
+                stmt.executeUpdate()
+            }
+        } else {
+            // Reduce stack
+            conn.prepareStatement(
+                "UPDATE inventory SET amount = amount - ? WHERE character_id = ? AND slot = ?"
+            ).use { stmt ->
+                stmt.setInt(1, amount)
+                stmt.setObject(2, charUuid)
+                stmt.setInt(3, slot)
+                stmt.executeUpdate()
+            }
         }
     }
 
@@ -235,6 +261,82 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.executeUpdate()
         }
         deleted > 0
+    }
+
+    override suspend fun atomicBuyItem(characterId: String, itemId: Int, amount: Int, newGold: Long): Int = withTransaction { conn ->
+        val charUuid = UUID.fromString(characterId)
+
+        // Deduct gold
+        conn.prepareStatement("UPDATE characters SET gold = ? WHERE id = ?").use { stmt ->
+            stmt.setLong(1, newGold)
+            stmt.setObject(2, charUuid)
+            stmt.executeUpdate()
+        }
+
+        // Find first free slot
+        val usedSlots = conn.prepareStatement(
+            "SELECT slot FROM inventory WHERE character_id = ? ORDER BY slot"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.executeQuery().use { rs ->
+                val slots = mutableSetOf<Int>()
+                while (rs.next()) slots.add(rs.getInt("slot"))
+                slots
+            }
+        }
+
+        val freeSlot = (0 until 100).firstOrNull { it !in usedSlots }
+            ?: throw NoSuchElementException("Inventory full")
+
+        // Add item
+        conn.prepareStatement(
+            "INSERT INTO inventory (character_id, slot, item_id, amount) VALUES (?, ?, ?, ?)"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.setInt(2, freeSlot)
+            stmt.setInt(3, itemId)
+            stmt.setInt(4, amount)
+            stmt.executeUpdate()
+        }
+
+        freeSlot
+    }
+
+    override suspend fun atomicSellItem(characterId: String, slot: Int, amount: Int, newGold: Long): Unit = withTransaction { conn ->
+        val charUuid = UUID.fromString(characterId)
+
+        // Get current amount in slot
+        val currentAmount = conn.prepareStatement(
+            "SELECT amount FROM inventory WHERE character_id = ? AND slot = ?"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.setInt(2, slot)
+            stmt.executeQuery().use { rs -> if (rs.next()) rs.getInt("amount") else 0 }
+        }
+
+        if (currentAmount <= 0) throw NoSuchElementException("No item in slot $slot")
+
+        if (amount >= currentAmount) {
+            conn.prepareStatement("DELETE FROM inventory WHERE character_id = ? AND slot = ?").use { stmt ->
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, slot)
+                stmt.executeUpdate()
+            }
+        } else {
+            conn.prepareStatement("UPDATE inventory SET amount = amount - ? WHERE character_id = ? AND slot = ?").use { stmt ->
+                stmt.setInt(1, amount)
+                stmt.setObject(2, charUuid)
+                stmt.setInt(3, slot)
+                stmt.executeUpdate()
+            }
+        }
+
+        // Update gold
+        conn.prepareStatement("UPDATE characters SET gold = ? WHERE id = ?").use { stmt ->
+            stmt.setLong(1, newGold)
+            stmt.setObject(2, charUuid)
+            stmt.executeUpdate()
+        }
     }
 
     override suspend fun updateGold(characterId: String, newGold: Long): Unit = withTransaction { conn ->

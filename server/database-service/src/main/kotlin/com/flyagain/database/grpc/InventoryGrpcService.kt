@@ -83,15 +83,15 @@ class InventoryGrpcService(
     /**
      * Buys an item from an NPC vendor.
      *
-     * Updates gold to the pre-calculated amount from world-service and adds the
-     * item to inventory atomically. If adding the item fails (e.g. inventory full),
-     * the gold update is still applied since the world-service already validated
-     * and calculated the new gold total.
+     * Atomically deducts gold and adds the item in a single database transaction.
+     * If adding the item fails (e.g. inventory full), gold is NOT deducted
+     * because the entire transaction rolls back.
      */
     override suspend fun npcBuy(request: NpcBuyRequest): NpcBuyResponse {
         return try {
-            inventoryRepo.updateGold(request.characterId, request.currentGold)
-            val slot = inventoryRepo.addItem(request.characterId, request.itemDefId, request.amount)
+            val slot = inventoryRepo.atomicBuyItem(
+                request.characterId, request.itemDefId, request.amount, request.currentGold
+            )
             NpcBuyResponse.newBuilder()
                 .setSuccess(true)
                 .setNewGold(request.currentGold)
@@ -101,7 +101,7 @@ class InventoryGrpcService(
             logger.warn("npcBuy failed for character {}: {}", request.characterId, e.message)
             NpcBuyResponse.newBuilder()
                 .setSuccess(false)
-                .setErrorMessage(e.message ?: "Unknown error")
+                .setErrorMessage(e.message ?: "Purchase failed")
                 .build()
         }
     }

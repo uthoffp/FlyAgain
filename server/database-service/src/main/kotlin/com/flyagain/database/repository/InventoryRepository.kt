@@ -75,14 +75,15 @@ interface InventoryRepository {
     suspend fun addItemStackable(characterId: String, itemId: Int, amount: Int, maxStack: Int): Int
 
     /**
-     * Removes an item from the specified inventory slot.
+     * Removes items from the specified inventory slot.
      *
-     * Deletes the entire row regardless of [amount] — partial removal is not
-     * currently supported.
+     * If [amount] >= the current stack size, the entire row is deleted.
+     * If [amount] < the current stack size, the stack is reduced by [amount].
+     * If the slot is empty, this is a no-op.
      *
      * @param characterId the character whose item to remove
-     * @param slot the inventory slot to clear
-     * @param amount currently unused (full removal only)
+     * @param slot the inventory slot to remove from
+     * @param amount number of items to remove
      */
     suspend fun removeItem(characterId: String, slot: Int, amount: Int)
 
@@ -110,6 +111,31 @@ interface InventoryRepository {
      * @return `true` if an item was unequipped, `false` if the slot was already empty
      */
     suspend fun unequipItem(characterId: String, equipSlotType: Int): Boolean
+
+    /**
+     * Atomically buys an item: deducts gold and adds item in a single transaction.
+     * If inventory is full, the gold is NOT deducted (transaction rolls back).
+     *
+     * @param characterId the buyer
+     * @param itemId item definition ID
+     * @param amount number to add
+     * @param newGold the new gold total after deduction
+     * @return the slot where the item was placed
+     * @throws NoSuchElementException if inventory is full
+     */
+    suspend fun atomicBuyItem(characterId: String, itemId: Int, amount: Int, newGold: Long): Int
+
+    /**
+     * Atomically sells an item: removes item (or reduces stack) and adds gold
+     * in a single transaction.
+     *
+     * @param characterId the seller
+     * @param slot inventory slot to sell from
+     * @param amount number to sell
+     * @param newGold new gold total after adding sell price
+     * @throws NoSuchElementException if no item exists in the slot
+     */
+    suspend fun atomicSellItem(characterId: String, slot: Int, amount: Int, newGold: Long)
 
     /**
      * Directly sets a character's gold amount.

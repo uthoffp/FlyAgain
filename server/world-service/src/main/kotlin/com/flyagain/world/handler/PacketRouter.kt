@@ -64,6 +64,7 @@ class PacketRouter(
 
         private const val ZONE_CHANGE_COOLDOWN_MS = 5000L
         private const val CHANNEL_SWITCH_COOLDOWN_MS = 3000L
+        private const val INVENTORY_OP_COOLDOWN_MS = 200L
     }
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
@@ -171,63 +172,76 @@ class PacketRouter(
                 }
             }
 
-            // Inventory opcodes
-            Opcode.MOVE_ITEM_VALUE -> {
-                coroutineScope.launch(MDCContext()) {
-                    try {
-                        val request = ClientMoveItemRequest.parseFrom(msg.payload)
-                        moveItemHandler.handle(ctx, player, request)
-                    } catch (e: Exception) {
-                        logger.warn("Failed to handle MOVE_ITEM from player {}: {}", player.name, e.message)
-                        sendError(ctx, opcode, 400, "Malformed request.")
-                    }
+            // Inventory opcodes — all share an inventory rate limit
+            Opcode.MOVE_ITEM_VALUE, Opcode.EQUIP_ITEM_VALUE, Opcode.UNEQUIP_ITEM_VALUE,
+            Opcode.NPC_BUY_VALUE, Opcode.NPC_SELL_VALUE -> {
+                // Rate limit inventory operations
+                val now = System.currentTimeMillis()
+                if (now - player.lastInventoryOpTime < INVENTORY_OP_COOLDOWN_MS) {
+                    sendError(ctx, opcode, 429, "Too fast.")
+                    return
                 }
-            }
+                player.lastInventoryOpTime = now
 
-            Opcode.EQUIP_ITEM_VALUE -> {
-                coroutineScope.launch(MDCContext()) {
-                    try {
-                        val request = ClientEquipItemRequest.parseFrom(msg.payload)
-                        equipItemHandler.handleEquip(ctx, player, request)
-                    } catch (e: Exception) {
-                        logger.warn("Failed to handle EQUIP_ITEM from player {}: {}", player.name, e.message)
-                        sendError(ctx, opcode, 400, "Malformed request.")
+                when (opcode) {
+                    Opcode.MOVE_ITEM_VALUE -> {
+                        coroutineScope.launch(MDCContext()) {
+                            try {
+                                val request = ClientMoveItemRequest.parseFrom(msg.payload)
+                                moveItemHandler.handle(ctx, player, request)
+                            } catch (e: Exception) {
+                                logger.warn("Failed to handle MOVE_ITEM from player {}: {}", player.name, e.message)
+                                sendError(ctx, opcode, 400, "Malformed request.")
+                            }
+                        }
                     }
-                }
-            }
 
-            Opcode.UNEQUIP_ITEM_VALUE -> {
-                coroutineScope.launch(MDCContext()) {
-                    try {
-                        val request = ClientUnequipItemRequest.parseFrom(msg.payload)
-                        equipItemHandler.handleUnequip(ctx, player, request)
-                    } catch (e: Exception) {
-                        logger.warn("Failed to handle UNEQUIP_ITEM from player {}: {}", player.name, e.message)
-                        sendError(ctx, opcode, 400, "Malformed request.")
+                    Opcode.EQUIP_ITEM_VALUE -> {
+                        coroutineScope.launch(MDCContext()) {
+                            try {
+                                val request = ClientEquipItemRequest.parseFrom(msg.payload)
+                                equipItemHandler.handleEquip(ctx, player, request)
+                            } catch (e: Exception) {
+                                logger.warn("Failed to handle EQUIP_ITEM from player {}: {}", player.name, e.message)
+                                sendError(ctx, opcode, 400, "Malformed request.")
+                            }
+                        }
                     }
-                }
-            }
 
-            Opcode.NPC_BUY_VALUE -> {
-                coroutineScope.launch(MDCContext()) {
-                    try {
-                        val request = ClientNpcBuyRequest.parseFrom(msg.payload)
-                        npcShopHandler.handleBuy(ctx, player, request)
-                    } catch (e: Exception) {
-                        logger.warn("Failed to handle NPC_BUY from player {}: {}", player.name, e.message)
-                        sendError(ctx, opcode, 400, "Malformed request.")
+                    Opcode.UNEQUIP_ITEM_VALUE -> {
+                        coroutineScope.launch(MDCContext()) {
+                            try {
+                                val request = ClientUnequipItemRequest.parseFrom(msg.payload)
+                                equipItemHandler.handleUnequip(ctx, player, request)
+                            } catch (e: Exception) {
+                                logger.warn("Failed to handle UNEQUIP_ITEM from player {}: {}", player.name, e.message)
+                                sendError(ctx, opcode, 400, "Malformed request.")
+                            }
+                        }
                     }
-                }
-            }
 
-            Opcode.NPC_SELL_VALUE -> {
-                coroutineScope.launch(MDCContext()) {
-                    try {
-                        val request = ClientNpcSellRequest.parseFrom(msg.payload)
-                        npcShopHandler.handleSell(ctx, player, request)
-                    } catch (e: Exception) {
-                        logger.warn("Failed to handle NPC_SELL from player {}: {}", player.name, e.message)
-                        sendError(ctx, opcode, 400, "Malformed request.")
+                    Opcode.NPC_BUY_VALUE -> {
+                        coroutineScope.launch(MDCContext()) {
+                            try {
+                                val request = ClientNpcBuyRequest.parseFrom(msg.payload)
+                                npcShopHandler.handleBuy(ctx, player, request)
+                            } catch (e: Exception) {
+                                logger.warn("Failed to handle NPC_BUY from player {}: {}", player.name, e.message)
+                                sendError(ctx, opcode, 400, "Malformed request.")
+                            }
+                        }
+                    }
+
+                    Opcode.NPC_SELL_VALUE -> {
+                        coroutineScope.launch(MDCContext()) {
+                            try {
+                                val request = ClientNpcSellRequest.parseFrom(msg.payload)
+                                npcShopHandler.handleSell(ctx, player, request)
+                            } catch (e: Exception) {
+                                logger.warn("Failed to handle NPC_SELL from player {}: {}", player.name, e.message)
+                                sendError(ctx, opcode, 400, "Malformed request.")
+                            }
+                        }
                     }
                 }
             }

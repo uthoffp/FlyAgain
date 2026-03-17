@@ -162,9 +162,8 @@ class InventoryGrpcServiceTest {
     }
 
     @Test
-    fun `npcBuy updates gold and adds item`() = runTest {
-        coEvery { inventoryRepo.updateGold("c-1", 500L) } returns Unit
-        coEvery { inventoryRepo.addItem("c-1", 10, 1) } returns 3
+    fun `npcBuy atomically deducts gold and adds item`() = runTest {
+        coEvery { inventoryRepo.atomicBuyItem("c-1", 10, 1, 500L) } returns 3
 
         val result = service.npcBuy(
             NpcBuyRequest.newBuilder()
@@ -178,15 +177,13 @@ class InventoryGrpcServiceTest {
         assertTrue(result.success)
         assertEquals(500L, result.newGold)
         assertEquals(3, result.assignedSlot)
-        coVerify(exactly = 1) { inventoryRepo.updateGold("c-1", 500L) }
-        coVerify(exactly = 1) { inventoryRepo.addItem("c-1", 10, 1) }
+        coVerify(exactly = 1) { inventoryRepo.atomicBuyItem("c-1", 10, 1, 500L) }
     }
 
     @Test
     fun `npcBuy returns failure when inventory full`() = runTest {
-        coEvery { inventoryRepo.updateGold("c-1", 500L) } returns Unit
-        coEvery { inventoryRepo.addItem("c-1", 10, 1) } throws
-            NoSuchElementException("No free inventory slot")
+        coEvery { inventoryRepo.atomicBuyItem("c-1", 10, 1, 500L) } throws
+            NoSuchElementException("Inventory full")
 
         val result = service.npcBuy(
             NpcBuyRequest.newBuilder()
@@ -198,7 +195,7 @@ class InventoryGrpcServiceTest {
         )
 
         assertFalse(result.success)
-        assertTrue(result.errorMessage.contains("free inventory slot"))
+        assertTrue(result.errorMessage.contains("Inventory full"))
     }
 
     @Test

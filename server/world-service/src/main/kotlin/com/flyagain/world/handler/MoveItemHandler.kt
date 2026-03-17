@@ -1,6 +1,5 @@
 package com.flyagain.world.handler
 
-import com.flyagain.common.grpc.GetEquipmentRequest
 import com.flyagain.common.grpc.GetInventoryRequest
 import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
 import com.flyagain.common.grpc.MoveItemRequest
@@ -63,12 +62,9 @@ class MoveItemHandler(
                 return
             }
 
-            // Fetch updated inventory and equipment
+            // Fetch updated inventory only — equipment never changes on a move
             val inventory = inventoryStub.getInventory(
                 GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
-            val equipment = inventoryStub.getEquipment(
-                GetEquipmentRequest.newBuilder().setCharacterId(player.characterId).build()
             )
 
             // Send success response
@@ -77,8 +73,8 @@ class MoveItemHandler(
                 .build()
             ctx.writeAndFlush(Packet(Opcode.MOVE_ITEM_VALUE, response.toByteArray()))
 
-            // Send inventory update
-            broadcastService.sendInventoryUpdate(player, inventory.slotsList, equipment.slotsList)
+            // Send inventory update (empty equipment list — client merges, not replaces)
+            broadcastService.sendInventoryUpdate(player, inventory.slotsList, emptyList())
 
             logger.debug("Player {} moved item from slot {} to slot {}", player.name, fromSlot, toSlot)
         } catch (e: Exception) {
