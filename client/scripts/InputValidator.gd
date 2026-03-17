@@ -17,7 +17,7 @@ const CHAR_NAME_MAX_LENGTH := 16
 
 # Precompiled-style patterns (compiled on first use)
 const _USERNAME_PATTERN := "^[a-zA-Z0-9\\-]+$"
-const _CHAR_NAME_PATTERN := "^[a-zA-Z][a-zA-Z0-9]{2,15}$"
+const _CHAR_NAME_PATTERN := "^[a-zA-Z][a-zA-Z0-9\\-]{2,15}$"
 const _EMAIL_PATTERN := "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
 
 # Reserved names that cannot be used as character names.
