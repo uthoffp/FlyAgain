@@ -28,6 +28,7 @@ import com.flyagain.world.handler.ToggleAutoAttackHandler
 import com.flyagain.world.handler.UseSkillHandler
 import com.flyagain.world.handler.ZoneChangeHandler
 import com.flyagain.world.inventory.EquipmentStatCalculator
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.inventory.NpcShopRegistry
 import com.flyagain.world.network.BroadcastService
@@ -86,7 +87,8 @@ val worldServiceModule = module {
     single { ItemDefinitionCache() }
     single { EquipmentStatCalculator(get()) }
     single { NpcShopRegistry() }
-    single { DeathHandler(get(), get(), get(), get(), get(), get(), get()) }
+    single { InventoryLockManager() }
+    single { DeathHandler(get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Session lifecycle
     single {
@@ -97,7 +99,8 @@ val worldServiceModule = module {
             characterDataStub = get(),
             broadcastService = get(),
             sessionSecretProvider = get(),
-            skillSystem = get()
+            skillSystem = get(),
+            inventoryLockManager = get()
         )
     }
 
@@ -118,9 +121,9 @@ val worldServiceModule = module {
     single { SelectTargetHandler(get(), get()) }
     single { UseSkillHandler(get(), get(), get()) }
     single { ToggleAutoAttackHandler(get(), get()) }
-    single { MoveItemHandler(get(), get()) }
-    single { EquipItemHandler(get(), get(), get(), get(), get()) }
-    single { NpcShopHandler(get(), get(), get(), get()) }
+    single { MoveItemHandler(get(), get(), get()) }
+    single { EquipItemHandler(get(), get(), get(), get(), get(), get()) }
+    single { NpcShopHandler(get(), get(), get(), get(), get()) }
 
     // Heartbeat tracker
     single { HeartbeatTracker() }

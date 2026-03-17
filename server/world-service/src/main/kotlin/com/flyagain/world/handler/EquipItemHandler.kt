@@ -13,10 +13,12 @@ import com.flyagain.common.proto.ClientUnequipItemResponse
 import com.flyagain.common.proto.Opcode
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.inventory.EquipmentStatCalculator
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneManager
 import io.netty.channel.ChannelHandlerContext
+import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 
 /**
@@ -32,7 +34,8 @@ class EquipItemHandler(
     private val itemCache: ItemDefinitionCache,
     private val statCalculator: EquipmentStatCalculator,
     private val broadcastService: BroadcastService,
-    private val zoneManager: ZoneManager
+    private val zoneManager: ZoneManager,
+    private val inventoryLockManager: InventoryLockManager
 ) {
 
     private val logger = LoggerFactory.getLogger(EquipItemHandler::class.java)
@@ -60,94 +63,105 @@ class EquipItemHandler(
             return
         }
 
-        try {
-            // Fetch current inventory to get the item at the specified slot
-            val inventory = inventoryStub.getInventory(
-                GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
+        val lock = inventoryLockManager.getLock(player.characterId)
+        lock.withLock {
+            try {
+                // Fetch current inventory to get the item at the specified slot
+                val inventory = inventoryStub.getInventory(
+                    GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
+                )
 
-            val invSlot = inventory.slotsList.find { it.slot == inventorySlot }
-            if (invSlot == null || invSlot.itemId == 0) {
-                sendEquipError(ctx, "No item in that slot")
-                return
+                val invSlot = inventory.slotsList.find { it.slot == inventorySlot }
+                if (invSlot == null || invSlot.itemId == 0) {
+                    sendEquipError(ctx, "No item in that slot")
+                    return@withLock
+                }
+
+                // Lookup item definition
+                val itemDef = itemCache.get(invSlot.itemId)
+                if (itemDef == null) {
+                    sendEquipError(ctx, "Unknown item")
+                    return@withLock
+                }
+
+                // Check level requirement
+                if (itemDef.levelReq > player.level) {
+                    sendEquipError(ctx, "Level requirement not met")
+                    return@withLock
+                }
+
+                // Check class requirement (0 means any class)
+                if (itemDef.classReq != 0 && itemDef.classReq != player.characterClass) {
+                    sendEquipError(ctx, "Class requirement not met")
+                    return@withLock
+                }
+
+                // Validate item type matches equip slot
+                if (itemDef.type == ItemDefinitionCache.TYPE_WEAPON && equipSlotType != ItemDefinitionCache.EQUIP_SLOT_WEAPON) {
+                    sendEquipError(ctx, "Weapons can only be equipped in the weapon slot")
+                    return@withLock
+                }
+                if (itemDef.type == ItemDefinitionCache.TYPE_ARMOR && equipSlotType == ItemDefinitionCache.EQUIP_SLOT_WEAPON) {
+                    sendEquipError(ctx, "Armor cannot be equipped in the weapon slot")
+                    return@withLock
+                }
+                if (itemDef.type != ItemDefinitionCache.TYPE_WEAPON && itemDef.type != ItemDefinitionCache.TYPE_ARMOR) {
+                    sendEquipError(ctx, "This item cannot be equipped")
+                    return@withLock
+                }
+
+                // Call gRPC to equip item
+                val grpcRequest = EquipItemRequest.newBuilder()
+                    .setCharacterId(player.characterId)
+                    .setInventorySlot(inventorySlot)
+                    .setEquipSlotType(equipSlotType)
+                    .build()
+
+                val grpcResponse = inventoryStub.equipItem(grpcRequest)
+
+                if (!grpcResponse.success) {
+                    sendEquipError(ctx, grpcResponse.errorMessage.ifEmpty { "Failed to equip item" })
+                    return@withLock
+                }
+
+                // Recalculate stats from updated equipment
+                val updatedEquipment = inventoryStub.getEquipment(
+                    GetEquipmentRequest.newBuilder().setCharacterId(player.characterId).build()
+                )
+                val updatedInventory = inventoryStub.getInventory(
+                    GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
+                )
+
+                applyEquipmentBonuses(player, updatedEquipment.slotsList)
+
+                // Broadcast stats update to nearby players
+                val channel = zoneManager.getChannel(player.zoneId, player.channelId)
+                if (channel != null) {
+                    broadcastService.broadcastEntityStatsUpdate(channel, player)
+                }
+
+                // Build delta: only the affected inventory slot and equipment slot
+                val changedInvSlots = updatedInventory.slotsList.filter { it.slot == inventorySlot }
+                val clearedInvSlots = if (changedInvSlots.isEmpty()) {
+                    listOf(com.flyagain.common.grpc.InventorySlot.newBuilder()
+                        .setSlot(inventorySlot).setItemId(0).setAmount(0).build())
+                } else emptyList()
+                val changedEquipSlots = updatedEquipment.slotsList.filter { it.slotType == equipSlotType }
+
+                // Send success response
+                val response = ClientEquipItemResponse.newBuilder()
+                    .setSuccess(true)
+                    .build()
+                ctx.writeAndFlush(Packet(Opcode.EQUIP_ITEM_VALUE, response.toByteArray()))
+
+                // Send delta inventory update (only changed inventory slot + affected equipment slot)
+                broadcastService.sendInventoryUpdate(player, changedInvSlots + clearedInvSlots, changedEquipSlots)
+
+                logger.debug("Player {} equipped item {} to slot {}", player.name, invSlot.itemId, equipSlotType)
+            } catch (e: Exception) {
+                logger.error("Error equipping item for player {}: {}", player.name, e.message, e)
+                sendEquipError(ctx, "Internal error")
             }
-
-            // Lookup item definition
-            val itemDef = itemCache.get(invSlot.itemId)
-            if (itemDef == null) {
-                sendEquipError(ctx, "Unknown item")
-                return
-            }
-
-            // Check level requirement
-            if (itemDef.levelReq > player.level) {
-                sendEquipError(ctx, "Level requirement not met")
-                return
-            }
-
-            // Check class requirement (0 means any class)
-            if (itemDef.classReq != 0 && itemDef.classReq != player.characterClass) {
-                sendEquipError(ctx, "Class requirement not met")
-                return
-            }
-
-            // Validate item type matches equip slot
-            if (itemDef.type == ItemDefinitionCache.TYPE_WEAPON && equipSlotType != ItemDefinitionCache.EQUIP_SLOT_WEAPON) {
-                sendEquipError(ctx, "Weapons can only be equipped in the weapon slot")
-                return
-            }
-            if (itemDef.type == ItemDefinitionCache.TYPE_ARMOR && equipSlotType == ItemDefinitionCache.EQUIP_SLOT_WEAPON) {
-                sendEquipError(ctx, "Armor cannot be equipped in the weapon slot")
-                return
-            }
-            if (itemDef.type != ItemDefinitionCache.TYPE_WEAPON && itemDef.type != ItemDefinitionCache.TYPE_ARMOR) {
-                sendEquipError(ctx, "This item cannot be equipped")
-                return
-            }
-
-            // Call gRPC to equip item
-            val grpcRequest = EquipItemRequest.newBuilder()
-                .setCharacterId(player.characterId)
-                .setInventorySlot(inventorySlot)
-                .setEquipSlotType(equipSlotType)
-                .build()
-
-            val grpcResponse = inventoryStub.equipItem(grpcRequest)
-
-            if (!grpcResponse.success) {
-                sendEquipError(ctx, grpcResponse.errorMessage.ifEmpty { "Failed to equip item" })
-                return
-            }
-
-            // Recalculate stats from updated equipment
-            val updatedEquipment = inventoryStub.getEquipment(
-                GetEquipmentRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
-            val updatedInventory = inventoryStub.getInventory(
-                GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
-
-            applyEquipmentBonuses(player, updatedEquipment.slotsList)
-
-            // Broadcast stats update to nearby players
-            val channel = zoneManager.getChannel(player.zoneId, player.channelId)
-            if (channel != null) {
-                broadcastService.broadcastEntityStatsUpdate(channel, player)
-            }
-
-            // Send success response
-            val response = ClientEquipItemResponse.newBuilder()
-                .setSuccess(true)
-                .build()
-            ctx.writeAndFlush(Packet(Opcode.EQUIP_ITEM_VALUE, response.toByteArray()))
-
-            // Send inventory update
-            broadcastService.sendInventoryUpdate(player, updatedInventory.slotsList, updatedEquipment.slotsList)
-
-            logger.debug("Player {} equipped item {} to slot {}", player.name, invSlot.itemId, equipSlotType)
-        } catch (e: Exception) {
-            logger.error("Error equipping item for player {}: {}", player.name, e.message, e)
-            sendEquipError(ctx, "Internal error")
         }
     }
 
@@ -160,49 +174,63 @@ class EquipItemHandler(
             return
         }
 
-        try {
-            // Call gRPC to unequip item
-            val grpcRequest = UnequipItemRequest.newBuilder()
-                .setCharacterId(player.characterId)
-                .setEquipSlotType(equipSlotType)
-                .build()
+        val lock = inventoryLockManager.getLock(player.characterId)
+        lock.withLock {
+            try {
+                // Call gRPC to unequip item
+                val grpcRequest = UnequipItemRequest.newBuilder()
+                    .setCharacterId(player.characterId)
+                    .setEquipSlotType(equipSlotType)
+                    .build()
 
-            val grpcResponse = inventoryStub.unequipItem(grpcRequest)
+                val grpcResponse = inventoryStub.unequipItem(grpcRequest)
 
-            if (!grpcResponse.success) {
-                sendUnequipError(ctx, grpcResponse.errorMessage.ifEmpty { "Failed to unequip item" })
-                return
+                if (!grpcResponse.success) {
+                    sendUnequipError(ctx, grpcResponse.errorMessage.ifEmpty { "Failed to unequip item" })
+                    return@withLock
+                }
+
+                // Recalculate stats from updated equipment
+                val updatedEquipment = inventoryStub.getEquipment(
+                    GetEquipmentRequest.newBuilder().setCharacterId(player.characterId).build()
+                )
+                val updatedInventory = inventoryStub.getInventory(
+                    GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
+                )
+
+                applyEquipmentBonuses(player, updatedEquipment.slotsList)
+
+                // Broadcast stats update to nearby players
+                val channel = zoneManager.getChannel(player.zoneId, player.channelId)
+                if (channel != null) {
+                    broadcastService.broadcastEntityStatsUpdate(channel, player)
+                }
+
+                // Build equipment delta: the unequipped slot is now cleared
+                val changedEquipSlots = updatedEquipment.slotsList.filter { it.slotType == equipSlotType }
+                val clearedEquipSlots = if (changedEquipSlots.isEmpty()) {
+                    listOf(com.flyagain.common.grpc.EquipmentSlot.newBuilder()
+                        .setSlotType(equipSlotType).setItemId(0).build())
+                } else emptyList()
+
+                // For inventory, the unequipped item was placed into an unknown slot.
+                // Send all inventory slots since UnequipItemResponse does not indicate the target slot.
+                // Equipment delta still reduces bandwidth significantly.
+
+                // Send success response
+                val response = ClientUnequipItemResponse.newBuilder()
+                    .setSuccess(true)
+                    .build()
+                ctx.writeAndFlush(Packet(Opcode.UNEQUIP_ITEM_VALUE, response.toByteArray()))
+
+                // Send inventory update with full inventory but delta equipment
+                broadcastService.sendInventoryUpdate(player, updatedInventory.slotsList, changedEquipSlots + clearedEquipSlots)
+
+                logger.debug("Player {} unequipped slot {}", player.name, equipSlotType)
+            } catch (e: Exception) {
+                logger.error("Error unequipping item for player {}: {}", player.name, e.message, e)
+                sendUnequipError(ctx, "Internal error")
             }
-
-            // Recalculate stats from updated equipment
-            val updatedEquipment = inventoryStub.getEquipment(
-                GetEquipmentRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
-            val updatedInventory = inventoryStub.getInventory(
-                GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
-
-            applyEquipmentBonuses(player, updatedEquipment.slotsList)
-
-            // Broadcast stats update to nearby players
-            val channel = zoneManager.getChannel(player.zoneId, player.channelId)
-            if (channel != null) {
-                broadcastService.broadcastEntityStatsUpdate(channel, player)
-            }
-
-            // Send success response
-            val response = ClientUnequipItemResponse.newBuilder()
-                .setSuccess(true)
-                .build()
-            ctx.writeAndFlush(Packet(Opcode.UNEQUIP_ITEM_VALUE, response.toByteArray()))
-
-            // Send inventory update
-            broadcastService.sendInventoryUpdate(player, updatedInventory.slotsList, updatedEquipment.slotsList)
-
-            logger.debug("Player {} unequipped slot {}", player.name, equipSlotType)
-        } catch (e: Exception) {
-            logger.error("Error unequipping item for player {}: {}", player.name, e.message, e)
-            sendUnequipError(ctx, "Internal error")
         }
     }
 

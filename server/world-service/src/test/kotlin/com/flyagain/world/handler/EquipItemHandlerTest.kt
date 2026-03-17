@@ -16,6 +16,7 @@ import com.flyagain.common.proto.ClientUnequipItemResponse
 import com.flyagain.common.proto.Opcode
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.inventory.EquipmentStatCalculator
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneChannel
@@ -39,7 +40,8 @@ class EquipItemHandlerTest {
     private val statCalculator = mockk<EquipmentStatCalculator>()
     private val broadcastService = mockk<BroadcastService>(relaxed = true)
     private val zoneManager = mockk<ZoneManager>(relaxed = true)
-    private val handler = EquipItemHandler(inventoryStub, itemCache, statCalculator, broadcastService, zoneManager)
+    private val inventoryLockManager = InventoryLockManager()
+    private val handler = EquipItemHandler(inventoryStub, itemCache, statCalculator, broadcastService, zoneManager, inventoryLockManager)
 
     private fun makePlayer(
         entityId: Long = 1L,

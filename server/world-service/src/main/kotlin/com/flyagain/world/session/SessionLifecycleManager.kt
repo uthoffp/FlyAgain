@@ -2,8 +2,10 @@ package com.flyagain.world.session
 
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.flyagain.common.grpc.SaveCharacterRequest
+import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
@@ -26,7 +28,9 @@ class SessionLifecycleManager(
     private val redisConnection: StatefulRedisConnection<String, String>,
     private val characterDataStub: CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub,
     private val broadcastService: BroadcastService,
-    private val sessionSecretProvider: RedisSessionSecretProvider
+    private val sessionSecretProvider: RedisSessionSecretProvider,
+    private val skillSystem: SkillSystem,
+    private val inventoryLockManager: InventoryLockManager
 ) {
 
     private val logger = LoggerFactory.getLogger(SessionLifecycleManager::class.java)
@@ -66,11 +70,17 @@ class SessionLifecycleManager(
             logger.error("Failed to clean up Redis state for character {}", player.characterId, e)
         }
 
-        // 5. Remove player from zone/channel/spatial grid
+        // 5. Clean up skill data from memory
+        skillSystem.removePlayerSkills(player.characterId)
+
+        // 5b. Clean up inventory lock for this character
+        inventoryLockManager.removeLock(player.characterId)
+
+        // 6. Remove player from zone/channel/spatial grid
         zoneManager.removePlayerFromZone(player)
         entityManager.removePlayer(player.entityId)
 
-        // 6. Close the TCP channel if still open
+        // 7. Close the TCP channel if still open
         player.tcpChannel?.let { ch ->
             if (ch.isActive) {
                 ch.close()

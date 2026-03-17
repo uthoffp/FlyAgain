@@ -16,6 +16,7 @@ import com.flyagain.common.proto.ClientNpcSellRequest
 import com.flyagain.common.proto.ClientNpcSellResponse
 import com.flyagain.common.proto.Opcode
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.inventory.NpcShopRegistry
 import com.flyagain.world.network.BroadcastService
@@ -37,7 +38,14 @@ class NpcShopHandlerTest {
     private val itemCache = mockk<ItemDefinitionCache>()
     private val npcShopRegistry = mockk<NpcShopRegistry>()
     private val broadcastService = mockk<BroadcastService>(relaxed = true)
-    private val handler = NpcShopHandler(inventoryStub, itemCache, npcShopRegistry, broadcastService)
+    private val inventoryLockManager = InventoryLockManager()
+    private val handler: NpcShopHandler
+
+    init {
+        // Default: NPC exists (non-null definition). Tests for unknown NPC can override.
+        every { npcShopRegistry.getNpcDefinition(any()) } returns mockk(relaxed = true)
+        handler = NpcShopHandler(inventoryStub, itemCache, npcShopRegistry, broadcastService, inventoryLockManager)
+    }
 
     private fun makePlayer(
         entityId: Long = 1L,

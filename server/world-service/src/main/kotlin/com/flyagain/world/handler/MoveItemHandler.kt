@@ -2,14 +2,17 @@ package com.flyagain.world.handler
 
 import com.flyagain.common.grpc.GetInventoryRequest
 import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
+import com.flyagain.common.grpc.InventorySlot
 import com.flyagain.common.grpc.MoveItemRequest
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.ClientMoveItemRequest
 import com.flyagain.common.proto.ClientMoveItemResponse
 import com.flyagain.common.proto.Opcode
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.network.BroadcastService
 import io.netty.channel.ChannelHandlerContext
+import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 
 /**
@@ -21,7 +24,8 @@ import org.slf4j.LoggerFactory
  */
 class MoveItemHandler(
     private val inventoryStub: InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub,
-    private val broadcastService: BroadcastService
+    private val broadcastService: BroadcastService,
+    private val inventoryLockManager: InventoryLockManager
 ) {
 
     private val logger = LoggerFactory.getLogger(MoveItemHandler::class.java)
@@ -47,39 +51,51 @@ class MoveItemHandler(
             return
         }
 
-        try {
-            // Call gRPC to move item
-            val grpcRequest = MoveItemRequest.newBuilder()
-                .setCharacterId(player.characterId)
-                .setFromSlot(fromSlot)
-                .setToSlot(toSlot)
-                .build()
+        val lock = inventoryLockManager.getLock(player.characterId)
+        lock.withLock {
+            try {
+                // Call gRPC to move item
+                val grpcRequest = MoveItemRequest.newBuilder()
+                    .setCharacterId(player.characterId)
+                    .setFromSlot(fromSlot)
+                    .setToSlot(toSlot)
+                    .build()
 
-            val grpcResponse = inventoryStub.moveItem(grpcRequest)
+                val grpcResponse = inventoryStub.moveItem(grpcRequest)
 
-            if (!grpcResponse.success) {
-                sendError(ctx, grpcResponse.errorMessage.ifEmpty { "Failed to move item" })
-                return
+                if (!grpcResponse.success) {
+                    sendError(ctx, grpcResponse.errorMessage.ifEmpty { "Failed to move item" })
+                    return@withLock
+                }
+
+                // Fetch updated inventory and filter to only the two affected slots
+                val inventory = inventoryStub.getInventory(
+                    GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
+                )
+
+                // Build delta: only include the two slots that changed
+                val changedSlots = inventory.slotsList.filter { it.slot == fromSlot || it.slot == toSlot }
+                val presentSlotIndices = changedSlots.map { it.slot }.toSet()
+
+                // If a slot was emptied it won't appear in the inventory — send a cleared entry
+                val clearedSlots = listOf(fromSlot, toSlot)
+                    .filter { it !in presentSlotIndices }
+                    .map { InventorySlot.newBuilder().setSlot(it).setItemId(0).setAmount(0).build() }
+
+                // Send success response
+                val response = ClientMoveItemResponse.newBuilder()
+                    .setSuccess(true)
+                    .build()
+                ctx.writeAndFlush(Packet(Opcode.MOVE_ITEM_VALUE, response.toByteArray()))
+
+                // Send delta inventory update (only changed slots, no equipment changes)
+                broadcastService.sendInventoryUpdate(player, changedSlots + clearedSlots, emptyList())
+
+                logger.debug("Player {} moved item from slot {} to slot {}", player.name, fromSlot, toSlot)
+            } catch (e: Exception) {
+                logger.error("Error moving item for player {}: {}", player.name, e.message, e)
+                sendError(ctx, "Internal error")
             }
-
-            // Fetch updated inventory only — equipment never changes on a move
-            val inventory = inventoryStub.getInventory(
-                GetInventoryRequest.newBuilder().setCharacterId(player.characterId).build()
-            )
-
-            // Send success response
-            val response = ClientMoveItemResponse.newBuilder()
-                .setSuccess(true)
-                .build()
-            ctx.writeAndFlush(Packet(Opcode.MOVE_ITEM_VALUE, response.toByteArray()))
-
-            // Send inventory update (empty equipment list — client merges, not replaces)
-            broadcastService.sendInventoryUpdate(player, inventory.slotsList, emptyList())
-
-            logger.debug("Player {} moved item from slot {} to slot {}", player.name, fromSlot, toSlot)
-        } catch (e: Exception) {
-            logger.error("Error moving item for player {}: {}", player.name, e.message, e)
-            sendError(ctx, "Internal error")
         }
     }
 

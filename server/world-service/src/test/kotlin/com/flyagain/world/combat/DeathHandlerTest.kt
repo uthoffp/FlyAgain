@@ -5,6 +5,7 @@ import com.flyagain.world.ai.AIState
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneChannel
@@ -28,9 +29,11 @@ class DeathHandlerTest {
     private val itemCache = mockk<ItemDefinitionCache>(relaxed = true)
     private val testScope = TestScope()
 
+    private val inventoryLockManager = InventoryLockManager()
+
     private val deathHandler = DeathHandler(
         xpSystem, lootSystem, broadcastService, entityManager,
-        inventoryStub, itemCache, testScope
+        inventoryStub, itemCache, testScope, inventoryLockManager
     )
 
     private fun makePlayer(

@@ -276,8 +276,12 @@ class BroadcastService(
     }
 
     /**
-     * Send a full inventory and equipment snapshot to a specific player.
-     * Maps gRPC slot types to client-facing proto messages.
+     * Send an inventory and equipment update to a specific player.
+     *
+     * Supports both full snapshots (all slots, used on world entry) and
+     * delta updates (only changed slots, used after inventory operations).
+     * The client treats each received slot as an upsert — slots with
+     * amount=0 indicate the slot was cleared.
      */
     fun sendInventoryUpdate(
         player: PlayerEntity,

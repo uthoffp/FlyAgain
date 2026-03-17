@@ -10,6 +10,7 @@ import com.flyagain.common.proto.ClientMoveItemRequest
 import com.flyagain.common.proto.ClientMoveItemResponse
 import com.flyagain.common.proto.Opcode
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.network.BroadcastService
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -27,7 +28,8 @@ class MoveItemHandlerTest {
 
     private val inventoryStub = mockk<InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub>()
     private val broadcastService = mockk<BroadcastService>(relaxed = true)
-    private val handler = MoveItemHandler(inventoryStub, broadcastService)
+    private val inventoryLockManager = InventoryLockManager()
+    private val handler = MoveItemHandler(inventoryStub, broadcastService, inventoryLockManager)
 
     private fun makePlayer(
         entityId: Long = 1L,
