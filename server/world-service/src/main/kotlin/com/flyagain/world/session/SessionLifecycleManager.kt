@@ -103,6 +103,8 @@ class SessionLifecycleManager(
             .setDex(player.dex)
             .setIntStat(player.int)
             .setStatPoints(player.statPoints)
+            .setMaxHp(player.maxHp)
+            .setMaxMp(player.maxMp)
             .build()
 
         characterDataStub.saveCharacter(request)

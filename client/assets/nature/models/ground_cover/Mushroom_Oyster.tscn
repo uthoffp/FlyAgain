@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://cfh6ug57ipmbs"]
+
+[ext_resource type="PackedScene" uid="uid://cimrv61ti0fq0" path="res://assets/nature/textures/Mushroom_Oyster.gltf" id="1_n0f3m"]
+
+[node name="Mushroom_Oyster2" instance=ExtResource("1_n0f3m")]

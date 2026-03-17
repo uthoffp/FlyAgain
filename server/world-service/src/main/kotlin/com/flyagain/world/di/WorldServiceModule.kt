@@ -9,7 +9,10 @@ import com.flyagain.common.network.UdpServer
 import com.flyagain.common.redis.RedisClientFactory
 import com.flyagain.world.ai.MonsterAI
 import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.DeathHandler
+import com.flyagain.world.combat.LootSystem
 import com.flyagain.world.combat.SkillSystem
+import com.flyagain.world.combat.XpSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.gameloop.GameLoop
 import com.flyagain.world.gameloop.InputQueue
@@ -67,9 +70,12 @@ val worldServiceModule = module {
     single { InputQueue() }
     single { ZoneManager(get()) }
     single { CombatEngine(get()) }
+    single { XpSystem() }
+    single { LootSystem() }
     single { SkillSystem(get(), get()) }
     single { MonsterAI(get(), get()) }
     single { BroadcastService(get()) }
+    single { DeathHandler(get(), get(), get(), get()) }
 
     // Session lifecycle
     single {
@@ -153,6 +159,7 @@ val worldServiceModule = module {
             movementHandler = get(),
             monsterAI = get(),
             combatEngine = get(),
+            deathHandler = get(),
             broadcastService = get(),
             sessionLifecycleManager = get(),
             asyncScope = get(),

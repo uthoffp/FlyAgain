@@ -232,3 +232,28 @@ static func encode_zone_change_request(target_zone_id: int) -> PackedByteArray:
 	var buf := PackedByteArray()
 	buf.append_array(_int32_field(1, target_zone_id))
 	return buf
+
+
+## ---- Combat Messages ----
+
+## Encodes SelectTargetRequest { int64 target_entity_id = 1 }
+static func encode_select_target_request(target_entity_id: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int64_field(1, target_entity_id))
+	return buf
+
+
+## Encodes ToggleAutoAttackRequest { bool enable = 1; int64 target_entity_id = 2 }
+static func encode_toggle_auto_attack(enable: bool, target_entity_id: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_bool_field(1, enable))
+	buf.append_array(_int64_field(2, target_entity_id))
+	return buf
+
+
+## Encodes UseSkillRequest { int32 skill_id = 1; int64 target_entity_id = 2 }
+static func encode_use_skill_request(skill_id: int, target_entity_id: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int32_field(1, skill_id))
+	buf.append_array(_int64_field(2, target_entity_id))
+	return buf

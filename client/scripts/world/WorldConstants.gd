@@ -23,8 +23,8 @@ const WORLD_BOUNDARY_MIN := -100.0
 const WORLD_BOUNDARY_MAX := 10100.0
 const MAX_Y_POSITION := 500.0
 const MIN_Y_POSITION := -10.0
-const GROUND_Y := 0.0            # flat terrain baseline
-const MAX_GROUND_Y := 1.0        # non-flying players Y ceiling
+const GROUND_TOLERANCE := 2.0     # vertical tolerance for ground detection on heightmap
+const MAX_TERRAIN_HEIGHT := 15.0  # maximum height in any zone heightmap
 
 
 # ---- Zone IDs (must match server ZoneManager.kt) ----

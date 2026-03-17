@@ -49,7 +49,13 @@ data class MonsterEntity(
     var deathTime: Long = 0L,
 
     // Leash distance - max distance from spawn before returning
-    val leashDistance: Float = 50f
+    val leashDistance: Float = 50f,
+
+    // Idle wandering state
+    var wanderTargetX: Float = 0f,
+    var wanderTargetY: Float = 0f,
+    var wanderTargetZ: Float = 0f,
+    var nextWanderTime: Long = 0L
 ) {
     /**
      * Check if this monster is alive.

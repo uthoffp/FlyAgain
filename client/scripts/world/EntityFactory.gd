@@ -56,6 +56,16 @@ func despawn_entity(entity_id: int) -> void:
 		entity.queue_free()
 
 
+## Remove an entity from tracking without freeing it.
+## Used for death animations where the node manages its own cleanup.
+func untrack_entity(entity_id: int) -> Node3D:
+	if not _entities.has(entity_id):
+		return null
+	var entity: Node3D = _entities[entity_id]
+	_entities.erase(entity_id)
+	return entity
+
+
 ## Update position for a remote entity from an EntityPositionUpdate dictionary.
 func update_entity_position(data: Dictionary) -> void:
 	var entity_id: int = data.get("entity_id", 0)
@@ -99,3 +109,20 @@ func entity_count() -> int:
 ## Check if an entity exists.
 func has_entity(entity_id: int) -> bool:
 	return _entities.has(entity_id)
+
+
+## Returns nearby monsters sorted by distance from the given position.
+## Each entry is a Dictionary with "entity_id" and "distance".
+func get_nearby_monsters(player_pos: Vector3) -> Array:
+	var monsters := []
+	for eid in _entities:
+		var entity: RemoteEntity = _entities[eid]
+		if not is_instance_valid(entity):
+			continue
+		if entity.entity_type == WorldConstants.ENTITY_TYPE_MONSTER and entity.hp > 0:
+			monsters.append({
+				"entity_id": eid,
+				"distance": player_pos.distance_to(entity.global_position)
+			})
+	monsters.sort_custom(func(a, b): return a["distance"] < b["distance"])
+	return monsters

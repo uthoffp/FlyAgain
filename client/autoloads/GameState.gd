@@ -46,6 +46,19 @@ var player_dex:     int = 0
 var player_int:     int = 0
 var player_xp:      int = 0
 var player_gold:    int = 0
+var player_xp_to_next_level: int = 100
+
+# ---- Target state ----
+var selected_target_id:      int    = 0
+var selected_target_name:    String = ""
+var selected_target_level:   int    = 0
+var selected_target_hp:      int    = 0
+var selected_target_max_hp:  int    = 0
+var auto_attack_active:      bool   = false
+
+# ---- Combat UI state ----
+var is_dead:           bool       = false
+var skill_cooldowns:   Dictionary = {}  # { skill_id: float (end_time from Time.get_ticks_msec()) }
 
 
 ## Resets all session state. Call on logout or session expiry.
@@ -78,6 +91,15 @@ func reset() -> void:
 	player_int             = 0
 	player_xp              = 0
 	player_gold            = 0
+	player_xp_to_next_level = 100
+	selected_target_id     = 0
+	selected_target_name   = ""
+	selected_target_level  = 0
+	selected_target_hp     = 0
+	selected_target_max_hp = 0
+	auto_attack_active     = false
+	is_dead                = false
+	skill_cooldowns        = {}
 
 
 ## Returns true if a valid session is active.

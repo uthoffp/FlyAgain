@@ -73,7 +73,7 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
         conn.prepareStatement(
             """INSERT INTO characters (account_id, name, class, level, xp, hp, mp, max_hp, max_mp,
                str, sta, dex, int_stat, stat_points, map_id, pos_x, pos_y, pos_z, gold)
-               VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 0, 0, 0) RETURNING id"""
+               VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 500, 0, 500, 0) RETURNING id"""
         ).use { stmt ->
             stmt.setObject(1, UUID.fromString(accountId))
             stmt.setString(2, name)
@@ -97,7 +97,8 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
         conn.prepareStatement(
             """UPDATE characters SET hp = ?, mp = ?, xp = ?, level = ?, map_id = ?,
                pos_x = ?, pos_y = ?, pos_z = ?, rotation = ?, gold = ?, play_time = ?,
-               str = ?, sta = ?, dex = ?, int_stat = ?, stat_points = ?
+               str = ?, sta = ?, dex = ?, int_stat = ?, stat_points = ?,
+               max_hp = ?, max_mp = ?
                WHERE id = ?"""
         ).use { stmt ->
             stmt.setInt(1, request.hp)
@@ -116,7 +117,9 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.setInt(14, request.dex)
             stmt.setInt(15, request.intStat)
             stmt.setInt(16, request.statPoints)
-            stmt.setObject(17, UUID.fromString(request.characterId))
+            stmt.setInt(17, request.maxHp)
+            stmt.setInt(18, request.maxMp)
+            stmt.setObject(19, UUID.fromString(request.characterId))
             stmt.executeUpdate()
         }
     }

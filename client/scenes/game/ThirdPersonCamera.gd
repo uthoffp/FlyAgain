@@ -16,6 +16,7 @@ extends Node3D
 @export var max_distance := 20.0
 @export var zoom_speed := 1.0
 @export var default_distance := 8.0
+@export var keyboard_turn_speed := 2.5  # radians per second for A/D turning
 
 var _yaw: float = 0.0
 var _pitch: float = deg_to_rad(-20.0)
@@ -65,7 +66,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_spring_arm.spring_length = minf(_spring_arm.spring_length + zoom_speed, max_distance)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# A/D keyboard turning (rotate camera yaw)
+	if Input.is_action_pressed("move_left"):
+		_yaw += keyboard_turn_speed * delta
+	if Input.is_action_pressed("move_right"):
+		_yaw -= keyboard_turn_speed * delta
 	rotation = Vector3(_pitch, _yaw, 0.0)
 
 

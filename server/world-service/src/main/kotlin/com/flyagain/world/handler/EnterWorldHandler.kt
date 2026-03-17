@@ -2,8 +2,9 @@ package com.flyagain.world.handler
 
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
+import com.flyagain.world.combat.XpSystem
 import com.flyagain.world.entity.EntityManager
-import com.flyagain.world.entity.MonsterEntity
+import com.flyagain.world.entity.EntitySpawnBuilder
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
@@ -82,15 +83,24 @@ class EnterWorldHandler(
         val entityId = entityManager.nextPlayerId()
         val mapId = charData["map_id"]?.toIntOrNull() ?: ZoneManager.ZONE_AERHEIM
 
+        // Treat (0, 0, 0) as uninitialized — fall back to the zone's default spawn point
+        val rawX = charData["pos_x"]?.toFloatOrNull() ?: 0f
+        val rawY = charData["pos_y"]?.toFloatOrNull() ?: 0f
+        val rawZ = charData["pos_z"]?.toFloatOrNull() ?: 0f
+        val (defaultX, defaultY, defaultZ) = zoneManager.getSpawnPosition(mapId)
+        val spawnX = if (rawX == 0f && rawZ == 0f) defaultX else rawX
+        val spawnY = if (rawX == 0f && rawZ == 0f) defaultY else rawY
+        val spawnZ = if (rawX == 0f && rawZ == 0f) defaultZ else rawZ
+
         val player = PlayerEntity(
             entityId = entityId,
             characterId = characterId,
             accountId = accountId,
             name = charData["name"] ?: "Unknown",
             characterClass = charData["class"]?.toIntOrNull() ?: 0,
-            x = charData["pos_x"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_X,
-            y = charData["pos_y"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_Y,
-            z = charData["pos_z"]?.toFloatOrNull() ?: ZoneManager.DEFAULT_SPAWN_Z,
+            x = spawnX,
+            y = spawnY,
+            z = spawnZ,
             rotation = charData["rotation"]?.toFloatOrNull() ?: 0f,
             level = charData["level"]?.toIntOrNull() ?: 1,
             hp = charData["hp"]?.toIntOrNull() ?: 100,
@@ -109,6 +119,13 @@ class EnterWorldHandler(
             sessionTokenLong = sessionTokenLong,
             hmacSecret = hmacSecret
         )
+
+        // Recalculate xpToNextLevel from the loaded level (not stored in DB/Redis)
+        if (player.level < XpSystem.MAX_LEVEL) {
+            player.xpToNextLevel = XpSystem.xpToNextLevel(player.level + 1)
+        } else {
+            player.xpToNextLevel = 0L
+        }
 
         // Atomically add to entity manager (rejects if account already has a player in world)
         if (!entityManager.tryAddPlayer(player)) {
@@ -188,6 +205,9 @@ class EnterWorldHandler(
             player.name, player.entityId, nearbyEntityIds.size, player.x, player.z)
         val spawnMessages = mutableListOf<EntitySpawnMessage>()
 
+        // Seed knownEntities so the game loop visibility check won't re-send these
+        player.knownEntities.clear()
+
         for (entityId in nearbyEntityIds) {
             if (entityId == player.entityId) continue
 
@@ -195,14 +215,16 @@ class EnterWorldHandler(
             val otherPlayer = entityManager.getPlayer(entityId)
             if (otherPlayer != null) {
                 logger.info("  Including player {} (entityId={}) in zone data", otherPlayer.name, entityId)
-                spawnMessages.add(buildPlayerSpawn(otherPlayer))
+                spawnMessages.add(EntitySpawnBuilder.buildPlayerSpawn(otherPlayer))
+                player.knownEntities.add(entityId)
                 continue
             }
 
             // Check if it's a monster
             val monster = entityManager.getMonster(entityId)
             if (monster != null && monster.isAlive()) {
-                spawnMessages.add(buildMonsterSpawn(monster))
+                spawnMessages.add(EntitySpawnBuilder.buildMonsterSpawn(monster))
+                player.knownEntities.add(entityId)
             }
         }
 
@@ -215,6 +237,8 @@ class EnterWorldHandler(
             .setZoneName(zoneManager.getZoneName(player.zoneId))
             .addAllEntities(spawnMessages)
             .setMyEntityId(player.entityId)
+            .setPlayerPosition(Position.newBuilder()
+                .setX(player.x).setY(player.y).setZ(player.z).build())
             .build()
 
         ctx.writeAndFlush(Packet(Opcode.ZONE_DATA_VALUE, zoneData.toByteArray()))
@@ -224,7 +248,7 @@ class EnterWorldHandler(
         player: PlayerEntity,
         channel: com.flyagain.world.zone.ZoneChannel
     ) {
-        val spawnMsg = buildPlayerSpawn(player)
+        val spawnMsg = EntitySpawnBuilder.buildPlayerSpawn(player)
         val packet = Packet(Opcode.ENTITY_SPAWN_VALUE, spawnMsg.toByteArray())
 
         val nearbyEntityIds = channel.getNearbyEntities(player.x, player.z)
@@ -235,43 +259,11 @@ class EnterWorldHandler(
             logger.info("Broadcasting EntitySpawn of {} to player {} (entityId={})",
                 player.name, otherPlayer.name, entityId)
             otherPlayer.tcpChannel?.writeAndFlush(packet)
+            // Add new player to nearby players' knownEntities
+            otherPlayer.knownEntities.add(player.entityId)
             broadcastCount++
         }
         logger.info("broadcastPlayerSpawn for {}: sent to {} nearby players", player.name, broadcastCount)
-    }
-
-    private fun buildPlayerSpawn(player: PlayerEntity): EntitySpawnMessage {
-        return EntitySpawnMessage.newBuilder()
-            .setEntityId(player.entityId)
-            .setEntityType(0) // player
-            .setName(player.name)
-            .setPosition(Position.newBuilder()
-                .setX(player.x)
-                .setY(player.y)
-                .setZ(player.z)
-                .build())
-            .setRotation(player.rotation)
-            .setLevel(player.level)
-            .setHp(player.hp)
-            .setMaxHp(player.maxHp)
-            .setCharacterClass(player.characterClass)
-            .build()
-    }
-
-    private fun buildMonsterSpawn(monster: MonsterEntity): EntitySpawnMessage {
-        return EntitySpawnMessage.newBuilder()
-            .setEntityId(monster.entityId)
-            .setEntityType(1) // monster
-            .setName(monster.name)
-            .setPosition(Position.newBuilder()
-                .setX(monster.x)
-                .setY(monster.y)
-                .setZ(monster.z)
-                .build())
-            .setLevel(monster.level)
-            .setHp(monster.hp)
-            .setMaxHp(monster.maxHp)
-            .build()
     }
 
     private fun sendError(ctx: ChannelHandlerContext, message: String) {

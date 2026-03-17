@@ -109,8 +109,12 @@ static func opcode_name(opcode: int) -> String:
 		OPCODE_ZONE_DATA:          return "ZONE_DATA"
 		OPCODE_CHANNEL_SWITCH:     return "CHANNEL_SWITCH"
 		OPCODE_CHANNEL_LIST:       return "CHANNEL_LIST"
-		OPCODE_ENTITY_STATS_UPDATE: return "ENTITY_STATS_UPDATE"
+		OPCODE_SELECT_TARGET:      return "SELECT_TARGET"
+		OPCODE_USE_SKILL:          return "USE_SKILL"
 		OPCODE_DAMAGE_EVENT:       return "DAMAGE_EVENT"
 		OPCODE_ENTITY_DEATH:       return "ENTITY_DEATH"
 		OPCODE_XP_GAIN:            return "XP_GAIN"
+		OPCODE_TOGGLE_AUTO_ATTACK: return "TOGGLE_AUTO_ATTACK"
+		OPCODE_ENTITY_STATS_UPDATE: return "ENTITY_STATS_UPDATE"
+		OPCODE_GOLD_UPDATE:        return "GOLD_UPDATE"
 		_: return "UNKNOWN(0x%04X)" % opcode

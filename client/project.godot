@@ -32,13 +32,13 @@ gdscript/warnings/directory_rules={
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/window_width_override=1280
-window/size/window_height_override=720
+window/size/window_width_override=1920
+window/size/window_height_override=1080
 window/stretch/mode="canvas_items"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/meshy-godot-plugin/plugin.cfg")
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg", "res://addons/meshy-godot-plugin/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
 
 [input]
 

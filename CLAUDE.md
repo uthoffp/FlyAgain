@@ -36,6 +36,7 @@ FlyAgain is an original MMORPG with a Godot 4 (GDScript) client, Kotlin (Netty) 
   - Actions are defined in Godot Project Settings (Input Map)
 - **Protobuf:** No codegen — manual implementation via `ProtoEncoder.gd` / `ProtoDecoder.gd` at `client/scripts/proto/`
 - **Network:** `NetworkManager.gd` manages TCP + UDP connections; `PacketProtocol.gd` defines opcode constants and serialization
+- **Editor-first scenes:** Prefer building scenes declaratively in `.tscn` files so they are visible and editable in the Godot editor. Avoid creating nodes (meshes, lights, terrain, UI elements, etc.) procedurally in GDScript at runtime when they can be defined in the scene file instead. Scripts should handle logic, not scene composition.
 
 ## Architecture Essentials
 

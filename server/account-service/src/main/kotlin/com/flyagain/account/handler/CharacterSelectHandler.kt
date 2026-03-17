@@ -11,6 +11,7 @@ import com.flyagain.common.proto.Position
 import io.lettuce.core.api.StatefulRedisConnection
 import io.netty.channel.ChannelHandlerContext
 import org.slf4j.LoggerFactory
+import kotlin.math.floor
 
 /**
  * Handles CHARACTER_SELECT (0x0003) requests.
@@ -128,6 +129,7 @@ class CharacterSelectHandler(
                 .setDex(character.dex)
                 .setInt(character.intStat)
                 .setXp(character.xp)
+                .setXpToNextLevel(xpToNextLevel(character.level))
                 .build())
             .setWorldServiceHost(worldServiceHost)
             .setWorldServiceTcpPort(worldServiceTcpPort)
@@ -135,6 +137,15 @@ class CharacterSelectHandler(
             .build()
 
         ctx.writeAndFlush(Packet(Opcode.ENTER_WORLD_VALUE, response.toByteArray()))
+    }
+
+    /**
+     * XP required to reach the next level. Mirrors XpSystem.xpToNextLevel formula.
+     * Formula: floor(100 * (level+1)^1.5)
+     */
+    private fun xpToNextLevel(currentLevel: Int): Long {
+        val nextLevel = currentLevel + 1
+        return floor(100.0 * Math.pow(nextLevel.toDouble(), 1.5)).toLong()
     }
 
     private fun sendError(ctx: ChannelHandlerContext, message: String) {

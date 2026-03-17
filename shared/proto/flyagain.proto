@@ -242,6 +242,7 @@ message ZoneDataMessage {
     string zone_name = 3;
     repeated EntitySpawnMessage entities = 4;
     int64 my_entity_id = 5;
+    Position player_position = 6;
 }
 
 // Client -> Server: Request to switch channel
@@ -342,6 +343,12 @@ message XpGainMessage {
     int64 xp_to_next_level = 3;
     int32 current_level = 4;
     bool leveled_up = 5;
+}
+
+// Server -> Client: Gold amount changed
+message GoldUpdateMessage {
+    int64 gold_gained = 1;    // amount gained (or lost if negative)
+    int64 total_gold = 2;     // new total gold
 }
 
 // Server -> Client: Stats update after level-up or stat change

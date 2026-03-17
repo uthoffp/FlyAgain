@@ -24,10 +24,15 @@ class CharacterCreateHandler(
     private val logger = LoggerFactory.getLogger(CharacterCreateHandler::class.java)
 
     companion object {
-        private const val MIN_NAME_LENGTH = 2
+        private const val MIN_NAME_LENGTH = 3
         private const val MAX_NAME_LENGTH = 16
-        private val NAME_REGEX = Regex("^[a-zA-ZäöüÄÖÜß][a-zA-ZäöüÄÖÜß0-9]*$")
+        private val NAME_REGEX = Regex("^[a-zA-Z][a-zA-Z0-9]{2,15}$")
         private val VALID_CLASSES = CharacterClassMapping.VALID_NAMES
+        private val NAME_BLACKLIST = setOf(
+            "admin", "administrator", "moderator", "gamemaster", "support",
+            "system", "server", "flyagain", "gm", "mod", "dev", "developer",
+            "npc", "monster", "boss", "null", "undefined", "test",
+        )
     }
 
     suspend fun handle(ctx: ChannelHandlerContext, packet: Packet, accountId: String) {
@@ -49,6 +54,10 @@ class CharacterCreateHandler(
         }
         if (!NAME_REGEX.matches(name)) {
             sendError(ctx, false, "Character name contains invalid characters")
+            return
+        }
+        if (name.lowercase() in NAME_BLACKLIST) {
+            sendError(ctx, false, "This character name is not allowed")
             return
         }
 

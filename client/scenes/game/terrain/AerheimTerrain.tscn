@@ -1,18 +1,87 @@
-[gd_scene format=3 uid="uid://bn325s8ihnq3y"]
+[gd_scene load_steps=12 format=3 uid="uid://bn325s8ihnq3y"]
 
 [ext_resource type="Script" path="res://scenes/game/terrain/AerheimTerrain.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://ihncpei01hdp" path="res://assets/textures/terrain/grass_01_ambient_occlusion_2k.png" id="2_bm74x"]
+[ext_resource type="Texture2D" uid="uid://bcvdiibvdhjoy" path="res://assets/textures/terrain/grass_01_normal_gl_2k.png" id="3_vmuvl"]
+[ext_resource type="PackedScene" uid="uid://bn325sqmjuq3y" path="res://scenes/game/terrain/AerheimCity.tscn" id="4_city"]
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
-size = Vector2(10200, 10200)
+[sub_resource type="Gradient" id="Gradient_4t8bg"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
 
-[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_d2mna"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
 
-[node name="AerheimTerrain" type="StaticBody3D"]
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_fukci"]
+noise = SubResource("FastNoiseLite_d2mna")
+color_ramp = SubResource("Gradient_4t8bg")
+seamless = true
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_8ulnp"]
+_shader_parameters = {
+&"bias_distance": 512.0,
+&"blend_sharpness": 0.5,
+&"depth_blur": 0.0,
+&"enable_macro_variation": true,
+&"enable_projection": true,
+&"flat_terrain_normals": false,
+&"macro_variation1": Color(1, 1, 1, 1),
+&"macro_variation2": Color(1, 1, 1, 1),
+&"macro_variation_slope": 0.333,
+&"mipmap_bias": 1.0,
+&"noise1_angle": 0.0,
+&"noise1_offset": Vector2(0.5, 0.5),
+&"noise1_scale": 0.04,
+&"noise2_scale": 0.076,
+&"noise_texture": SubResource("NoiseTexture2D_fukci"),
+&"projection_threshold": 0.8
+}
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5jnmw"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_7lpll"]
+generated_type = 1
+height_offset = 0.5
+material_override = SubResource("StandardMaterial3D_5jnmw")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_cue5o"]
+name = "grass_01_ambient_occlusion_2k"
+albedo_color = Color(0.31764707, 0.43137255, 0.1254902, 1)
+albedo_texture = ExtResource("2_bm74x")
+normal_texture = ExtResource("3_vmuvl")
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_favwy"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_7lpll")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_cue5o")])
+
+[node name="AerheimTerrain" type="Node3D"]
 script = ExtResource("1_script")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5050, 0, 5050)
-mesh = SubResource("PlaneMesh_1")
+[node name="Terrain3D" type="Terrain3D" parent="."]
+data_directory = "res://assets/terrain_data/aerheim"
+material = SubResource("Terrain3DMaterial_8ulnp")
+assets = SubResource("Terrain3DAssets_favwy")
+top_level = true
+metadata/_edit_lock_ = true
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-shape = SubResource("WorldBoundaryShape3D_1")
+[node name="AerheimCity" parent="." instance=ExtResource("4_city")]

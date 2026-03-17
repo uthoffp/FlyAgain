@@ -4,6 +4,7 @@ import com.flyagain.common.grpc.GameDataServiceGrpcKt
 import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.TcpServer
 import com.flyagain.common.network.UdpServer
+import com.flyagain.world.combat.LootSystem
 import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.di.worldServiceModule
 import com.flyagain.world.gameloop.GameLoop
@@ -48,6 +49,12 @@ fun main() {
             val skillDefs = gameDataStub.getAllSkillDefinitions(Empty.getDefaultInstance())
             val skillSystem = koin.get<SkillSystem>()
             skillSystem.loadSkillDefinitions(skillDefs.skillsList)
+
+            // Load loot tables
+            val lootTables = gameDataStub.getAllLootTables(Empty.getDefaultInstance())
+            val lootSystem = koin.get<LootSystem>()
+            lootSystem.loadLootTables(lootTables.entriesList)
+            logger.info("Loaded {} loot table entries", lootTables.entriesList.size)
         } catch (e: Exception) {
             logger.warn("Could not load game data from database service (may not be running): {}", e.message)
             logger.info("World service will start without monster spawns and skill definitions")

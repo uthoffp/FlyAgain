@@ -204,6 +204,38 @@ class MovementHandlerTest {
     }
 
     @Test
+    fun `applyMovement allows grounded player at heightmap elevation`() {
+        // A player walking on a hill at Y=10 should be valid
+        val channel = ZoneChannel(zoneId = 1, channelId = 0)
+        val player = makePlayer(x = 100f, y = 10f, z = 100f)
+        channel.addPlayer(player)
+
+        player.inputDx = 1f
+        player.inputDz = 0f
+        player.isMoving = true
+        player.isFlying = false
+
+        val result = handler.applyMovement(player, 50, channel)
+        assertTrue(result, "Grounded player at Y=10 (heightmap hill) should be allowed")
+    }
+
+    @Test
+    fun `applyMovement rejects grounded player above max terrain height`() {
+        // A grounded player at Y=50 is impossible (max terrain amplitude is ~15m + tolerance)
+        val channel = ZoneChannel(zoneId = 1, channelId = 0)
+        val player = makePlayer(x = 100f, y = 50f, z = 100f)
+        channel.addPlayer(player)
+
+        player.inputDx = 0f
+        player.inputDz = 0f
+        player.isMoving = true
+        player.isFlying = false
+
+        val result = handler.applyMovement(player, 50, channel)
+        assertFalse(result, "Grounded player at Y=50 should be rejected (above max terrain height)")
+    }
+
+    @Test
     fun `applyMovement uses fly speed when flying`() {
         val channel = ZoneChannel(zoneId = 1, channelId = 0)
         val groundPlayer = makePlayer(entityId = 1L, accountId = "1", x = 500f, z = 500f)

@@ -2,6 +2,7 @@ package com.flyagain.world.gameloop
 
 import com.flyagain.world.ai.MonsterAI
 import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.DeathHandler
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.handler.MovementHandler
@@ -22,6 +23,7 @@ class GameLoopTest {
     private val movementHandler = mockk<MovementHandler>(relaxed = true)
     private val monsterAI = mockk<MonsterAI>(relaxed = true)
     private val combatEngine = CombatEngine(entityManager)
+    private val deathHandler = mockk<DeathHandler>(relaxed = true)
     private val broadcastService = mockk<BroadcastService>(relaxed = true)
     private val sessionLifecycleManager = mockk<SessionLifecycleManager>(relaxed = true)
     private val testScope = TestScope()
@@ -34,6 +36,7 @@ class GameLoopTest {
             movementHandler = movementHandler,
             monsterAI = monsterAI,
             combatEngine = combatEngine,
+            deathHandler = deathHandler,
             broadcastService = broadcastService,
             sessionLifecycleManager = sessionLifecycleManager,
             asyncScope = testScope,

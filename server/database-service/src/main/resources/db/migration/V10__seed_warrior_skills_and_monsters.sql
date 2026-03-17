@@ -17,7 +17,7 @@ VALUES ('Whirlwind', 0, 5, 5, 20, 8000, 30, 5, 3.0, 'Spin in a fury, striking al
 
 -- War Cry: Self-buff (damage-only in MVP, buff system in later phase)
 INSERT INTO skill_definitions (name, class_req, level_req, max_level, mp_cost, cooldown_ms, base_damage, damage_per_level, range_units, description)
-VALUES ('War Cry', 0, 8, 5, 15, 30000, 0, 0, 0.0, 'Let out a war cry, increasing your attack power for 30 seconds.');
+VALUES ('War Cry', 0, 8, 5, 15, 30000, 0, 0, 0.1, 'Let out a war cry, increasing your attack power for 30 seconds.');
 
 
 -- Green Plains Monsters

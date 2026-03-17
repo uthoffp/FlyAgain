@@ -4,3 +4,22 @@ ZONE_GREEN_PLAINS,Green Plains,Grüne Ebenen
 ZONE_DARK_FOREST,Dark Forest,Dunkler Wald
 ZONE_UNKNOWN,Unknown,Unbekannt
 LOADING,Loading...,Laden...
+SKILL_STRIKE,Strike,Schlag
+SKILL_SHIELD_BASH,Shield Bash,Schildstoß
+SKILL_WHIRLWIND,Whirlwind,Wirbelwind
+SKILL_WAR_CRY,War Cry,Kriegsruf
+SKILL_ON_COOLDOWN,On cooldown,Abklingzeit
+SKILL_NO_TARGET,No target selected,Kein Ziel ausgewählt
+SKILL_NOT_ENOUGH_MP,Not enough MP,Nicht genug MP
+DEATH_TITLE,You Died,Du bist gestorben
+DEATH_RESPAWN,Respawn,Wiederbelebung
+LEVEL_UP,Level Up!,Stufenaufstieg!
+XP_GAINED,+{amount} XP,+{amount} XP
+GOLD_GAINED,+{amount} Gold,+{amount} Gold
+LOGOUT,Logout,Abmelden
+LOGOUT_CONFIRM,Do you really want to log out?,Möchtest du dich wirklich abmelden?
+LOGOUT_YES,Yes,Ja
+LOGOUT_CANCEL,Cancel,Abbrechen
+CHAR_NAME_LENGTH_ERROR,Name must be %d–%d characters long.,Name muss %d–%d Zeichen lang sein.
+CHAR_NAME_INVALID_ERROR,Name must start with a letter and contain only letters and digits.,Name muss mit einem Buchstaben beginnen und darf nur Buchstaben und Ziffern enthalten.
+CHAR_NAME_BLACKLIST_ERROR,This character name is not allowed.,Dieser Charaktername ist nicht erlaubt.

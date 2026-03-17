@@ -1,100 +1,75 @@
 ## DarkForestTerrain.gd
 ## Zone-specific terrain for Dark Forest (zone_id=3).
-## Dark, rugged atmosphere with dense tree placement.
-## Physics collision remains flat at Y=0.
-extends StaticBody3D
-
+## Dense, dark canopy with mushrooms, ferns, and scattered petals.
+## Terrain sculpted via Terrain3D plugin.
+extends Node3D
 
 const SPAWN := Vector3(100.0, 0.0, 100.0)
+const TERRAIN_DATA_DIR := "res://assets/terrain_data/dark_forest/"
+
+var _terrain3d: Terrain3D = null
 
 
 func _ready() -> void:
-	_place_decorations()
+	_find_or_create_terrain()
+	_setup_scatter()
 
 
-func _place_decorations() -> void:
-	# Dense dark trees around spawn
-	_place_dark_tree(SPAWN + Vector3(15, 0, 10))
-	_place_dark_tree(SPAWN + Vector3(-20, 0, 15))
-	_place_dark_tree(SPAWN + Vector3(30, 0, -20))
-	_place_dark_tree(SPAWN + Vector3(-10, 0, -30))
-	_place_dark_tree(SPAWN + Vector3(40, 0, 25))
-	_place_dark_tree(SPAWN + Vector3(-35, 0, -5))
-	_place_dark_tree(SPAWN + Vector3(8, 0, 40))
-	_place_dark_tree(SPAWN + Vector3(-40, 0, 20))
-	_place_dark_tree(SPAWN + Vector3(25, 0, -35))
-	_place_dark_tree(SPAWN + Vector3(-15, 0, 35))
-	_place_dark_tree(SPAWN + Vector3(50, 0, -10))
-	_place_dark_tree(SPAWN + Vector3(-50, 0, -25))
-	_place_dark_tree(SPAWN + Vector3(5, 0, -45))
-	_place_dark_tree(SPAWN + Vector3(-28, 0, 45))
-
-	# Large mossy rocks
-	_place_rock(SPAWN + Vector3(10, 0.5, -6), 1.0)
-	_place_rock(SPAWN + Vector3(-22, 0.6, 8), 1.2)
-	_place_rock(SPAWN + Vector3(35, 0.4, 12), 0.8)
-	_place_rock(SPAWN + Vector3(-5, 0.7, -18), 1.4)
-	_place_rock(SPAWN + Vector3(18, 0.3, 30), 0.6)
-	_place_rock(SPAWN + Vector3(-30, 0.55, -15), 1.1)
+func _find_or_create_terrain() -> void:
+	for child in get_children():
+		if child is Terrain3D:
+			_terrain3d = child
+			return
+	_terrain3d = Terrain3D.new()
+	_terrain3d.name = "Terrain3D"
+	_terrain3d.data_directory = TERRAIN_DATA_DIR
+	_terrain3d.assets = Terrain3DAssets.new()
+	add_child(_terrain3d)
 
 
-func _place_dark_tree(base_pos: Vector3) -> void:
-	# Tall dark trunk
-	var trunk := StaticBody3D.new()
-	trunk.position = base_pos + Vector3(0, 2.0, 0)
-
-	var trunk_mesh := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.2
-	cyl.bottom_radius = 0.35
-	cyl.height = 4.0
-	trunk_mesh.mesh = cyl
-	var trunk_mat := StandardMaterial3D.new()
-	trunk_mat.albedo_color = Color(0.25, 0.15, 0.08)
-	trunk_mesh.material_override = trunk_mat
-
-	var trunk_col := CollisionShape3D.new()
-	var trunk_shape := CylinderShape3D.new()
-	trunk_shape.radius = 0.35
-	trunk_shape.height = 4.0
-	trunk_col.shape = trunk_shape
-
-	trunk.add_child(trunk_mesh)
-	trunk.add_child(trunk_col)
-	add_child(trunk)
-
-	# Dark canopy
-	var canopy := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = 1.8
-	sphere.height = 3.6
-	canopy.mesh = sphere
-	canopy.position = base_pos + Vector3(0, 4.8, 0)
-	var canopy_mat := StandardMaterial3D.new()
-	canopy_mat.albedo_color = Color(0.08, 0.25, 0.06)
-	canopy.material_override = canopy_mat
-	add_child(canopy)
+func get_height_at(world_x: float, world_z: float) -> float:
+	if _terrain3d and _terrain3d.data:
+		var h: float = _terrain3d.data.get_height(Vector3(world_x, 0.0, world_z))
+		if is_finite(h):
+			return h
+	return 0.0
 
 
-func _place_rock(pos: Vector3, radius: float) -> void:
-	var body := StaticBody3D.new()
-	body.position = pos
+func _setup_scatter() -> void:
+	var scatter := ZoneScatter.new()
+	scatter.initialize(self, 256)
+	add_child(scatter)
+	var area_min := Vector2(SPAWN.x - 200, SPAWN.z - 200)
+	var area_max := Vector2(SPAWN.x + 200, SPAWN.z + 200)
 
-	var mesh_inst := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = radius
-	sphere.height = radius * 2.0
-	mesh_inst.mesh = sphere
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.3, 0.32, 0.28)
-	mat.roughness = 0.95
-	mesh_inst.material_override = mat
+	# Ground cover — Fern, Mushrooms (MultiMesh)
+	var ground_rule := ScatterRule.new()
+	ground_rule.scenes = [
+		preload("res://assets/nature/models/ground_cover/Fern_1.tscn"),
+		preload("res://assets/nature/models/ground_cover/Fern_2.tscn"),
+		preload("res://assets/nature/models/ground_cover/Mushroom_Common.tscn"),
+		preload("res://assets/nature/models/ground_cover/Mushroom_Laetiporus.tscn"),
+		preload("res://assets/nature/models/ground_cover/Mushroom_Oyster.tscn"),
+		preload("res://assets/nature/models/ground_cover/Mushroom_RedCap.tscn"),
+	]
+	ground_rule.density = 5.0
+	ground_rule.use_multimesh = true
+	ground_rule.scale_variation = 0.25
+	ground_rule.visibility_range = 100.0
+	scatter.scatter(ground_rule, area_min, area_max)
 
-	var col := CollisionShape3D.new()
-	var shape := SphereShape3D.new()
-	shape.radius = radius
-	col.shape = shape
-
-	body.add_child(mesh_inst)
-	body.add_child(col)
-	add_child(body)
+	# Petals only (MultiMesh) — no flowers, dark forest atmosphere
+	var petal_rule := ScatterRule.new()
+	petal_rule.scenes = [
+		preload("res://assets/nature/models/ground_cover/Petal_1.tscn"),
+		preload("res://assets/nature/models/ground_cover/Petal_2.tscn"),
+		preload("res://assets/nature/models/ground_cover/Petal_3.tscn"),
+		preload("res://assets/nature/models/ground_cover/Petal_4.tscn"),
+		preload("res://assets/nature/models/ground_cover/Petal_5.tscn"),
+		preload("res://assets/nature/models/ground_cover/Petal_6.tscn"),
+	]
+	petal_rule.density = 1.5
+	petal_rule.use_multimesh = true
+	petal_rule.scale_variation = 0.2
+	petal_rule.visibility_range = 80.0
+	scatter.scatter(petal_rule, area_min, area_max)

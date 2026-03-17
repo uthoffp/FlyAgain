@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bn325sqmjuq3y"]
 
-[ext_resource type="Script" path="res://scenes/game/terrain/AerheimCity.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cmk6sbq0hneau" path="res://scenes/game/terrain/AerheimCity.gd" id="1_script"]
 
-[node name="AerheimCity" type="Node3D"]
+[node name="AerheimCity" type="Node3D" unique_id=659178006]
 script = ExtResource("1_script")
