@@ -34,6 +34,12 @@ data class PlayerEntity(
     var xpToNextLevel: Long = 100L,
     var gold: Long = 0L,
 
+    // Equipment stat bonuses (recalculated when equipment changes)
+    var bonusAttack: Int = 0,
+    var bonusDefense: Int = 0,
+    var bonusHp: Int = 0,
+    var bonusMp: Int = 0,
+
     // Combat — @Volatile because these are set on Netty I/O threads
     // (ToggleAutoAttackHandler, SelectTargetHandler) but read on the game loop thread
     // (GameLoop.processAutoAttacks → CombatEngine.processAutoAttack).
@@ -82,7 +88,7 @@ data class PlayerEntity(
      * TODO: Refine per-class formulas in later phases.
      */
     fun getAttackPower(): Int {
-        return str * 2 + level
+        return str * 2 + level + bonusAttack
     }
 
     /**
@@ -90,7 +96,7 @@ data class PlayerEntity(
      * TODO: Factor in equipment bonuses.
      */
     fun getDefense(): Int {
-        return sta + level
+        return sta + level + bonusDefense
     }
 
     /**
