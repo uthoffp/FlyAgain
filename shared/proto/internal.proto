@@ -183,6 +183,7 @@ service InventoryDataService {
     rpc UnequipItem(UnequipItemRequest) returns (UnequipItemResponse);
     rpc NpcBuy(NpcBuyRequest) returns (NpcBuyResponse);
     rpc NpcSell(NpcSellRequest) returns (NpcSellResponse);
+    rpc UpdateGold(UpdateGoldRequest) returns (UpdateGoldResponse);
 }
 
 message GetInventoryRequest {
@@ -301,6 +302,8 @@ service GameDataService {
     rpc GetAllMonsterSpawns(google.protobuf.Empty) returns (MonsterSpawnList);
     rpc GetAllSkillDefinitions(google.protobuf.Empty) returns (SkillDefinitionList);
     rpc GetAllLootTables(google.protobuf.Empty) returns (LootTableList);
+    rpc GetAllNpcDefinitions(google.protobuf.Empty) returns (NpcDefinitionList);
+    rpc GetAllNpcShopItems(google.protobuf.Empty) returns (NpcShopItemList);
 }
 
 message ItemDefinitionList {
@@ -389,4 +392,44 @@ message LootTableRecord {
     float drop_chance = 4;
     int32 min_amount = 5;
     int32 max_amount = 6;
+}
+
+// ============================================================
+// NPC Definitions & Shop Items
+// ============================================================
+
+message NpcDefinitionList {
+    repeated NpcDefinitionRecord npcs = 1;
+}
+
+message NpcDefinitionRecord {
+    int32 id = 1;
+    string name = 2;
+    int32 zone_id = 3;
+    float pos_x = 4;
+    float pos_y = 5;
+    float pos_z = 6;
+    int32 npc_type = 7;
+}
+
+message NpcShopItemList {
+    repeated NpcShopItemRecord items = 1;
+}
+
+message NpcShopItemRecord {
+    int32 npc_id = 1;
+    int32 item_def_id = 2;
+}
+
+// ============================================================
+// Gold Update
+// ============================================================
+
+message UpdateGoldRequest {
+    string character_id = 1;
+    int64 new_gold = 2;
+}
+
+message UpdateGoldResponse {
+    bool success = 1;
 }
