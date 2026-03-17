@@ -54,4 +54,18 @@ class GameDataGrpcService(
         val entries = gameDataRepo.getAllLootTables()
         return LootTableList.newBuilder().addAllEntries(entries).build()
     }
+
+    /** Returns all NPC definitions with zone placement and type. */
+    override suspend fun getAllNpcDefinitions(request: Empty): NpcDefinitionList {
+        logger.debug("getAllNpcDefinitions")
+        val npcs = gameDataRepo.getAllNpcDefinitions()
+        return NpcDefinitionList.newBuilder().addAllNpcs(npcs).build()
+    }
+
+    /** Returns all NPC shop item mappings (which items each vendor sells). */
+    override suspend fun getAllNpcShopItems(request: Empty): NpcShopItemList {
+        logger.debug("getAllNpcShopItems")
+        val items = gameDataRepo.getAllNpcShopItems()
+        return NpcShopItemList.newBuilder().addAllItems(items).build()
+    }
 }

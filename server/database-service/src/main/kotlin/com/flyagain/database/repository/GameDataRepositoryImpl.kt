@@ -162,4 +162,43 @@ class GameDataRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource
             }
         }
     }
+
+    override suspend fun getAllNpcDefinitions(): List<NpcDefinitionRecord> = withConnection { conn ->
+        conn.prepareStatement("SELECT * FROM npc_definitions ORDER BY id").use { stmt ->
+            stmt.executeQuery().use { rs ->
+                val results = mutableListOf<NpcDefinitionRecord>()
+                while (rs.next()) {
+                    results.add(
+                        NpcDefinitionRecord.newBuilder()
+                            .setId(rs.getInt("id"))
+                            .setName(rs.getString("name"))
+                            .setZoneId(rs.getInt("zone_id"))
+                            .setPosX(rs.getFloat("pos_x"))
+                            .setPosY(rs.getFloat("pos_y"))
+                            .setPosZ(rs.getFloat("pos_z"))
+                            .setNpcType(rs.getInt("npc_type"))
+                            .build()
+                    )
+                }
+                results
+            }
+        }
+    }
+
+    override suspend fun getAllNpcShopItems(): List<NpcShopItemRecord> = withConnection { conn ->
+        conn.prepareStatement("SELECT * FROM npc_shop_items ORDER BY npc_id").use { stmt ->
+            stmt.executeQuery().use { rs ->
+                val results = mutableListOf<NpcShopItemRecord>()
+                while (rs.next()) {
+                    results.add(
+                        NpcShopItemRecord.newBuilder()
+                            .setNpcId(rs.getInt("npc_id"))
+                            .setItemDefId(rs.getInt("item_def_id"))
+                            .build()
+                    )
+                }
+                results
+            }
+        }
+    }
 }

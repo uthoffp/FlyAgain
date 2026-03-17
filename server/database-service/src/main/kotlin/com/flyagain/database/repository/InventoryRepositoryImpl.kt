@@ -127,6 +127,63 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
         freeSlot
     }
 
+    override suspend fun addItemStackable(characterId: String, itemId: Int, amount: Int, maxStack: Int): Int = withTransaction { conn ->
+        val charUuid = UUID.fromString(characterId)
+
+        // If stackable, try to find an existing stack with room
+        if (maxStack > 1) {
+            val existingSlot = conn.prepareStatement(
+                "SELECT slot, amount FROM inventory WHERE character_id = ? AND item_id = ? AND amount < ? ORDER BY slot LIMIT 1"
+            ).use { stmt ->
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, itemId)
+                stmt.setInt(3, maxStack)
+                stmt.executeQuery().use { rs ->
+                    if (rs.next()) Pair(rs.getInt("slot"), rs.getInt("amount")) else null
+                }
+            }
+
+            if (existingSlot != null) {
+                val (slot, currentAmount) = existingSlot
+                val newAmount = minOf(currentAmount + amount, maxStack)
+                conn.prepareStatement(
+                    "UPDATE inventory SET amount = ? WHERE character_id = ? AND slot = ?"
+                ).use { stmt ->
+                    stmt.setInt(1, newAmount)
+                    stmt.setObject(2, charUuid)
+                    stmt.setInt(3, slot)
+                    stmt.executeUpdate()
+                }
+                return@withTransaction slot
+            }
+        }
+
+        // Fall back to finding first free slot (0-99)
+        val usedSlots = conn.prepareStatement(
+            "SELECT slot FROM inventory WHERE character_id = ? ORDER BY slot"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.executeQuery().use { rs ->
+                val slots = mutableSetOf<Int>()
+                while (rs.next()) slots.add(rs.getInt("slot"))
+                slots
+            }
+        }
+
+        val freeSlot = (0 until 100).first { it !in usedSlots }
+
+        conn.prepareStatement(
+            "INSERT INTO inventory (character_id, slot, item_id, amount) VALUES (?, ?, ?, ?)"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.setInt(2, freeSlot)
+            stmt.setInt(3, itemId)
+            stmt.setInt(4, amount)
+            stmt.executeUpdate()
+        }
+        freeSlot
+    }
+
     override suspend fun removeItem(characterId: String, slot: Int, amount: Int): Unit = withTransaction { conn ->
         conn.prepareStatement(
             "DELETE FROM inventory WHERE character_id = ? AND slot = ?"

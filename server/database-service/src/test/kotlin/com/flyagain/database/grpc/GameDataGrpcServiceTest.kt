@@ -127,4 +127,51 @@ class GameDataGrpcServiceTest {
 
         assertEquals(0, result.entriesList.size)
     }
+
+    @Test
+    fun `getAllNpcDefinitions returns npcs from repo`() = runTest {
+        val npcs = listOf(
+            NpcDefinitionRecord.newBuilder().setId(1).setName("Merchant").setZoneId(1).setNpcType(1).build()
+        )
+        coEvery { gameDataRepo.getAllNpcDefinitions() } returns npcs
+
+        val result = service.getAllNpcDefinitions(Empty.getDefaultInstance())
+
+        assertEquals(1, result.npcsList.size)
+        assertEquals("Merchant", result.npcsList[0].name)
+        assertEquals(1, result.npcsList[0].npcType)
+    }
+
+    @Test
+    fun `getAllNpcDefinitions returns empty list`() = runTest {
+        coEvery { gameDataRepo.getAllNpcDefinitions() } returns emptyList()
+
+        val result = service.getAllNpcDefinitions(Empty.getDefaultInstance())
+
+        assertEquals(0, result.npcsList.size)
+    }
+
+    @Test
+    fun `getAllNpcShopItems returns items from repo`() = runTest {
+        val items = listOf(
+            NpcShopItemRecord.newBuilder().setNpcId(1).setItemDefId(10).build(),
+            NpcShopItemRecord.newBuilder().setNpcId(1).setItemDefId(20).build()
+        )
+        coEvery { gameDataRepo.getAllNpcShopItems() } returns items
+
+        val result = service.getAllNpcShopItems(Empty.getDefaultInstance())
+
+        assertEquals(2, result.itemsList.size)
+        assertEquals(1, result.itemsList[0].npcId)
+        assertEquals(10, result.itemsList[0].itemDefId)
+    }
+
+    @Test
+    fun `getAllNpcShopItems returns empty list`() = runTest {
+        coEvery { gameDataRepo.getAllNpcShopItems() } returns emptyList()
+
+        val result = service.getAllNpcShopItems(Empty.getDefaultInstance())
+
+        assertEquals(0, result.itemsList.size)
+    }
 }

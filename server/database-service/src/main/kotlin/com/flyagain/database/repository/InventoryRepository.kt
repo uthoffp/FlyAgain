@@ -59,6 +59,22 @@ interface InventoryRepository {
     suspend fun addItem(characterId: String, itemId: Int, amount: Int): Int
 
     /**
+     * Adds a stackable item to the character's inventory.
+     *
+     * If [maxStack] > 1, attempts to find an existing stack of the same [itemId]
+     * with room (amount < maxStack) and adds to it (capped at maxStack).
+     * If no existing stack has room, places the item in the first free slot.
+     *
+     * @param characterId the character receiving the item
+     * @param itemId the item definition ID
+     * @param amount stack count to add
+     * @param maxStack the maximum stack size for this item type
+     * @return the slot index where the item was placed or updated
+     * @throws NoSuchElementException if the inventory is full (all 100 slots occupied)
+     */
+    suspend fun addItemStackable(characterId: String, itemId: Int, amount: Int, maxStack: Int): Int
+
+    /**
      * Removes an item from the specified inventory slot.
      *
      * Deletes the entire row regardless of [amount] — partial removal is not

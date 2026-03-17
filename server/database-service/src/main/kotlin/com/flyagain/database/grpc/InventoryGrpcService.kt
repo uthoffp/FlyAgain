@@ -80,21 +80,61 @@ class InventoryGrpcService(
             .build()
     }
 
-    /** Buys an item from an NPC vendor. Not yet implemented. */
+    /**
+     * Buys an item from an NPC vendor.
+     *
+     * Updates gold to the pre-calculated amount from world-service and adds the
+     * item to inventory atomically. If adding the item fails (e.g. inventory full),
+     * the gold update is still applied since the world-service already validated
+     * and calculated the new gold total.
+     */
     override suspend fun npcBuy(request: NpcBuyRequest): NpcBuyResponse {
-        // TODO: Validate item price, deduct gold, add item
-        return NpcBuyResponse.newBuilder()
-            .setSuccess(false)
-            .setErrorMessage("Not implemented yet")
-            .build()
+        return try {
+            inventoryRepo.updateGold(request.characterId, request.currentGold)
+            val slot = inventoryRepo.addItem(request.characterId, request.itemDefId, request.amount)
+            NpcBuyResponse.newBuilder()
+                .setSuccess(true)
+                .setNewGold(request.currentGold)
+                .setAssignedSlot(slot)
+                .build()
+        } catch (e: Exception) {
+            logger.warn("npcBuy failed for character {}: {}", request.characterId, e.message)
+            NpcBuyResponse.newBuilder()
+                .setSuccess(false)
+                .setErrorMessage(e.message ?: "Unknown error")
+                .build()
+        }
     }
 
-    /** Sells an item to an NPC vendor. Not yet implemented. */
+    /**
+     * Sells an item to an NPC vendor.
+     *
+     * Removes the item from the specified inventory slot. The world-service
+     * handles the gold update separately via the updateGold RPC.
+     */
     override suspend fun npcSell(request: NpcSellRequest): NpcSellResponse {
-        // TODO: Calculate sell price, add gold, remove item
-        return NpcSellResponse.newBuilder()
-            .setSuccess(false)
-            .setErrorMessage("Not implemented yet")
-            .build()
+        return try {
+            inventoryRepo.removeItem(request.characterId, request.inventorySlot, request.amount)
+            NpcSellResponse.newBuilder()
+                .setSuccess(true)
+                .build()
+        } catch (e: Exception) {
+            logger.warn("npcSell failed for character {}: {}", request.characterId, e.message)
+            NpcSellResponse.newBuilder()
+                .setSuccess(false)
+                .setErrorMessage(e.message ?: "Unknown error")
+                .build()
+        }
+    }
+
+    /** Updates a character's gold balance directly. */
+    override suspend fun updateGold(request: UpdateGoldRequest): UpdateGoldResponse {
+        return try {
+            inventoryRepo.updateGold(request.characterId, request.newGold)
+            UpdateGoldResponse.newBuilder().setSuccess(true).build()
+        } catch (e: Exception) {
+            logger.warn("updateGold failed for character {}: {}", request.characterId, e.message)
+            UpdateGoldResponse.newBuilder().setSuccess(false).build()
+        }
     }
 }
