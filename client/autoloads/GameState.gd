@@ -56,6 +56,10 @@ var selected_target_hp:      int    = 0
 var selected_target_max_hp:  int    = 0
 var auto_attack_active:      bool   = false
 
+# ---- Combat UI state ----
+var is_dead:           bool       = false
+var skill_cooldowns:   Dictionary = {}  # { skill_id: float (end_time from Time.get_ticks_msec()) }
+
 
 ## Resets all session state. Call on logout or session expiry.
 func reset() -> void:
@@ -94,6 +98,8 @@ func reset() -> void:
 	selected_target_hp     = 0
 	selected_target_max_hp = 0
 	auto_attack_active     = false
+	is_dead                = false
+	skill_cooldowns        = {}
 
 
 ## Returns true if a valid session is active.

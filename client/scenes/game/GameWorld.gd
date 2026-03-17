@@ -44,6 +44,11 @@ var _portals: Array[Area3D] = []
 var _is_zone_transitioning: bool = false
 var _target_frame: PanelContainer = null
 
+# HUD references for dynamic children
+var _hud_root: Control = null
+var _death_screen = null  # DeathScreen (ColorRect with script)
+var _notifications = null  # NotificationStack (VBoxContainer with script)
+
 # Loading overlay nodes
 var _loading_layer: CanvasLayer = null
 var _loading_bg: ColorRect = null
@@ -99,6 +104,7 @@ func _connect_signals() -> void:
 	NetworkManager.xp_gained.connect(_on_xp_gained)
 	NetworkManager.auto_attack_response.connect(_on_auto_attack_response)
 	NetworkManager.entity_stats_updated.connect(_on_entity_stats_updated)
+	NetworkManager.gold_updated.connect(_on_gold_updated)
 
 
 func _disconnect_signals() -> void:
@@ -125,6 +131,8 @@ func _disconnect_signals() -> void:
 		NetworkManager.auto_attack_response.disconnect(_on_auto_attack_response)
 	if NetworkManager.entity_stats_updated.is_connected(_on_entity_stats_updated):
 		NetworkManager.entity_stats_updated.disconnect(_on_entity_stats_updated)
+	if NetworkManager.gold_updated.is_connected(_on_gold_updated):
+		NetworkManager.gold_updated.disconnect(_on_gold_updated)
 
 
 # ---- Loading overlay ----
@@ -187,12 +195,12 @@ func _setup_hud() -> void:
 	hud_layer.layer = 10
 	add_child(hud_layer)
 
-	var hud_root := Control.new()
-	hud_root.name = "HUDRoot"
-	hud_root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_root.theme = ThemeFactory.create_main_theme()
-	hud_layer.add_child(hud_root)
+	_hud_root = Control.new()
+	_hud_root.name = "HUDRoot"
+	_hud_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hud_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.theme = ThemeFactory.create_main_theme()
+	hud_layer.add_child(_hud_root)
 
 	# Logout button — top-right corner
 	var margin := MarginContainer.new()
@@ -201,22 +209,22 @@ func _setup_hud() -> void:
 	margin.add_theme_constant_override("margin_top", 16)
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_root.add_child(margin)
+	_hud_root.add_child(margin)
 
 	var logout_btn: FlyButton = FlyButtonScene.instantiate()
 	logout_btn.variant = FlyButton.Variant.SECONDARY
-	logout_btn.label_text = "Abmelden"  # TODO: localize with tr()
+	logout_btn.label_text = tr("LOGOUT")
 	logout_btn.pressed.connect(_on_logout_pressed)
 	margin.add_child(logout_btn)
 
 	# Confirmation dialog
 	_logout_dialog = ConfirmationDialog.new()
-	_logout_dialog.title = "Abmelden"  # TODO: localize with tr()
-	_logout_dialog.dialog_text = "Möchtest du dich wirklich abmelden?"  # TODO: localize with tr()
-	_logout_dialog.ok_button_text = "Ja"  # TODO: localize with tr()
-	_logout_dialog.cancel_button_text = "Abbrechen"  # TODO: localize with tr()
+	_logout_dialog.title = tr("LOGOUT")
+	_logout_dialog.dialog_text = tr("LOGOUT_CONFIRM")
+	_logout_dialog.ok_button_text = tr("LOGOUT_YES")
+	_logout_dialog.cancel_button_text = tr("LOGOUT_CANCEL")
 	_logout_dialog.confirmed.connect(_on_logout_confirmed)
-	hud_root.add_child(_logout_dialog)
+	_hud_root.add_child(_logout_dialog)
 
 	# Player frame — top-left
 	var player_margin := MarginContainer.new()
@@ -224,7 +232,7 @@ func _setup_hud() -> void:
 	player_margin.add_theme_constant_override("margin_top", 16)
 	player_margin.add_theme_constant_override("margin_left", 16)
 	player_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_root.add_child(player_margin)
+	_hud_root.add_child(player_margin)
 
 	var PlayerFrameScript := preload("res://scenes/ui/game_hud/PlayerFrame.gd")
 	var player_frame := PanelContainer.new()
@@ -236,12 +244,51 @@ func _setup_hud() -> void:
 	target_center.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	target_center.add_theme_constant_override("margin_top", 16)
 	target_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud_root.add_child(target_center)
+	_hud_root.add_child(target_center)
 
 	var TargetFrameScript := preload("res://scenes/ui/game_hud/TargetFrame.gd")
 	_target_frame = PanelContainer.new()
 	_target_frame.set_script(TargetFrameScript)
 	target_center.add_child(_target_frame)
+
+	# Skill bar — bottom-center
+	var skill_margin := MarginContainer.new()
+	skill_margin.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	skill_margin.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	skill_margin.add_theme_constant_override("margin_bottom", 16)
+	skill_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(skill_margin)
+
+	var skill_center := CenterContainer.new()
+	skill_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	skill_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skill_margin.add_child(skill_center)
+
+	var SkillBarScript := preload("res://scenes/ui/game_hud/SkillBar.gd")
+	var skill_bar := PanelContainer.new()
+	skill_bar.set_script(SkillBarScript)
+	skill_center.add_child(skill_bar)
+
+	# Notification stack — right side
+	var notif_margin := MarginContainer.new()
+	notif_margin.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	notif_margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	notif_margin.add_theme_constant_override("margin_right", 16)
+	notif_margin.add_theme_constant_override("margin_top", 200)
+	notif_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(notif_margin)
+
+	var NotifScript := preload("res://scenes/ui/game_hud/NotificationStack.gd")
+	_notifications = VBoxContainer.new()
+	_notifications.set_script(NotifScript)
+	notif_margin.add_child(_notifications)
+
+	# Death screen overlay (added last so it draws on top of other HUD elements)
+	var DeathScreenScript := preload("res://scenes/ui/game_hud/DeathScreen.gd")
+	_death_screen = ColorRect.new()
+	_death_screen.set_script(DeathScreenScript)
+	_death_screen.respawn_requested.connect(_on_respawn_requested)
+	_hud_root.add_child(_death_screen)
 
 
 func _on_logout_pressed() -> void:
@@ -490,6 +537,18 @@ func _on_damage_event(data: Dictionary) -> void:
 ## An entity died.
 func _on_entity_death(data: Dictionary) -> void:
 	var dead_id: int = data.get("entity_id", 0)
+
+	# Check if WE died
+	if dead_id == GameState.my_entity_id:
+		GameState.is_dead = true
+		GameState.auto_attack_active = false
+		_deselect_current_target()
+		if _player:
+			_player.cancel_approach()
+		if _death_screen and _death_screen.has_method("show_death"):
+			_death_screen.show_death()
+		return
+
 	# If our current target died, deselect and stop auto-attack
 	if dead_id == GameState.selected_target_id:
 		_deselect_current_target()
@@ -505,6 +564,14 @@ func _on_entity_death(data: Dictionary) -> void:
 		entity.queue_free()
 
 
+## Respawn button pressed on the death screen.
+func _on_respawn_requested() -> void:
+	GameState.is_dead = false
+	# Server already healed us to full HP/MP on death — apply predictively
+	GameState.player_hp = GameState.player_max_hp
+	GameState.player_mp = GameState.player_max_mp
+
+
 ## We gained XP (e.g. from killing a monster).
 func _on_xp_gained(data: Dictionary) -> void:
 	GameState.player_xp = data.get("total_xp", GameState.player_xp)
@@ -512,6 +579,17 @@ func _on_xp_gained(data: Dictionary) -> void:
 	var new_level: int = data.get("current_level", 0)
 	if new_level > 0:
 		GameState.player_level = new_level
+
+	# Level-Up effect
+	var leveled_up: bool = data.get("leveled_up", false)
+	if leveled_up:
+		_show_level_up_effect()
+
+	# XP notification
+	var xp_amount: int = data.get("xp_gained", 0)
+	if xp_amount > 0 and _notifications and _notifications.has_method("show_notification"):
+		_notifications.show_notification(
+			tr("XP_GAINED").replace("{amount}", str(xp_amount)), Colors.GOLD)
 
 
 ## Server confirmed auto-attack toggle.
@@ -533,6 +611,16 @@ func _on_entity_stats_updated(data: Dictionary) -> void:
 		GameState.player_dex = data.get("dex", GameState.player_dex)
 		GameState.player_int = data.get("int", GameState.player_int)
 		GameState.player_level = data.get("level", GameState.player_level)
+
+
+## Server sent a gold update (e.g. from killing a monster).
+func _on_gold_updated(data: Dictionary) -> void:
+	GameState.player_gold = data.get("total_gold", GameState.player_gold)
+
+	var gold_amount: int = data.get("gold_gained", 0)
+	if gold_amount > 0 and _notifications and _notifications.has_method("show_notification"):
+		_notifications.show_notification(
+			tr("GOLD_GAINED").replace("{amount}", str(gold_amount)), Colors.GOLD_BRIGHT)
 
 
 ## Deselect the currently selected target and clear GameState target fields.
@@ -572,3 +660,19 @@ func _spawn_damage_number(data: Dictionary) -> void:
 	dmg_label.setup(damage, is_critical, is_self_damage)
 	get_tree().current_scene.add_child(dmg_label)
 	dmg_label.global_position = spawn_pos
+
+
+## Show a floating "Level Up!" effect at the center of the screen.
+func _show_level_up_effect() -> void:
+	if _hud_root == null:
+		return
+	var LevelUpScript := preload("res://scenes/ui/game_hud/LevelUpEffect.gd")
+	var label := Label.new()
+	label.set_script(LevelUpScript)
+	label.custom_minimum_size = Vector2(250, 0)
+	# Position at screen center
+	var viewport_size := get_viewport().get_visible_rect().size
+	label.position = Vector2(
+		(viewport_size.x - 250.0) / 2.0,
+		viewport_size.y / 2.0 - 40.0)
+	_hud_root.add_child(label)

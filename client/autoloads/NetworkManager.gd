@@ -42,11 +42,13 @@ signal position_corrected(data: Dictionary)
 # ---- Signals (combat) ----
 
 signal select_target_response(data: Dictionary)
+signal use_skill_response(data: Dictionary)
 signal damage_event(data: Dictionary)
 signal entity_death(data: Dictionary)
 signal xp_gained(data: Dictionary)
 signal auto_attack_response(data: Dictionary)
 signal entity_stats_updated(data: Dictionary)
+signal gold_updated(data: Dictionary)
 
 
 # ---- Configuration ----
@@ -556,6 +558,11 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			print("[NET] SELECT_TARGET: success=%s target=%d name=%s" % [
 				data.get("success", false), data.get("target_entity_id", 0), data.get("target_name", "")])
 			select_target_response.emit(data)
+		PacketProtocol.OPCODE_USE_SKILL:
+			var data := ProtoDecoder.new(payload).decode_use_skill_response()
+			print("[Combat] UseSkillResponse: success=%s skill=%d msg=%s" % [
+				data.get("success", false), data.get("skill_id", 0), data.get("error_message", "")])
+			use_skill_response.emit(data)
 		PacketProtocol.OPCODE_DAMAGE_EVENT:
 			var data := ProtoDecoder.new(payload).decode_damage_event()
 			damage_event.emit(data)
@@ -576,6 +583,11 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 		PacketProtocol.OPCODE_ENTITY_STATS_UPDATE:
 			var data := ProtoDecoder.new(payload).decode_entity_stats_update()
 			entity_stats_updated.emit(data)
+		PacketProtocol.OPCODE_GOLD_UPDATE:
+			var data := ProtoDecoder.new(payload).decode_gold_update()
+			print("[NET] GOLD_UPDATE: +%d gold (total=%d)" % [
+				data.get("gold_gained", 0), data.get("total_gold", 0)])
+			gold_updated.emit(data)
 		PacketProtocol.OPCODE_HEARTBEAT:
 			pass
 		_:

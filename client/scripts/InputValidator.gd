@@ -17,7 +17,15 @@ const CHAR_NAME_MAX_LENGTH := 16
 
 # Precompiled-style patterns (compiled on first use)
 const _USERNAME_PATTERN := "^[a-zA-Z0-9\\-]+$"
+const _CHAR_NAME_PATTERN := "^[a-zA-Z][a-zA-Z0-9]{2,15}$"
 const _EMAIL_PATTERN := "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+
+# Reserved names that cannot be used as character names.
+const _NAME_BLACKLIST := [
+	"admin", "administrator", "moderator", "gamemaster", "support",
+	"system", "server", "flyagain", "gm", "mod", "dev", "developer",
+	"npc", "monster", "boss", "null", "undefined", "test",
+]
 
 
 ## Validates a username. Returns an empty string on success, or an error message.
@@ -60,9 +68,11 @@ static func validate_password_match(password: String, confirm: String) -> String
 ## Validates a character name. Returns an empty string on success, or an error message.
 static func validate_character_name(char_name: String) -> String:
 	if char_name.length() < CHAR_NAME_MIN_LENGTH or char_name.length() > CHAR_NAME_MAX_LENGTH:
-		return "Name muss %d–%d Zeichen lang sein." % [CHAR_NAME_MIN_LENGTH, CHAR_NAME_MAX_LENGTH]
-	if not _matches_pattern(char_name, _USERNAME_PATTERN):
-		return "Name darf nur Buchstaben, Ziffern und Bindestriche enthalten."
+		return TranslationServer.translate("CHAR_NAME_LENGTH_ERROR") % [CHAR_NAME_MIN_LENGTH, CHAR_NAME_MAX_LENGTH]
+	if not _matches_pattern(char_name, _CHAR_NAME_PATTERN):
+		return TranslationServer.translate("CHAR_NAME_INVALID_ERROR")
+	if char_name.to_lower() in _NAME_BLACKLIST:
+		return TranslationServer.translate("CHAR_NAME_BLACKLIST_ERROR")
 	return ""
 
 

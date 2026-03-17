@@ -345,6 +345,12 @@ message XpGainMessage {
     bool leveled_up = 5;
 }
 
+// Server -> Client: Gold amount changed
+message GoldUpdateMessage {
+    int64 gold_gained = 1;    // amount gained (or lost if negative)
+    int64 total_gold = 2;     // new total gold
+}
+
 // Server -> Client: Stats update after level-up or stat change
 message EntityStatsUpdate {
     int64 entity_id = 1;

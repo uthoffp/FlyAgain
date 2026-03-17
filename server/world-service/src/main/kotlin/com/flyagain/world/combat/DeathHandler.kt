@@ -69,8 +69,7 @@ class DeathHandler(
         killer.gold += goldDrop
         killer.markDirty()
 
-        // Note: GoldUpdate proto message does not exist yet; gold is persisted
-        // via the normal write-back pipeline and will be sent on next full sync.
+        broadcastService.sendGoldUpdate(killer, goldDrop.toLong())
 
         logger.debug("Player {} received {} gold from killing {} (total: {})",
             killer.name, goldDrop, monster.name, killer.gold)

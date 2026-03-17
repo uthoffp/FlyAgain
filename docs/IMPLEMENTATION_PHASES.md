@@ -104,10 +104,10 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
   - Session in Redis speichern
   - Rate-Limit: 5 pro Minute pro IP
 - [x] `CharacterCreateHandler` (Opcode `0x0005`):
-  - Name-Validierung (2-16 Zeichen, Buchstaben+Ziffern+Umlaute)
+  - Name-Validierung (3-16 Zeichen, `[a-zA-Z][a-zA-Z0-9]{2,15}`, muss mit Buchstabe beginnen)
+  - Name-Blacklist (18 reservierte Namen: admin, gm, system, etc.)
   - Max 3 Charaktere pro Account
   - Basis-Stats fuer alle 4 Klassen (Warrior, Mage, Assassin, Cleric)
-  - **TODO:** Server-Regex auf `[a-zA-Z0-9-]{3,16}` angleichen, Blacklist implementieren
 - [x] `CharacterSelectHandler` (Opcode `0x0003`):
   - Ownership-Validierung (`account_id == session.accountId`)
   - Character laden, in Redis cachen
@@ -124,7 +124,9 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 **Zusaetzlich implementiert (nicht im Original-Plan):**
 - [x] `CharacterListHandler` (Opcode `0x0008`): Separate Charakter-Liste nach Reconnect
 - [x] `JwtValidator` im Account-Service: JWT-Validierung fuer alle Account-Operationen
-- [x] `InputValidator.gd` (Client): Client-seitige Eingabe-Validierung mit deutschen Fehlermeldungen
+- [x] `InputValidator.gd` (Client): Client-seitige Eingabe-Validierung mit lokalisierten Fehlermeldungen (EN+DE)
+  - Character-Name-Validierung identisch zum Server (`[a-zA-Z][a-zA-Z0-9]{2,15}`)
+  - Name-Blacklist identisch zum Server (18 reservierte Namen)
 - [x] Client-Tests: InputValidatorTest, GameStateTest, NetworkManagerTest, PacketProtocolTest, ProtoEncoder/DecoderTest
 - [x] Alle 4 Klassen mit Basis-Stats (nicht nur Warrior wie im MVP geplant)
 
@@ -250,12 +252,13 @@ Monster toeten, XP sammeln, leveln und andere Spieler sehen.
 - [x] Proto-Encoder/Decoder: 9 neue Combat-Nachrichten
 - [x] NetworkManager: 6 Combat-Signals + 3 Send-Methoden
 
-**Client — noch offen:**
-- [ ] Skill-Bar: 4 Slots (Tasten 1-4), Cooldown-Anzeige
-- [ ] Tod-Screen: "Du bist gestorben" + Respawn-Button
-- [ ] HP/MP-Balken: Eigene HP/MP in der UI
-- [ ] XP-Balken: Fortschrittsanzeige, Level-Up-Effekt
-- [ ] Loot-Anzeige: Inventar-Popup bei Loot-Erhalt
+**Client — implementiert:**
+- [x] Skill-Bar: 4 Slots (Tasten 1-4), Cooldown-Anzeige (SkillBar.gd)
+- [x] Tod-Screen: "Du bist gestorben" + Respawn-Button (DeathScreen.gd)
+- [x] HP/MP-Balken: Eigene HP/MP in der UI, Low-HP Flash, Smooth Tweens (PlayerFrame.gd)
+- [x] XP-Balken: Fortschrittsanzeige, Level-Up-Effekt (LevelUpEffect.gd)
+- [x] Gold-Benachrichtigung: GoldUpdate-Paket (0x0407) empfangen, GameState aktualisieren, Notification anzeigen
+- [x] Loot-Anzeige: XP/Gold Notification Stack (NotificationStack.gd)
 
 **Seed-Daten (Server DB — implementiert in V10):**
 ```
@@ -274,12 +277,13 @@ Monster (Green Plains):
 ```
 
 **Akzeptanzkriterien:**
-- Monster stehen in der Zone und haben AI (Aggro, Angriff, Return, Dead/Respawn) ✅ (Server)
+- Monster stehen in der Zone und haben AI (Aggro, Angriff, Return, Dead/Respawn) ✅
 - Tab-Targeting und Auto-Attack funktionieren ✅ (Server + Client)
-- 4 Skills mit Cooldowns und MP-Kosten ✅ (Server) / ❌ (Client Skill-Bar UI)
+- 4 Skills mit Cooldowns und MP-Kosten ✅ (Server + Client: SkillBar.gd)
 - Monster sterben, droppen Loot und XP ✅ (Server: DeathHandler + LootSystem + XpSystem)
+- Gold-Drop wird dem Spieler angezeigt ✅ (Server: GoldUpdate-Paket + Client: Notification)
 - Level-Up von 1 auf 200 moeglich durch Grinding ✅ (Server: XP-Kurve 100*lvl^1.5)
-- Spieler-Tod -> Respawn in Aerheim ✅ (Server: DeathHandler) / ❌ (Client Tod-Screen)
+- Spieler-Tod -> Respawn in Aerheim ✅ (Server: DeathHandler + Client: DeathScreen.gd)
 
 ---
 
@@ -677,12 +681,12 @@ miteinander zu interagieren und gegeneinander anzutreten.
 **Schritt 1.2** (Netzwerk) ist vollstaendig abgeschlossen (Server + Client). ✅
   - Server: TCP, UDP, PacketRouter, ConnectionLimiter, FloodProtection, HeartbeatTracker
   - Client: NetworkManager, TcpConnection, UdpConnection, PacketHandler, Heartbeat (5s), Reconnect (3 Versuche)
-**Schritt 1.3** (Auth/DB) ist nahezu abgeschlossen (~95%). ✅
+**Schritt 1.3** (Auth/DB) ist vollstaendig abgeschlossen. ✅
   - Server: Login, Register, CharacterCreate, CharacterSelect Handler mit Redis + DB
   - Client: Login, Register, CharacterSelect, CharacterCreate UI mit Fehlerbehandlung
   - DB-Migrationen: V1-V8 (alle Tabellen: accounts, characters, items, inventory, equipment, skills, monsters, loot)
   - Service-Transitions: Login :7777 → Account :7779 → World :7780/:7781
-  - **Offene Punkte:** Character-Name-Regex Server/Client angleichen (3-16, [a-zA-Z0-9-]), Blacklist implementieren
+  - Character-Name-Validierung: Server+Client identisch (`[a-zA-Z][a-zA-Z0-9]{2,15}`), Blacklist (18 Namen)
 **Schritt 1.4** (Welt/Bewegung/Zonen) ist vollstaendig abgeschlossen (Server + Client). ✅
   - Server: ZoneManager, ZoneChannel, SpatialGrid, EnterWorldHandler, MovementHandler,
     EntityManager, GameLoop (20Hz), Flugmechanik, Zone-Wechsel, BroadcastService — alle mit Tests
@@ -699,23 +703,31 @@ miteinander zu interagieren und gegeneinander anzutreten.
     - Sprung-Mechanik: Leertaste, Gravitation, Jump-Offset Sync ueber Netzwerk
     - Flugmechanik: Abheben/Landen-Toggle, Steigen/Sinken (fly_up/fly_down)
     - Zone-Wechsel: Ladescreen-Overlay, ZonePortal-Trigger, Terrain-/Entity-Swap, Player-Repositionierung
-**Schritt 1.5** (Kampfsystem/Monster-AI) — Server komplett, Client Kern-Combat fertig (~80% gesamt). 🔧
-  - Server (komplett abgeschlossen):
+**Schritt 1.5** (Kampfsystem/Monster-AI) ist vollstaendig abgeschlossen (Server + Client). ✅
+  - Server:
     - CombatEngine: Schadensformel, Crit-System (10%, 1.5x), Min-Damage 1, Auto-Attack-Loop
     - SkillSystem: Skill-Laden aus DB, Validierung (Existenz, MP, Cooldown, Range, Target), DamageEvent-Broadcast
     - SelectTargetHandler: Target-Validierung, HP/Name/Level-Response
     - ToggleAutoAttackHandler: Server-seitiger Auto-Attack-Toggle
     - MonsterAI: Vollstaendige State-Machine (IDLE → AGGRO → ATTACK → RETURN → DEAD mit Respawn)
     - MonsterEntity: Spawning aus DB, Respawn-Timer, AI-State-Tracking
-    - DeathHandler: Monster-Tod (XP/Loot), Spieler-Tod (Respawn, kein Item-Verlust)
+    - DeathHandler: Monster-Tod (XP/Loot/Gold), Spieler-Tod (Respawn, kein Item-Verlust)
     - XpSystem: XP-Kurve (100*lvl^1.5), Multi-Level-Up, klassenbasierte Stats, Level-Cap 200
     - LootSystem: Drop-Chance-Rolling, Gold-Berechnung, direkt ins Inventar
+    - GoldUpdate-Paket (0x0407): Server sendet Gold-Benachrichtigung bei Monster-Kill
     - DB-Migrationen: V9 (rotation), V10 (Skills/Monster/Spawns), V11 (Items/Loot-Tables)
     - Game-Loop-Integration: Monster-AI + Auto-Attack + Death-Resolution im 20Hz-Loop
     - Tests: CombatEngine (14), SkillSystem, MonsterAI, AIState, MonsterEntity, XpSystem (27), LootSystem (15), DeathHandler (12)
-  - Client (abgeschlossen): Tab-Targeting, Target-Frame, Auto-Attack, Damage-Numbers, Monster-Formen, Proto-Encoder/Decoder, Combat-Signals
-  - Client (offen): Skill-Bar, Tod-Screen, HP/MP-Balken, XP-Balken, Loot-Anzeige
+  - Client:
+    - Tab-Targeting, Target-Frame, Auto-Attack, Damage-Numbers, Monster-Formen
+    - Proto-Encoder/Decoder: Alle Combat-Nachrichten inkl. GoldUpdate
+    - NetworkManager: 7 Combat-Signals (inkl. gold_updated) + 3 Send-Methoden
+    - SkillBar: 4 Slots (Tasten 1-4), Cooldown-Anzeige, MP-Kosten, Level-Gates
+    - DeathScreen: Overlay mit Respawn-Button
+    - PlayerFrame: HP/MP/XP-Balken, Level, Name, Zone
+    - LevelUpEffect: Zentrierte Floating-Animation
+    - NotificationStack: XP/Gold-Benachrichtigungen mit Fade-Animationen
 
-**Naechste Prioritaeten:**
-1. Phase 1.5 Client: Skill-Bar, Tod-Screen, HP/MP-Balken, XP-Balken, Loot-Anzeige
-2. Phase 1.3 Fixes: Character-Name-Validierung angleichen, Blacklist
+**Naechste Prioritaet:**
+1. Phase 1.6: Inventar, Equipment und NPC-Shops (Server-Handler + Client-UI)
+2. Phase 1.7: Chat-System (kann parallel zu 1.6 entwickelt werden)

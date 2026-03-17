@@ -87,6 +87,8 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if GameState.is_dead:
+		return
 	# Left-click: target entity if hit, otherwise click-to-move
 	if event is InputEventMouseButton \
 			and event.button_index == MOUSE_BUTTON_LEFT \

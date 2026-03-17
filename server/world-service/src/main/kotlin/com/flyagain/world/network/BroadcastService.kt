@@ -263,6 +263,19 @@ class BroadcastService(
     }
 
     /**
+     * Send a gold update notification to a specific player.
+     */
+    fun sendGoldUpdate(player: PlayerEntity, goldGained: Long) {
+        val goldMsg = GoldUpdateMessage.newBuilder()
+            .setGoldGained(goldGained)
+            .setTotalGold(player.gold)
+            .build()
+
+        val packet = Packet(Opcode.GOLD_UPDATE_VALUE, goldMsg.toByteArray())
+        sendToPlayer(player, packet)
+    }
+
+    /**
      * Broadcast an entity stats update (e.g. after level-up) to nearby players.
      */
     fun broadcastEntityStatsUpdate(channel: ZoneChannel, player: PlayerEntity) {

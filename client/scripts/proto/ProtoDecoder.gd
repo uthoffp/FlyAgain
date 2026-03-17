@@ -379,6 +379,24 @@ func decode_entity_despawn() -> Dictionary:
 
 # ---- Combat message decoders ----
 
+## Decodes a UseSkillResponse message.
+## Returns: { success: bool, skill_id: int, error_message: String }
+func decode_use_skill_response() -> Dictionary:
+	var result := {"success": false, "skill_id": 0, "error_message": ""}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]       = _read_varint() != 0
+			2: result["skill_id"]      = _read_varint()
+			3: result["error_message"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
 ## Decodes a SelectTargetResponse message.
 ## Returns: { success: bool, target_entity_id: int, target_hp: int,
 ##            target_max_hp: int, target_name: String, target_level: int }
@@ -482,6 +500,23 @@ func decode_toggle_auto_attack_response() -> Dictionary:
 		match fn:
 			1: result["auto_attacking"]   = _read_varint() != 0
 			2: result["target_entity_id"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a GoldUpdateMessage.
+## Returns: { gold_gained: int, total_gold: int }
+func decode_gold_update() -> Dictionary:
+	var result := {"gold_gained": 0, "total_gold": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["gold_gained"] = _read_varint()
+			2: result["total_gold"]  = _read_varint()
 			_: _skip(wt)
 	return result
 

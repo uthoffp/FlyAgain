@@ -1,8 +1,13 @@
 ## PlayerFrame.gd
 ## Displays the player's level, name, HP bar, MP bar, and XP % bar.
 ## Reads from GameState.player_* every frame. Positioned top-left.
+## Enhancements: low-HP red flash, smooth bar value tweens.
 extends PanelContainer
 
+
+const HP_COLOR_NORMAL := Color(0.2, 0.7, 0.25, 0.95)
+const HP_COLOR_LOW    := Color(0.85, 0.15, 0.15, 0.95)
+const HP_LOW_THRESHOLD := 0.25
 
 var _name_label: Label = null
 var _level_label: Label = null
@@ -13,6 +18,17 @@ var _mp_bar: ProgressBar = null
 var _mp_text: Label = null
 var _xp_bar: ProgressBar = null
 var _xp_text: Label = null
+
+# Smooth bar tween tracking
+var _prev_hp: int = -1
+var _prev_mp: int = -1
+var _hp_tween: Tween = null
+var _mp_tween: Tween = null
+
+# Low-HP flash effect
+var _hp_bar_fill_style: StyleBoxFlat = null
+var _hp_flash_tween: Tween = null
+var _is_hp_low: bool = false
 
 
 func _ready() -> void:
@@ -31,19 +47,25 @@ func _process(_delta: float) -> void:
 	# Zone
 	if _zone_label:
 		_zone_label.text = WorldConstants.get_zone_name(GameState.current_zone_id)
-	# HP
+	# HP (smooth tween)
 	if _hp_bar:
 		_hp_bar.max_value = GameState.player_max_hp
-		_hp_bar.value = GameState.player_hp
+		if GameState.player_hp != _prev_hp:
+			_prev_hp = GameState.player_hp
+			_tween_bar_hp(float(GameState.player_hp))
 	if _hp_text:
 		_hp_text.text = "%d / %d" % [GameState.player_hp, GameState.player_max_hp]
-	# MP
+	# Low-HP flash
+	_update_hp_flash()
+	# MP (smooth tween)
 	if _mp_bar:
 		_mp_bar.max_value = GameState.player_max_mp
-		_mp_bar.value = GameState.player_mp
+		if GameState.player_mp != _prev_mp:
+			_prev_mp = GameState.player_mp
+			_tween_bar_mp(float(GameState.player_mp))
 	if _mp_text:
 		_mp_text.text = "%d / %d" % [GameState.player_mp, GameState.player_max_mp]
-	# XP
+	# XP (direct assignment — infrequent changes)
 	if _xp_bar:
 		_xp_bar.max_value = GameState.player_xp_to_next_level
 		_xp_bar.value = GameState.player_xp
@@ -60,6 +82,58 @@ func _get_character_name() -> String:
 			return c.get("name", "")
 	return ""
 
+
+# ---- Smooth bar tweens ----
+
+func _tween_bar_hp(target: float) -> void:
+	if _hp_tween:
+		_hp_tween.kill()
+	_hp_tween = create_tween()
+	_hp_tween.tween_property(_hp_bar, "value", target, 0.3) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+
+
+func _tween_bar_mp(target: float) -> void:
+	if _mp_tween:
+		_mp_tween.kill()
+	_mp_tween = create_tween()
+	_mp_tween.tween_property(_mp_bar, "value", target, 0.3) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+
+
+# ---- Low-HP flash ----
+
+func _update_hp_flash() -> void:
+	var max_hp := maxf(float(GameState.player_max_hp), 1.0)
+	var hp_ratio := float(GameState.player_hp) / max_hp
+	if hp_ratio < HP_LOW_THRESHOLD and GameState.player_hp > 0:
+		if not _is_hp_low:
+			_is_hp_low = true
+			_start_hp_flash()
+	elif _is_hp_low:
+		_is_hp_low = false
+		_stop_hp_flash()
+
+
+func _start_hp_flash() -> void:
+	if _hp_bar_fill_style == null:
+		return
+	if _hp_flash_tween:
+		_hp_flash_tween.kill()
+	_hp_flash_tween = create_tween().set_loops()
+	_hp_flash_tween.tween_property(_hp_bar_fill_style, "bg_color", HP_COLOR_LOW, 0.4)
+	_hp_flash_tween.tween_property(_hp_bar_fill_style, "bg_color", HP_COLOR_NORMAL, 0.4)
+
+
+func _stop_hp_flash() -> void:
+	if _hp_flash_tween:
+		_hp_flash_tween.kill()
+		_hp_flash_tween = null
+	if _hp_bar_fill_style:
+		_hp_bar_fill_style.bg_color = HP_COLOR_NORMAL
+
+
+# ---- UI construction ----
 
 func _apply_panel_style() -> void:
 	var style := StyleBoxFlat.new()
@@ -144,8 +218,9 @@ func _build_stat_bar(parent: VBoxContainer, stat: String) -> void:
 	match stat:
 		"hp":
 			bar_bg.bg_color = Color(0.08, 0.15, 0.08, 0.9)
-			bar_fill.bg_color = Color(0.2, 0.7, 0.25, 0.95)
+			bar_fill.bg_color = HP_COLOR_NORMAL
 			_hp_bar = bar
+			_hp_bar_fill_style = bar_fill
 		"mp":
 			bar_bg.bg_color = Color(0.08, 0.08, 0.18, 0.9)
 			bar_fill.bg_color = Color(0.2, 0.35, 0.85, 0.95)
