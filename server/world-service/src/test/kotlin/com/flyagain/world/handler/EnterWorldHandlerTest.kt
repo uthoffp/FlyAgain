@@ -2,10 +2,15 @@ package com.flyagain.world.handler
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.grpc.CharacterSkillList
+import com.flyagain.common.grpc.CharacterSkillRecord
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.EnterWorldRequest
 import com.flyagain.common.proto.EnterWorldResponse
 import com.flyagain.common.proto.Opcode
+import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.network.RedisSessionSecretProvider
@@ -14,6 +19,7 @@ import io.lettuce.core.RedisFuture
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.async.RedisAsyncCommands
 import io.lettuce.core.api.sync.RedisCommands
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -55,13 +61,18 @@ class EnterWorldHandlerTest {
     }
 
     private val sessionSecretProvider = mockk<RedisSessionSecretProvider>(relaxed = true)
+    private val characterDataStub = mockk<CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub>()
+    private val combatEngine = mockk<CombatEngine>(relaxed = true)
+    private val skillSystem = SkillSystem(entityManager, combatEngine)
 
     private val handler = EnterWorldHandler(
         entityManager = entityManager,
         zoneManager = zoneManager,
         redisConnection = redisConnection,
         jwtSecret = JWT_SECRET,
-        sessionSecretProvider = sessionSecretProvider
+        sessionSecretProvider = sessionSecretProvider,
+        characterDataStub = characterDataStub,
+        skillSystem = skillSystem
     )
 
     init {
@@ -77,6 +88,9 @@ class EnterWorldHandlerTest {
         every { saddFuture.get() } returns 1L
         every { saddFuture.get(any(), any()) } returns 1L
         every { redisAsync.sadd(any(), any()) } returns saddFuture
+
+        // Default: gRPC getCharacterSkills returns empty skill list
+        coEvery { characterDataStub.getCharacterSkills(any(), any()) } returns CharacterSkillList.getDefaultInstance()
     }
 
     // ---- Helper functions ----
@@ -306,12 +320,15 @@ class EnterWorldHandlerTest {
         localZoneManager.initialize()
 
         // Create handler with local managers
+        val localSkillSystem = SkillSystem(localEntityManager, combatEngine)
         val localHandler = EnterWorldHandler(
             entityManager = localEntityManager,
             zoneManager = localZoneManager,
             redisConnection = redisConnection,
             jwtSecret = JWT_SECRET,
-            sessionSecretProvider = sessionSecretProvider
+            sessionSecretProvider = sessionSecretProvider,
+            characterDataStub = characterDataStub,
+            skillSystem = localSkillSystem
         )
 
         // Mock zoneManager behavior: we need to mock addPlayerToZone to return null.
@@ -326,7 +343,9 @@ class EnterWorldHandlerTest {
             zoneManager = mockedZoneManager,
             redisConnection = redisConnection,
             jwtSecret = JWT_SECRET,
-            sessionSecretProvider = sessionSecretProvider
+            sessionSecretProvider = sessionSecretProvider,
+            characterDataStub = characterDataStub,
+            skillSystem = localSkillSystem
         )
 
         val request = makeRequest()

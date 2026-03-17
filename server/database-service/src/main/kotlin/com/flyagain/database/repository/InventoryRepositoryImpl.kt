@@ -101,6 +101,45 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
     override suspend fun addItem(characterId: String, itemId: Int, amount: Int): Int = withTransaction { conn ->
         val charUuid = UUID.fromString(characterId)
 
+        // Look up stackability from item_definitions so loot drops (and all
+        // other addItem callers) automatically merge into existing stacks.
+        val maxStack = conn.prepareStatement(
+            "SELECT stackable, max_stack FROM item_definitions WHERE id = ?"
+        ).use { stmt ->
+            stmt.setInt(1, itemId)
+            stmt.executeQuery().use { rs ->
+                if (rs.next() && rs.getBoolean("stackable")) rs.getInt("max_stack") else 1
+            }
+        }
+
+        // If item is stackable, try to find an existing stack with room
+        if (maxStack > 1) {
+            val existingSlot = conn.prepareStatement(
+                "SELECT slot, amount FROM inventory WHERE character_id = ? AND item_id = ? AND amount < ? ORDER BY slot LIMIT 1"
+            ).use { stmt ->
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, itemId)
+                stmt.setInt(3, maxStack)
+                stmt.executeQuery().use { rs ->
+                    if (rs.next()) Pair(rs.getInt("slot"), rs.getInt("amount")) else null
+                }
+            }
+
+            if (existingSlot != null) {
+                val (slot, currentAmount) = existingSlot
+                val newAmount = minOf(currentAmount + amount, maxStack)
+                conn.prepareStatement(
+                    "UPDATE inventory SET amount = ? WHERE character_id = ? AND slot = ?"
+                ).use { stmt ->
+                    stmt.setInt(1, newAmount)
+                    stmt.setObject(2, charUuid)
+                    stmt.setInt(3, slot)
+                    stmt.executeUpdate()
+                }
+                return@withTransaction slot
+            }
+        }
+
         // Find first free slot (0-99)
         val usedSlots = conn.prepareStatement(
             "SELECT slot FROM inventory WHERE character_id = ? ORDER BY slot"
@@ -271,6 +310,45 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.setLong(1, newGold)
             stmt.setObject(2, charUuid)
             stmt.executeUpdate()
+        }
+
+        // Look up stackability from item_definitions so purchased stackable
+        // items merge into existing stacks instead of consuming a new slot.
+        val maxStack = conn.prepareStatement(
+            "SELECT stackable, max_stack FROM item_definitions WHERE id = ?"
+        ).use { stmt ->
+            stmt.setInt(1, itemId)
+            stmt.executeQuery().use { rs ->
+                if (rs.next() && rs.getBoolean("stackable")) rs.getInt("max_stack") else 1
+            }
+        }
+
+        // If item is stackable, try to find an existing stack with room
+        if (maxStack > 1) {
+            val existingSlot = conn.prepareStatement(
+                "SELECT slot, amount FROM inventory WHERE character_id = ? AND item_id = ? AND amount < ? ORDER BY slot LIMIT 1"
+            ).use { stmt ->
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, itemId)
+                stmt.setInt(3, maxStack)
+                stmt.executeQuery().use { rs ->
+                    if (rs.next()) Pair(rs.getInt("slot"), rs.getInt("amount")) else null
+                }
+            }
+
+            if (existingSlot != null) {
+                val (slot, currentAmount) = existingSlot
+                val newAmount = minOf(currentAmount + amount, maxStack)
+                conn.prepareStatement(
+                    "UPDATE inventory SET amount = ? WHERE character_id = ? AND slot = ?"
+                ).use { stmt ->
+                    stmt.setInt(1, newAmount)
+                    stmt.setObject(2, charUuid)
+                    stmt.setInt(3, slot)
+                    stmt.executeUpdate()
+                }
+                return@withTransaction slot
+            }
         }
 
         // Find first free slot

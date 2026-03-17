@@ -1,7 +1,10 @@
 package com.flyagain.world.handler
 
+import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.grpc.GetCharacterSkillsRequest
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
+import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.combat.XpSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.EntitySpawnBuilder
@@ -29,7 +32,9 @@ class EnterWorldHandler(
     private val zoneManager: ZoneManager,
     private val redisConnection: StatefulRedisConnection<String, String>,
     private val jwtSecret: String,
-    private val sessionSecretProvider: RedisSessionSecretProvider
+    private val sessionSecretProvider: RedisSessionSecretProvider,
+    private val characterDataStub: CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub,
+    private val skillSystem: SkillSystem
 ) {
 
     private val logger = LoggerFactory.getLogger(EnterWorldHandler::class.java)
@@ -125,6 +130,21 @@ class EnterWorldHandler(
             player.xpToNextLevel = XpSystem.xpToNextLevel(player.level + 1)
         } else {
             player.xpToNextLevel = 0L
+        }
+
+        // Load character skills from database and register in SkillSystem
+        try {
+            val skillsRequest = GetCharacterSkillsRequest.newBuilder()
+                .setCharacterId(characterId)
+                .build()
+            val skillsList = characterDataStub.getCharacterSkills(skillsRequest)
+            val skillMap = skillsList.skillsList.associate { it.skillId to it.skillLevel }
+            skillSystem.setPlayerSkills(characterId, skillMap)
+            logger.info("Loaded {} skills for character {}", skillMap.size, characterId)
+        } catch (e: Exception) {
+            logger.error("Failed to load skills for character {}", characterId, e)
+            sendError(ctx, "Failed to load character skills. Please try again.")
+            return null
         }
 
         // Atomically add to entity manager (rejects if account already has a player in world)

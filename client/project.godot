@@ -83,6 +83,10 @@ jump={
 ]
 }
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://translations/translations.en.translation", "res://translations/translations.de.translation")
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

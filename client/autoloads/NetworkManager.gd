@@ -327,6 +327,8 @@ func _on_connected() -> void:
 	_heartbeat_elapsed = 0.0
 	_reconnect_count   = 0
 	push_print("NetworkManager: connected to %s:%d" % [_target_host, _target_port])
+	# Send an immediate heartbeat so the server knows the connection is alive
+	_send_heartbeat()
 	connected_to_server.emit()
 
 
@@ -381,6 +383,9 @@ func _on_world_connected() -> void:
 	_world_state = _State.CONNECTED
 	_world_heartbeat_elapsed = 0.0
 	push_print("NetworkManager: world connected to %s:%d" % [_world_host, _world_tcp_port])
+	# Send an immediate heartbeat so the server knows the connection is alive
+	# before the regular heartbeat interval kicks in
+	_send_world_heartbeat()
 	world_connected.emit()
 
 
