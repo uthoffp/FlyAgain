@@ -34,6 +34,11 @@ import java.net.InetSocketAddress
  * - ZONE_DATA (0x0701) - zone change request
  * - CHANNEL_SWITCH (0x0702) - channel switch
  * - CHANNEL_LIST (0x0703) - query available channels
+ * - MOVE_ITEM (0x0401) - inventory item move/swap
+ * - EQUIP_ITEM (0x0403) - equip item
+ * - UNEQUIP_ITEM (0x0404) - unequip item
+ * - NPC_BUY (0x0405) - NPC shop buy
+ * - NPC_SELL (0x0406) - NPC shop sell
  */
 @ChannelHandler.Sharable
 class PacketRouter(
@@ -42,6 +47,9 @@ class PacketRouter(
     private val selectTargetHandler: SelectTargetHandler,
     private val useSkillHandler: UseSkillHandler,
     private val toggleAutoAttackHandler: ToggleAutoAttackHandler,
+    private val moveItemHandler: MoveItemHandler,
+    private val equipItemHandler: EquipItemHandler,
+    private val npcShopHandler: NpcShopHandler,
     private val entityManager: EntityManager,
     private val sessionLifecycleManager: SessionLifecycleManager,
     private val heartbeatTracker: HeartbeatTracker,
@@ -61,6 +69,9 @@ class PacketRouter(
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         MdcHelper.restoreMdc(ctx)
         val opcode = msg.opcode
+
+        // Any incoming packet counts as activity for heartbeat tracking
+        heartbeatTracker.recordHeartbeat(ctx.channel())
 
         // Heartbeat does not require world authentication
         if (opcode == Opcode.HEARTBEAT_VALUE) {
@@ -160,6 +171,67 @@ class PacketRouter(
                 }
             }
 
+            // Inventory opcodes
+            Opcode.MOVE_ITEM_VALUE -> {
+                coroutineScope.launch(MDCContext()) {
+                    try {
+                        val request = ClientMoveItemRequest.parseFrom(msg.payload)
+                        moveItemHandler.handle(ctx, player, request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to handle MOVE_ITEM from player {}: {}", player.name, e.message)
+                        sendError(ctx, opcode, 400, "Malformed request.")
+                    }
+                }
+            }
+
+            Opcode.EQUIP_ITEM_VALUE -> {
+                coroutineScope.launch(MDCContext()) {
+                    try {
+                        val request = ClientEquipItemRequest.parseFrom(msg.payload)
+                        equipItemHandler.handleEquip(ctx, player, request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to handle EQUIP_ITEM from player {}: {}", player.name, e.message)
+                        sendError(ctx, opcode, 400, "Malformed request.")
+                    }
+                }
+            }
+
+            Opcode.UNEQUIP_ITEM_VALUE -> {
+                coroutineScope.launch(MDCContext()) {
+                    try {
+                        val request = ClientUnequipItemRequest.parseFrom(msg.payload)
+                        equipItemHandler.handleUnequip(ctx, player, request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to handle UNEQUIP_ITEM from player {}: {}", player.name, e.message)
+                        sendError(ctx, opcode, 400, "Malformed request.")
+                    }
+                }
+            }
+
+            Opcode.NPC_BUY_VALUE -> {
+                coroutineScope.launch(MDCContext()) {
+                    try {
+                        val request = ClientNpcBuyRequest.parseFrom(msg.payload)
+                        npcShopHandler.handleBuy(ctx, player, request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to handle NPC_BUY from player {}: {}", player.name, e.message)
+                        sendError(ctx, opcode, 400, "Malformed request.")
+                    }
+                }
+            }
+
+            Opcode.NPC_SELL_VALUE -> {
+                coroutineScope.launch(MDCContext()) {
+                    try {
+                        val request = ClientNpcSellRequest.parseFrom(msg.payload)
+                        npcShopHandler.handleSell(ctx, player, request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to handle NPC_SELL from player {}: {}", player.name, e.message)
+                        sendError(ctx, opcode, 400, "Malformed request.")
+                    }
+                }
+            }
+
             else -> {
                 logger.debug("Unhandled opcode 0x{} from player {}", opcode.toString(16), player.name)
                 sendError(ctx, opcode, 400, "Unsupported operation.")
@@ -204,7 +276,7 @@ class PacketRouter(
 
     private fun handleHeartbeat(ctx: ChannelHandlerContext, packet: Packet) {
         try {
-            heartbeatTracker.recordHeartbeat(ctx.channel())
+            // recordHeartbeat already called in channelRead0 for all packets
             val heartbeat = Heartbeat.parseFrom(packet.payload)
             val response = Heartbeat.newBuilder()
                 .setClientTime(heartbeat.clientTime)

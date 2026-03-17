@@ -6,6 +6,8 @@ import com.flyagain.common.network.TcpServer
 import com.flyagain.common.network.UdpServer
 import com.flyagain.world.combat.LootSystem
 import com.flyagain.world.combat.SkillSystem
+import com.flyagain.world.inventory.ItemDefinitionCache
+import com.flyagain.world.inventory.NpcShopRegistry
 import com.flyagain.world.di.worldServiceModule
 import com.flyagain.world.gameloop.GameLoop
 import com.flyagain.world.zone.ZoneManager
@@ -55,6 +57,19 @@ fun main() {
             val lootSystem = koin.get<LootSystem>()
             lootSystem.loadLootTables(lootTables.entriesList)
             logger.info("Loaded {} loot table entries", lootTables.entriesList.size)
+
+            // Load item definitions
+            val itemDefs = gameDataStub.getAllItemDefinitions(Empty.getDefaultInstance())
+            val itemCache = koin.get<ItemDefinitionCache>()
+            itemCache.load(itemDefs.itemsList)
+            logger.info("Loaded {} item definitions", itemDefs.itemsList.size)
+
+            // Load NPC definitions and shop inventories
+            val npcDefs = gameDataStub.getAllNpcDefinitions(Empty.getDefaultInstance())
+            val npcShopItems = gameDataStub.getAllNpcShopItems(Empty.getDefaultInstance())
+            val npcShopRegistry = koin.get<NpcShopRegistry>()
+            npcShopRegistry.load(npcDefs.npcsList, npcShopItems.itemsList)
+            logger.info("Loaded {} NPCs with {} shop items", npcDefs.npcsList.size, npcShopItems.itemsList.size)
         } catch (e: Exception) {
             logger.warn("Could not load game data from database service (may not be running): {}", e.message)
             logger.info("World service will start without monster spawns and skill definitions")

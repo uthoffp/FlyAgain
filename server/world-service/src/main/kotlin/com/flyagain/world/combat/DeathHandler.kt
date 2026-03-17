@@ -1,11 +1,15 @@
 package com.flyagain.world.combat
 
+import com.flyagain.common.grpc.*
 import com.flyagain.world.ai.AIState
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 
 /**
@@ -14,7 +18,7 @@ import org.slf4j.LoggerFactory
  * When a monster dies:
  * 1. Transition AI to DEAD, record death time, clear combat state.
  * 2. Award XP and gold to the killer.
- * 3. Roll loot (logged only; inventory delivery deferred to Phase 1.6).
+ * 3. Roll loot and deliver items to inventory via gRPC.
  * 4. Broadcast XP gain and, on level-up, stats update.
  *
  * When a player dies:
@@ -26,7 +30,10 @@ class DeathHandler(
     private val xpSystem: XpSystem,
     private val lootSystem: LootSystem,
     private val broadcastService: BroadcastService,
-    private val entityManager: EntityManager
+    private val entityManager: EntityManager,
+    private val inventoryStub: InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub,
+    private val itemCache: ItemDefinitionCache,
+    private val asyncScope: CoroutineScope
 ) {
 
     private val logger = LoggerFactory.getLogger(DeathHandler::class.java)
@@ -74,11 +81,37 @@ class DeathHandler(
         logger.debug("Player {} received {} gold from killing {} (total: {})",
             killer.name, goldDrop, monster.name, killer.gold)
 
-        // 6. Roll loot (Phase 1.6 will deliver items to inventory)
+        // 6. Roll loot and deliver to inventory
         val lootDrops = lootSystem.rollLoot(monster.definitionId)
         if (lootDrops.isNotEmpty()) {
-            logger.debug("Loot rolled for monster {} (defId={}): {}",
-                monster.name, monster.definitionId, lootDrops)
+            asyncScope.launch {
+                for (drop in lootDrops) {
+                    try {
+                        inventoryStub.addItem(
+                            AddItemRequest.newBuilder()
+                                .setCharacterId(killer.characterId)
+                                .setItemId(drop.itemId)
+                                .setAmount(drop.amount)
+                                .build()
+                        )
+                        logger.debug("Delivered loot item {} x{} to player {}", drop.itemId, drop.amount, killer.name)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to deliver loot item {} to player {}: {}", drop.itemId, killer.name, e.message)
+                    }
+                }
+                // Send inventory update after all loot delivered
+                try {
+                    val inv = inventoryStub.getInventory(
+                        GetInventoryRequest.newBuilder().setCharacterId(killer.characterId).build()
+                    )
+                    val equip = inventoryStub.getEquipment(
+                        GetEquipmentRequest.newBuilder().setCharacterId(killer.characterId).build()
+                    )
+                    broadcastService.sendInventoryUpdate(killer, inv.slotsList, equip.slotsList)
+                } catch (e: Exception) {
+                    logger.warn("Failed to send inventory update after loot: {}", e.message)
+                }
+            }
         }
     }
 

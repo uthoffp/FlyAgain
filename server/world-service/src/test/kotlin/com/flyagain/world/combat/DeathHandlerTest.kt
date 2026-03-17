@@ -1,14 +1,17 @@
 package com.flyagain.world.combat
 
+import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
 import com.flyagain.world.ai.AIState
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneChannel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.test.TestScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,8 +24,14 @@ class DeathHandlerTest {
     private val lootSystem = LootSystem()
     private val broadcastService = mockk<BroadcastService>(relaxed = true)
     private val entityManager = mockk<EntityManager>(relaxed = true)
+    private val inventoryStub = mockk<InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub>(relaxed = true)
+    private val itemCache = mockk<ItemDefinitionCache>(relaxed = true)
+    private val testScope = TestScope()
 
-    private val deathHandler = DeathHandler(xpSystem, lootSystem, broadcastService, entityManager)
+    private val deathHandler = DeathHandler(
+        xpSystem, lootSystem, broadcastService, entityManager,
+        inventoryStub, itemCache, testScope
+    )
 
     private fun makePlayer(
         entityId: Long = 1L,
