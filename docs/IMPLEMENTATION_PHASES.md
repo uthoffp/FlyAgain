@@ -307,12 +307,12 @@ Monster (Green Plains):
 - [ ] NPC-Definitionen: Haendler in Aerheim mit Basis-Waffen und -Ruestungen
 
 **Client:**
-- [ ] Inventar-Fenster: 10x10 Grid (100 Slots), Drag & Drop
-- [ ] Equipment-Fenster: Charakter-Silhouette mit 7 Slots
-- [ ] Item-Tooltip: Name, Typ, Stats, Level-Req, Rarity-Farbe
-- [ ] NPC-Interaktion: NPC anklicken -> Shop-Fenster oeffnen
-- [ ] Shop-Fenster: Kauf/Verkauf-Tabs, Gold-Anzeige
-- [ ] Gold-Anzeige in der UI (permanent sichtbar)
+- [x] Inventar-Fenster: 10x10 Grid (100 Slots), Drag & Drop
+- [x] Equipment-Fenster: Charakter-Silhouette mit 7 Slots
+- [x] Item-Tooltip: Name, Typ, Stats, Level-Req, Rarity-Farbe
+- [x] NPC-Interaktion: NPC anklicken -> Shop-Fenster oeffnen
+- [x] Shop-Fenster: Kauf/Verkauf-Tabs, Gold-Anzeige
+- [x] Gold-Anzeige in der UI (permanent sichtbar)
 
 **Seed-Daten:**
 ```
