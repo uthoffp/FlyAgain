@@ -31,9 +31,11 @@ import org.slf4j.LoggerFactory
 class DeathHandler(
     private val xpSystem: XpSystem,
     private val lootSystem: LootSystem,
+    private val skillSystem: SkillSystem,
     private val broadcastService: BroadcastService,
     private val entityManager: EntityManager,
     private val inventoryStub: InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub,
+    private val characterDataStub: CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub,
     private val itemCache: ItemDefinitionCache,
     private val asyncScope: CoroutineScope,
     private val inventoryLockManager: InventoryLockManager
@@ -67,8 +69,31 @@ class DeathHandler(
         logger.debug("Player {} gained {} XP from killing {} (level {})",
             killer.name, xpResult.xpGained, monster.name, killer.level)
 
-        // 4. If the player leveled up, broadcast updated stats to nearby players
+        // 4. If the player leveled up, grant newly unlocked skills and broadcast stats
         if (xpResult.leveledUp) {
+            val newSkills = skillSystem.grantUnlockedSkills(killer)
+            if (newSkills.isNotEmpty()) {
+                // Persist newly granted skills asynchronously
+                asyncScope.launch {
+                    try {
+                        val request = GrantCharacterSkillsRequest.newBuilder()
+                            .setCharacterId(killer.characterId)
+                            .also { builder ->
+                                for (skillId in newSkills) {
+                                    builder.addSkills(
+                                        CharacterSkillRecord.newBuilder()
+                                            .setSkillId(skillId)
+                                            .setSkillLevel(1)
+                                    )
+                                }
+                            }
+                            .build()
+                        characterDataStub.grantCharacterSkills(request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to persist granted skills for {}: {}", killer.name, e.message)
+                    }
+                }
+            }
             broadcastService.broadcastEntityStatsUpdate(channel, killer)
             logger.info("Player {} leveled up to {} after killing {}",
                 killer.name, killer.level, monster.name)

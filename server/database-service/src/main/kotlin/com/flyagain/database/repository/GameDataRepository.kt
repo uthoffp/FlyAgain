@@ -72,6 +72,14 @@ interface GameDataRepository {
     suspend fun getCharacterSkills(characterId: String): List<CharacterSkillRecord>
 
     /**
+     * Grants skills to a character. Uses INSERT ON CONFLICT to avoid duplicates.
+     *
+     * @param characterId the character receiving the skills
+     * @param skills list of (skillId, skillLevel) pairs to grant
+     */
+    suspend fun grantCharacterSkills(characterId: String, skills: List<Pair<Int, Int>>)
+
+    /**
      * Retrieves all NPC definitions, ordered by ID.
      *
      * NPC definitions describe each NPC's name, zone placement, position,

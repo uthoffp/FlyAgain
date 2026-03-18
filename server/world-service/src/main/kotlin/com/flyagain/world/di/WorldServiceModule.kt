@@ -88,7 +88,20 @@ val worldServiceModule = module {
     single { EquipmentStatCalculator(get()) }
     single { NpcShopRegistry() }
     single { InventoryLockManager() }
-    single { DeathHandler(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single {
+        DeathHandler(
+            xpSystem = get(),
+            lootSystem = get(),
+            skillSystem = get(),
+            broadcastService = get(),
+            entityManager = get(),
+            inventoryStub = get(),
+            characterDataStub = get(),
+            itemCache = get(),
+            asyncScope = get(),
+            inventoryLockManager = get()
+        )
+    }
 
     // Session lifecycle
     single {

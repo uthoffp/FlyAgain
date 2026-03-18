@@ -70,7 +70,7 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             else -> throw IllegalArgumentException("Invalid class: $characterClass")
         }
 
-        conn.prepareStatement(
+        val characterId = conn.prepareStatement(
             """INSERT INTO characters (account_id, name, class, level, xp, hp, mp, max_hp, max_mp,
                str, sta, dex, int_stat, stat_points, map_id, pos_x, pos_y, pos_z, gold)
                VALUES (?, ?, ?, 1, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 500, 0, 500, 0) RETURNING id"""
@@ -91,6 +91,19 @@ class CharacterRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
                 rs.getString("id")
             }
         }
+
+        // Grant starter skills: all skills for this class with level_req = 1
+        conn.prepareStatement(
+            """INSERT INTO character_skills (character_id, skill_id, skill_level)
+               SELECT ?, id, 1 FROM skill_definitions
+               WHERE class_req = ? AND level_req = 1"""
+        ).use { stmt ->
+            stmt.setObject(1, UUID.fromString(characterId))
+            stmt.setInt(2, characterClass)
+            stmt.executeUpdate()
+        }
+
+        characterId
     }
 
     override suspend fun save(request: SaveCharacterRequest): Unit = withTransaction { conn ->

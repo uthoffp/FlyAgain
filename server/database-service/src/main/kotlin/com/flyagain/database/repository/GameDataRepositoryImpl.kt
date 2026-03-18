@@ -163,6 +163,23 @@ class GameDataRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource
         }
     }
 
+    override suspend fun grantCharacterSkills(characterId: String, skills: List<Pair<Int, Int>>): Unit = withTransaction { conn ->
+        conn.prepareStatement(
+            """INSERT INTO character_skills (character_id, skill_id, skill_level)
+               VALUES (?, ?, ?)
+               ON CONFLICT (character_id, skill_id) DO NOTHING"""
+        ).use { stmt ->
+            val charUuid = UUID.fromString(characterId)
+            for ((skillId, skillLevel) in skills) {
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, skillId)
+                stmt.setInt(3, skillLevel)
+                stmt.addBatch()
+            }
+            stmt.executeBatch()
+        }
+    }
+
     override suspend fun getAllNpcDefinitions(): List<NpcDefinitionRecord> = withConnection { conn ->
         conn.prepareStatement("SELECT * FROM npc_definitions ORDER BY id").use { stmt ->
             stmt.executeQuery().use { rs ->

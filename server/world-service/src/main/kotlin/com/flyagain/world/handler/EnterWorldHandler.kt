@@ -1,7 +1,9 @@
 package com.flyagain.world.handler
 
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.grpc.CharacterSkillRecord
 import com.flyagain.common.grpc.GetCharacterSkillsRequest
+import com.flyagain.common.grpc.GrantCharacterSkillsRequest
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
 import com.flyagain.world.combat.SkillSystem
@@ -141,6 +143,29 @@ class EnterWorldHandler(
             val skillMap = skillsList.skillsList.associate { it.skillId to it.skillLevel }
             skillSystem.setPlayerSkills(characterId, skillMap)
             logger.info("Loaded {} skills for character {}", skillMap.size, characterId)
+
+            // Auto-grant any skills the player qualifies for but doesn't have yet
+            val newSkills = skillSystem.grantUnlockedSkills(player)
+            if (newSkills.isNotEmpty()) {
+                // Persist newly granted skills asynchronously
+                try {
+                    val grantRequest = GrantCharacterSkillsRequest.newBuilder()
+                        .setCharacterId(characterId)
+                        .also { builder ->
+                            for (skillId in newSkills) {
+                                builder.addSkills(
+                                    CharacterSkillRecord.newBuilder()
+                                        .setSkillId(skillId)
+                                        .setSkillLevel(1)
+                                )
+                            }
+                        }
+                        .build()
+                    characterDataStub.grantCharacterSkills(grantRequest)
+                } catch (e: Exception) {
+                    logger.warn("Failed to persist auto-granted skills for {}: {}", characterId, e.message)
+                }
+            }
         } catch (e: Exception) {
             logger.error("Failed to load skills for character {}", characterId, e)
             sendError(ctx, "Failed to load character skills. Please try again.")

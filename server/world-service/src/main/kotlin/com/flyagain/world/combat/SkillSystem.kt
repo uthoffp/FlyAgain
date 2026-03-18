@@ -125,6 +125,28 @@ class SkillSystem(
     }
 
     /**
+     * Grant any newly unlocked skills for a player based on their current level and class.
+     * Returns the list of newly granted skill IDs.
+     */
+    fun grantUnlockedSkills(player: PlayerEntity): List<Int> {
+        val skills = playerSkills.getOrPut(player.characterId) { mutableMapOf() }
+        val granted = mutableListOf<Int>()
+
+        for ((skillId, skillDef) in skillDefinitions) {
+            if (skillDef.classReq != player.characterClass) continue
+            if (skillDef.levelReq > player.level) continue
+            if (skills.containsKey(skillId)) continue
+
+            skills[skillId] = 1
+            granted.add(skillId)
+            logger.info("Granted skill '{}' (id={}) to player {} at level {}",
+                skillDef.name, skillId, player.name, player.level)
+        }
+
+        return granted
+    }
+
+    /**
      * Get a skill definition by ID.
      */
     fun getSkillDefinition(skillId: Int): SkillDefinitionRecord? = skillDefinitions[skillId]
