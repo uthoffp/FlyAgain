@@ -50,6 +50,15 @@ signal auto_attack_response(data: Dictionary)
 signal entity_stats_updated(data: Dictionary)
 signal gold_updated(data: Dictionary)
 
+# ---- Signals (inventory) ----
+
+signal inventory_updated(data: Dictionary)
+signal move_item_response(data: Dictionary)
+signal equip_item_response(data: Dictionary)
+signal unequip_item_response(data: Dictionary)
+signal npc_buy_response(data: Dictionary)
+signal npc_sell_response(data: Dictionary)
+
 
 # ---- Configuration ----
 
@@ -273,6 +282,33 @@ func send_toggle_auto_attack(enable: bool, target_entity_id: int) -> void:
 func send_use_skill(skill_id: int, target_entity_id: int) -> void:
 	var payload := ProtoEncoder.encode_use_skill_request(skill_id, target_entity_id)
 	_send_world(PacketProtocol.OPCODE_USE_SKILL, payload)
+
+
+## ---- Inventory send methods ----
+
+func send_move_item(from_slot: int, to_slot: int) -> void:
+	_send_world(PacketProtocol.OPCODE_MOVE_ITEM,
+		ProtoEncoder.encode_move_item_request(from_slot, to_slot))
+
+
+func send_equip_item(inventory_slot: int, equip_slot_type: int) -> void:
+	_send_world(PacketProtocol.OPCODE_EQUIP_ITEM,
+		ProtoEncoder.encode_equip_item_request(inventory_slot, equip_slot_type))
+
+
+func send_unequip_item(equip_slot_type: int) -> void:
+	_send_world(PacketProtocol.OPCODE_UNEQUIP_ITEM,
+		ProtoEncoder.encode_unequip_item_request(equip_slot_type))
+
+
+func send_npc_buy(npc_entity_id: int, item_def_id: int, amount: int) -> void:
+	_send_world(PacketProtocol.OPCODE_NPC_BUY,
+		ProtoEncoder.encode_npc_buy_request(npc_entity_id, item_def_id, amount))
+
+
+func send_npc_sell(npc_entity_id: int, inventory_slot: int, amount: int) -> void:
+	_send_world(PacketProtocol.OPCODE_NPC_SELL,
+		ProtoEncoder.encode_npc_sell_request(npc_entity_id, inventory_slot, amount))
 
 
 # ---- Auth/account TCP connection handling ----
@@ -593,6 +629,33 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			print("[NET] GOLD_UPDATE: +%d gold (total=%d)" % [
 				data.get("gold_gained", 0), data.get("total_gold", 0)])
 			gold_updated.emit(data)
+		PacketProtocol.OPCODE_MOVE_ITEM:
+			var data := ProtoDecoder.new(payload).decode_move_item_response()
+			print("[NET] MOVE_ITEM: success=%s msg=%s" % [data.get("success", false), data.get("error_message", "")])
+			move_item_response.emit(data)
+		PacketProtocol.OPCODE_INVENTORY_UPDATE:
+			var data := ProtoDecoder.new(payload).decode_inventory_update()
+			print("[NET] INVENTORY_UPDATE: slots=%d equipment=%d" % [
+				data.get("slots", []).size(), data.get("equipment", []).size()])
+			GameState.merge_inventory_update(data.get("slots", []), data.get("equipment", []))
+			inventory_updated.emit(data)
+		PacketProtocol.OPCODE_EQUIP_ITEM:
+			var data := ProtoDecoder.new(payload).decode_equip_item_response()
+			print("[NET] EQUIP_ITEM: success=%s msg=%s" % [data.get("success", false), data.get("error_message", "")])
+			equip_item_response.emit(data)
+		PacketProtocol.OPCODE_UNEQUIP_ITEM:
+			var data := ProtoDecoder.new(payload).decode_unequip_item_response()
+			print("[NET] UNEQUIP_ITEM: success=%s msg=%s" % [data.get("success", false), data.get("error_message", "")])
+			unequip_item_response.emit(data)
+		PacketProtocol.OPCODE_NPC_BUY:
+			var data := ProtoDecoder.new(payload).decode_npc_buy_response()
+			print("[NET] NPC_BUY: success=%s gold=%d slot=%d" % [
+				data.get("success", false), data.get("new_gold", 0), data.get("assigned_slot", -1)])
+			npc_buy_response.emit(data)
+		PacketProtocol.OPCODE_NPC_SELL:
+			var data := ProtoDecoder.new(payload).decode_npc_sell_response()
+			print("[NET] NPC_SELL: success=%s gold=%d" % [data.get("success", false), data.get("new_gold", 0)])
+			npc_sell_response.emit(data)
 		PacketProtocol.OPCODE_HEARTBEAT:
 			pass
 		_:
