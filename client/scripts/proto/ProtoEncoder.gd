@@ -257,3 +257,46 @@ static func encode_use_skill_request(skill_id: int, target_entity_id: int) -> Pa
 	buf.append_array(_int32_field(1, skill_id))
 	buf.append_array(_int64_field(2, target_entity_id))
 	return buf
+
+
+## ---- Inventory Messages ----
+
+## Encodes ClientMoveItemRequest { int32 from_slot = 1; int32 to_slot = 2 }
+static func encode_move_item_request(from_slot: int, to_slot: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int32_field(1, from_slot))
+	buf.append_array(_int32_field(2, to_slot))
+	return buf
+
+
+## Encodes ClientEquipItemRequest { int32 inventory_slot = 1; int32 equip_slot_type = 2 }
+static func encode_equip_item_request(inventory_slot: int, equip_slot_type: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int32_field(1, inventory_slot))
+	buf.append_array(_int32_field(2, equip_slot_type))
+	return buf
+
+
+## Encodes ClientUnequipItemRequest { int32 equip_slot_type = 1 }
+static func encode_unequip_item_request(equip_slot_type: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int32_field(1, equip_slot_type))
+	return buf
+
+
+## Encodes ClientNpcBuyRequest { int64 npc_entity_id = 1; int32 item_def_id = 2; int32 amount = 3 }
+static func encode_npc_buy_request(npc_entity_id: int, item_def_id: int, amount: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int64_field(1, npc_entity_id))
+	buf.append_array(_int32_field(2, item_def_id))
+	buf.append_array(_int32_field(3, amount))
+	return buf
+
+
+## Encodes ClientNpcSellRequest { int64 npc_entity_id = 1; int32 inventory_slot = 2; int32 amount = 3 }
+static func encode_npc_sell_request(npc_entity_id: int, inventory_slot: int, amount: int) -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int64_field(1, npc_entity_id))
+	buf.append_array(_int32_field(2, inventory_slot))
+	buf.append_array(_int32_field(3, amount))
+	return buf
