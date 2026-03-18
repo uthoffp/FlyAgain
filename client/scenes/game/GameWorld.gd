@@ -9,6 +9,9 @@ const PlayerCharacterScene := preload("res://scenes/game/PlayerCharacter.tscn")
 const ZonePortalScene := preload("res://scenes/game/ZonePortal.tscn")
 const FlyButtonScene := preload("res://scenes/ui/components/FlyButton.tscn")
 const DamageNumber := preload("res://scenes/game/DamageNumber.gd")
+const InventoryScreenScript := preload("res://scenes/ui/game_hud/InventoryScreen.gd")
+const NpcDialogScript := preload("res://scenes/ui/game_hud/NpcDialog.gd")
+const NpcShopScreenScript := preload("res://scenes/ui/game_hud/NpcShopScreen.gd")
 
 const ZONE_TERRAINS: Dictionary = {
 	WorldConstants.ZONE_AERHEIM: preload("res://scenes/game/terrain/AerheimTerrain.tscn"),
@@ -48,6 +51,9 @@ var _target_frame: PanelContainer = null
 var _hud_root: Control = null
 var _death_screen = null  # DeathScreen (ColorRect with script)
 var _notifications = null  # NotificationStack (VBoxContainer with script)
+var _inventory_screen = null   # InventoryScreen (PanelContainer with script)
+var _npc_dialog = null         # NpcDialog (PanelContainer with script)
+var _npc_shop_screen = null    # NpcShopScreen (PanelContainer with script)
 
 # Loading overlay nodes
 var _loading_layer: CanvasLayer = null
@@ -91,6 +97,15 @@ func _process(delta: float) -> void:
 				_loading_dots.text = _DOT_PATTERNS[_dot_index]
 
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_I:
+				if _inventory_screen and _inventory_screen.has_method("toggle"):
+					_inventory_screen.toggle()
+					get_viewport().set_input_as_handled()
+
+
 func _connect_signals() -> void:
 	NetworkManager.zone_data_received.connect(_on_zone_data)
 	NetworkManager.entity_spawned.connect(_on_entity_spawned)
@@ -105,6 +120,7 @@ func _connect_signals() -> void:
 	NetworkManager.auto_attack_response.connect(_on_auto_attack_response)
 	NetworkManager.entity_stats_updated.connect(_on_entity_stats_updated)
 	NetworkManager.gold_updated.connect(_on_gold_updated)
+	NetworkManager.inventory_updated.connect(_on_inventory_updated)
 
 
 func _disconnect_signals() -> void:
@@ -133,6 +149,8 @@ func _disconnect_signals() -> void:
 		NetworkManager.entity_stats_updated.disconnect(_on_entity_stats_updated)
 	if NetworkManager.gold_updated.is_connected(_on_gold_updated):
 		NetworkManager.gold_updated.disconnect(_on_gold_updated)
+	if NetworkManager.inventory_updated.is_connected(_on_inventory_updated):
+		NetworkManager.inventory_updated.disconnect(_on_inventory_updated)
 
 
 # ---- Loading overlay ----
@@ -282,6 +300,37 @@ func _setup_hud() -> void:
 	_notifications = VBoxContainer.new()
 	_notifications.set_script(NotifScript)
 	notif_margin.add_child(_notifications)
+
+	# Inventory screen — center, initially hidden
+	var inv_center := CenterContainer.new()
+	inv_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inv_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(inv_center)
+
+	_inventory_screen = PanelContainer.new()
+	_inventory_screen.set_script(InventoryScreenScript)
+	inv_center.add_child(_inventory_screen)
+
+	# NPC dialog — center, initially hidden
+	var npc_dialog_center := CenterContainer.new()
+	npc_dialog_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	npc_dialog_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(npc_dialog_center)
+
+	_npc_dialog = PanelContainer.new()
+	_npc_dialog.set_script(NpcDialogScript)
+	_npc_dialog.shop_requested.connect(_on_npc_shop_requested)
+	npc_dialog_center.add_child(_npc_dialog)
+
+	# NPC shop screen — center, initially hidden
+	var shop_center := CenterContainer.new()
+	shop_center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shop_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_root.add_child(shop_center)
+
+	_npc_shop_screen = PanelContainer.new()
+	_npc_shop_screen.set_script(NpcShopScreenScript)
+	shop_center.add_child(_npc_shop_screen)
 
 	# Death screen overlay (added last so it draws on top of other HUD elements)
 	var DeathScreenScript := preload("res://scenes/ui/game_hud/DeathScreen.gd")
@@ -471,6 +520,16 @@ func _spawn_local_player() -> void:
 ## Player requested a target selection (click on entity).
 func _on_player_target_selected(entity_id: int) -> void:
 	NetworkManager.send_select_target(entity_id)
+	# Check if clicked entity is near a known NPC position
+	var entity := _entity_factory.get_entity(entity_id)
+	if entity and is_instance_valid(entity):
+		for npc_def_id in NpcRegistry.NPCS:
+			var npc := NpcRegistry.get_npc(npc_def_id)
+			var npc_pos: Vector3 = npc.get("pos", Vector3.ZERO)
+			if entity.global_position.distance_to(npc_pos) < 3.0:
+				if _npc_dialog and _npc_dialog.has_method("show_dialog"):
+					_npc_dialog.show_dialog(npc_def_id)
+				break
 
 
 ## Player pressed Escape to clear their target.
@@ -676,3 +735,37 @@ func _show_level_up_effect() -> void:
 		(viewport_size.x - 250.0) / 2.0,
 		viewport_size.y / 2.0 - 40.0)
 	_hud_root.add_child(label)
+
+
+func _on_npc_shop_requested(npc_def_id: int) -> void:
+	if _npc_shop_screen and _npc_shop_screen.has_method("open_shop"):
+		_npc_shop_screen.open_shop(npc_def_id)
+
+
+## Handle inventory update — show loot notifications ONLY for server-pushed updates
+## (not for player-initiated move/equip/buy/sell which have their own response handlers).
+var _suppress_loot_notifications: bool = false
+
+func _on_inventory_updated(data: Dictionary) -> void:
+	# Suppress notifications when the update is from a player-initiated action
+	if _suppress_loot_notifications:
+		_suppress_loot_notifications = false
+		return
+	# Only show notifications when no inventory/shop UI is open (i.e., this is a loot drop)
+	if (_inventory_screen and _inventory_screen.visible) or (_npc_shop_screen and _npc_shop_screen.visible):
+		return
+	var slots: Array = data.get("slots", [])
+	for slot_data in slots:
+		var item_id: int = slot_data.get("item_id", 0)
+		var amount: int = slot_data.get("amount", 0)
+		if item_id > 0 and _notifications and _notifications.has_method("show_notification"):
+			var item_def := ItemDatabase.get_item(item_id)
+			if item_def.is_empty():
+				continue
+			var item_name: String = tr(item_def.get("name", ""))
+			var text: String
+			if amount > 1:
+				text = tr("ITEM_RECEIVED_STACK").replace("{name}", item_name).replace("{amount}", str(amount))
+			else:
+				text = tr("ITEM_RECEIVED").replace("{name}", item_name)
+			_notifications.show_notification(text, ItemDatabase.get_rarity_color(item_def.get("rarity", 0)))
