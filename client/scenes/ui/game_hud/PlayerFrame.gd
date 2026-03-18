@@ -18,6 +18,7 @@ var _mp_bar: ProgressBar = null
 var _mp_text: Label = null
 var _xp_bar: ProgressBar = null
 var _xp_text: Label = null
+var _gold_label: Label = null
 
 # Smooth bar tween tracking
 var _prev_hp: int = -1
@@ -74,6 +75,18 @@ func _process(_delta: float) -> void:
 		if GameState.player_xp_to_next_level > 0:
 			xp_pct = (float(GameState.player_xp) / float(GameState.player_xp_to_next_level)) * 100.0
 		_xp_text.text = "%.1f%%" % xp_pct
+	# Gold
+	if _gold_label:
+		_gold_label.text = _format_gold(GameState.player_gold)
+
+
+static func _format_gold(amount: int) -> String:
+	if amount < 1000:
+		return str(amount)
+	elif amount < 1000000:
+		return "%d,%03d" % [amount / 1000, amount % 1000]
+	else:
+		return "%d,%03d,%03d" % [amount / 1000000, (amount / 1000) % 1000, amount % 1000]
 
 
 func _get_character_name() -> String:
@@ -190,6 +203,26 @@ func _build_ui() -> void:
 	_build_stat_bar(vbox, "mp")
 	# XP bar (thinner)
 	_build_stat_bar(vbox, "xp")
+
+	# Gold display row
+	var gold_row := HBoxContainer.new()
+	gold_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gold_row.add_theme_constant_override("separation", 4)
+	vbox.add_child(gold_row)
+
+	var gold_icon := Label.new()
+	gold_icon.text = "G"
+	gold_icon.add_theme_color_override("font_color", Colors.GOLD)
+	gold_icon.add_theme_font_size_override("font_size", 13)
+	gold_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gold_row.add_child(gold_icon)
+
+	_gold_label = Label.new()
+	_gold_label.text = "0"
+	_gold_label.add_theme_color_override("font_color", Colors.TEXT_PRIMARY)
+	_gold_label.add_theme_font_size_override("font_size", 13)
+	_gold_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gold_row.add_child(_gold_label)
 
 
 func _build_stat_bar(parent: VBoxContainer, stat: String) -> void:
