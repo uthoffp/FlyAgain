@@ -521,6 +521,144 @@ func decode_gold_update() -> Dictionary:
 	return result
 
 
+## Decodes a ClientMoveItemResponse { bool success = 1; string error_message = 2 }
+func decode_move_item_response() -> Dictionary:
+	var result := {"success": false, "error_message": ""}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]       = _read_varint() != 0
+			2: result["error_message"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a ClientEquipItemResponse { bool success = 1; string error_message = 2 }
+func decode_equip_item_response() -> Dictionary:
+	var result := {"success": false, "error_message": ""}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]       = _read_varint() != 0
+			2: result["error_message"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a ClientUnequipItemResponse { bool success = 1; string error_message = 2 }
+func decode_unequip_item_response() -> Dictionary:
+	var result := {"success": false, "error_message": ""}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]       = _read_varint() != 0
+			2: result["error_message"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a ClientNpcBuyResponse { bool success=1; int64 new_gold=2; int32 assigned_slot=3; string error_message=4 }
+func decode_npc_buy_response() -> Dictionary:
+	var result := {"success": false, "new_gold": 0, "assigned_slot": -1, "error_message": ""}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]       = _read_varint() != 0
+			2: result["new_gold"]      = _read_varint()
+			3: result["assigned_slot"] = _read_varint()
+			4: result["error_message"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
+## Decodes a ClientNpcSellResponse { bool success=1; int64 new_gold=2; string error_message=3 }
+func decode_npc_sell_response() -> Dictionary:
+	var result := {"success": false, "new_gold": 0, "error_message": ""}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["success"]       = _read_varint() != 0
+			2: result["new_gold"]      = _read_varint()
+			3: result["error_message"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
+## Decodes InventoryUpdateMessage { repeated InventorySlotInfo slots=1; repeated EquipmentSlotInfo equipment=2 }
+func decode_inventory_update() -> Dictionary:
+	var result := {"slots": [], "equipment": []}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["slots"].append(sub._decode_inventory_slot_info())
+			2:
+				var sub := ProtoDecoder.new(_read_bytes_ld())
+				result["equipment"].append(sub._decode_equipment_slot_info())
+			_: _skip(wt)
+	return result
+
+
+## Decodes InventorySlotInfo { int32 slot=1; int32 item_id=2; int32 amount=3; int32 enhancement=4 }
+func _decode_inventory_slot_info() -> Dictionary:
+	var result := {"slot": 0, "item_id": 0, "amount": 0, "enhancement": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["slot"]        = _read_varint()
+			2: result["item_id"]     = _read_varint()
+			3: result["amount"]      = _read_varint()
+			4: result["enhancement"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
+## Decodes EquipmentSlotInfo { int32 slot_type=1; int32 item_id=2; int32 enhancement=3 }
+func _decode_equipment_slot_info() -> Dictionary:
+	var result := {"slot_type": 0, "item_id": 0, "enhancement": 0}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["slot_type"]   = _read_varint()
+			2: result["item_id"]     = _read_varint()
+			3: result["enhancement"] = _read_varint()
+			_: _skip(wt)
+	return result
+
+
 ## Decodes an EntityStatsUpdate message.
 ## Returns: { entity_id: int, level: int, hp: int, max_hp: int,
 ##            mp: int, max_mp: int, str: int, sta: int, dex: int, int_: int }
