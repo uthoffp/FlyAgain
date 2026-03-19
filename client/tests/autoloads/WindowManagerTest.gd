@@ -17,18 +17,18 @@ func before_test() -> void:
 func test_register_window_adds_to_registry() -> void:
 	var window := _create_mock_window("test_win")
 	_manager.register_window(window)
-	assert_object(_manager.get_window("test_win")).is_equal(window)
+	assert_object(_manager.get_game_window("test_win")).is_equal(window)
 
 
 func test_unregister_window_removes_from_registry() -> void:
 	var window := _create_mock_window("test_win")
 	_manager.register_window(window)
 	_manager.unregister_window(window)
-	assert_object(_manager.get_window("test_win")).is_null()
+	assert_object(_manager.get_game_window("test_win")).is_null()
 
 
 func test_get_window_returns_null_for_unknown_id() -> void:
-	assert_object(_manager.get_window("nonexistent")).is_null()
+	assert_object(_manager.get_game_window("nonexistent")).is_null()
 
 
 func test_register_emits_signal() -> void:
@@ -117,7 +117,7 @@ func test_clamp_to_viewport_keeps_window_on_screen() -> void:
 # ---- Helpers ----
 
 func _create_mock_window(id: String) -> Control:
-	var win := auto_free(Control.new())
+	var win: Control = auto_free(Control.new())
 	win.set_meta("window_id", id)
 	win.set_meta("window_title", id)
 	return win

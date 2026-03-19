@@ -18,23 +18,23 @@ func before_test() -> void:
 func test_has_title_bar() -> void:
 	_window.call("setup", "test", "Test Window", {})
 	await get_tree().process_frame
-	var titlebar := _window.call("get_title_bar")
+	var titlebar: PanelContainer = _window.call("get_title_bar")
 	assert_object(titlebar).is_not_null()
 
 
 func test_has_content_container() -> void:
 	_window.call("setup", "test", "Test Window", {})
 	await get_tree().process_frame
-	var container := _window.call("get_content_container")
+	var container: PanelContainer = _window.call("get_content_container")
 	assert_object(container).is_not_null()
 
 
 func test_set_content_adds_child_to_container() -> void:
 	_window.call("setup", "test", "Test Window", {})
 	await get_tree().process_frame
-	var content := auto_free(Control.new())
+	var content: Control = auto_free(Control.new())
 	_window.call("set_content", content)
-	var container := _window.call("get_content_container")
+	var container: PanelContainer = _window.call("get_content_container")
 	assert_int(container.get_child_count()).is_equal(1)
 
 
@@ -55,7 +55,7 @@ func test_titlebar_hidden_when_all_disabled() -> void:
 		"closable": false,
 	})
 	await get_tree().process_frame
-	var titlebar := _window.call("get_title_bar")
+	var titlebar: PanelContainer = _window.call("get_title_bar")
 	assert_bool(titlebar.visible).is_false()
 
 
@@ -67,7 +67,7 @@ func test_titlebar_visible_when_any_feature_enabled() -> void:
 		"closable": false,
 	})
 	await get_tree().process_frame
-	var titlebar := _window.call("get_title_bar")
+	var titlebar: PanelContainer = _window.call("get_title_bar")
 	assert_bool(titlebar.visible).is_true()
 
 
