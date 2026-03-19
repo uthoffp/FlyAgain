@@ -81,7 +81,7 @@ Global singleton registered as an autoload. Manages all GameWindow instances.
 - **Z-Order:** Tracks focus order. `bring_to_front()` updates z-index of all registered windows.
 - **Taskbar State:** Maintains list of minimized window IDs, emits signal on change.
 - **Persistenz:** Saves/loads window layouts via `ConfigFile` to `user://window_layout.cfg`.
-- **Boundary Clamping:** Ensures windows cannot be dragged entirely off-screen (at least 50px of titlebar must remain visible).
+- **Boundary Clamping:** Provides a `clamp_to_viewport(window: GameWindow)` method. GameWindow calls this after every drag move. Ensures at least 50px of titlebar remains visible.
 
 #### API
 
@@ -180,6 +180,8 @@ Default: `"bottom"`.
 
 The Taskbar itself is **not draggable**. Position is changed only via `WindowManager.set_taskbar_position()`.
 
+The Taskbar always renders **above all GameWindows** (higher z-index) so it is never obscured by open windows.
+
 ---
 
 ### 4. Integration Strategy
@@ -237,7 +239,7 @@ When all features are disabled, the TitleBar is hidden — zero visual overhead.
 #### Input Handling Changes
 
 - Hotkeys (I for inventory, etc.) in `GameWorld._unhandled_key_input()` change from `_inventory_screen.toggle()` to `WindowManager.toggle_window("inventory")`.
-- ESC handling remains in panels but GameWindow also handles it for consistency.
+- ESC handling: GameWindow handles ESC to call `WindowManager.close_window()`. Panels should **not** handle ESC independently — GameWindow owns the close behavior. Existing ESC handlers in panels will be removed during integration.
 
 #### Taskbar Placement
 
