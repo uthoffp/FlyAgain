@@ -1,0 +1,263 @@
+## GameWindow.gd
+## Reusable wrapper Control that provides titlebar, drag, resize, minimize,
+## close, and focus management for any child panel.
+class_name GameWindow
+extends PanelContainer
+
+signal window_closed(window_id: String)
+signal window_minimized(window_id: String)
+signal window_focused(window_id: String)
+signal window_restored(window_id: String)
+
+## Configuration — set via setup() or exported properties
+var window_id: String = ""
+var window_title: String = ""
+var draggable: bool = true
+var resizable: bool = true
+var minimizable: bool = true
+var closable: bool = true
+var min_size: Vector2 = Vector2(200, 150)
+var max_size: Vector2 = Vector2(800, 600)
+
+## Internal nodes
+var _title_bar: HBoxContainer
+var _title_label: Label
+var _minimize_button: Button
+var _close_button: Button
+var _content_container: PanelContainer
+var _vbox: VBoxContainer
+var _drag_handle: Control
+
+## Drag state
+var _dragging: bool = false
+var _drag_offset: Vector2 = Vector2.ZERO
+
+
+func setup(id: String, title: String, options: Dictionary = {}) -> void:
+	window_id = id
+	window_title = title
+	draggable = options.get("draggable", true)
+	resizable = options.get("resizable", true)
+	minimizable = options.get("minimizable", true)
+	closable = options.get("closable", true)
+	min_size = options.get("min_size", Vector2(200, 150))
+	max_size = options.get("max_size", Vector2(800, 600))
+
+	var default_pos: Vector2 = options.get("default_position", Vector2.ZERO)
+	var default_sz: Vector2 = options.get("default_size", Vector2(400, 300))
+
+	set_meta("window_id", window_id)
+	set_meta("window_title", window_title)
+	set_meta("closable", closable)
+	set_meta("default_position", default_pos)
+	set_meta("default_size", default_sz)
+
+	position = default_pos
+	size = default_sz
+	custom_minimum_size = min_size
+
+	# Rebuild UI if already built (setup called after _ready)
+	if _vbox != null:
+		_rebuild_ui()
+
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	_build_ui()
+	_apply_style()
+
+	if window_id.is_empty():
+		return
+	if WindowManager:
+		WindowManager.register_window(self)
+
+
+func _exit_tree() -> void:
+	if WindowManager and not window_id.is_empty():
+		WindowManager.unregister_window(self)
+
+
+func _rebuild_ui() -> void:
+	# Remove all existing children immediately
+	for child in get_children():
+		remove_child(child)
+		child.free()
+	# Reset node references
+	_vbox = null
+	_title_bar = null
+	_title_label = null
+	_minimize_button = null
+	_close_button = null
+	_content_container = null
+	_drag_handle = null
+	_build_ui()
+	_apply_style()
+
+
+func _build_ui() -> void:
+	_vbox = VBoxContainer.new()
+	_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_vbox.add_theme_constant_override("separation", 0)
+	add_child(_vbox)
+
+	# -- Title Bar --
+	_title_bar = HBoxContainer.new()
+	_title_bar.add_theme_constant_override("separation", 4)
+	_vbox.add_child(_title_bar)
+
+	var show_titlebar := draggable or resizable or minimizable or closable
+	_title_bar.visible = show_titlebar
+
+	# Drag handle (fills remaining space)
+	_drag_handle = Control.new()
+	_drag_handle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_drag_handle.custom_minimum_size.y = 28
+	_drag_handle.mouse_filter = Control.MOUSE_FILTER_STOP
+	_drag_handle.gui_input.connect(_on_drag_handle_input)
+	_title_bar.add_child(_drag_handle)
+
+	# Title label (inside drag handle)
+	_title_label = Label.new()
+	_title_label.text = window_title
+	_title_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_title_label.add_theme_color_override("font_color", Colors.TEXT_TITLE)
+	_title_label.add_theme_font_size_override("font_size", 13)
+	_drag_handle.add_child(_title_label)
+
+	# Minimize button
+	_minimize_button = Button.new()
+	_minimize_button.text = "—"
+	_minimize_button.custom_minimum_size = Vector2(24, 24)
+	_minimize_button.visible = minimizable
+	_minimize_button.pressed.connect(_on_minimize_pressed)
+	_title_bar.add_child(_minimize_button)
+
+	# Close button
+	_close_button = Button.new()
+	_close_button.text = "✕"
+	_close_button.custom_minimum_size = Vector2(24, 24)
+	_close_button.visible = closable
+	_close_button.pressed.connect(_on_close_pressed)
+	_title_bar.add_child(_close_button)
+
+	# -- Content Container --
+	_content_container = PanelContainer.new()
+	_content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_vbox.add_child(_content_container)
+
+
+func _apply_style() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Colors.BG_PANEL
+	style.border_color = Colors.BORDER_PANEL
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	add_theme_stylebox_override("panel", style)
+
+	# Titlebar background
+	if _title_bar.visible:
+		var tb_style := StyleBoxFlat.new()
+		tb_style.bg_color = Color(Colors.BG_DARK.r, Colors.BG_DARK.g, Colors.BG_DARK.b, 0.8)
+		tb_style.set_content_margin_all(4)
+		tb_style.set_corner_radius_all(4)
+		_title_bar.add_theme_stylebox_override("panel", tb_style)
+
+
+# ---- Drag Handling ----
+
+func _on_drag_handle_input(event: InputEvent) -> void:
+	if not draggable:
+		return
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_dragging = true
+				_drag_offset = get_global_mouse_position() - global_position
+				_emit_focus()
+			else:
+				_dragging = false
+				if WindowManager:
+					WindowManager.clamp_to_viewport(self)
+	elif event is InputEventMouseMotion and _dragging:
+		global_position = get_global_mouse_position() - _drag_offset
+
+
+# ---- Focus ----
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		_emit_focus()
+
+
+func _emit_focus() -> void:
+	window_focused.emit(window_id)
+	if WindowManager:
+		WindowManager.bring_to_front(window_id)
+
+
+# ---- ESC to Close ----
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or not closable:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if WindowManager:
+			if WindowManager.is_frontmost_closable(window_id):
+				WindowManager.close_window(window_id)
+				window_closed.emit(window_id)
+				get_viewport().set_input_as_handled()
+		else:
+			visible = false
+			window_closed.emit(window_id)
+			get_viewport().set_input_as_handled()
+
+
+# ---- Button Callbacks ----
+
+func _on_minimize_pressed() -> void:
+	window_minimized.emit(window_id)
+	if WindowManager:
+		WindowManager.minimize_window(window_id)
+	else:
+		visible = false
+
+
+func _on_close_pressed() -> void:
+	if WindowManager:
+		WindowManager.close_window(window_id)
+	else:
+		visible = false
+	window_closed.emit(window_id)
+
+
+# ---- Content API ----
+
+func set_content(node: Control) -> void:
+	if _content_container:
+		_content_container.add_child(node)
+
+
+func get_content() -> Control:
+	if _content_container and _content_container.get_child_count() > 0:
+		return _content_container.get_child(0)
+	return null
+
+
+# ---- Accessors for testing ----
+
+func get_title_bar() -> HBoxContainer:
+	return _title_bar
+
+func get_title_label() -> Label:
+	return _title_label
+
+func get_content_container() -> PanelContainer:
+	return _content_container
+
+func get_minimize_button() -> Button:
+	return _minimize_button
+
+func get_close_button() -> Button:
+	return _close_button
