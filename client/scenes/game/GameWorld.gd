@@ -12,6 +12,8 @@ const DamageNumber := preload("res://scenes/game/DamageNumber.gd")
 const InventoryScreenScript := preload("res://scenes/ui/game_hud/InventoryScreen.gd")
 const NpcDialogScript := preload("res://scenes/ui/game_hud/NpcDialog.gd")
 const NpcShopScreenScript := preload("res://scenes/ui/game_hud/NpcShopScreen.gd")
+const GameWindowScript := preload("res://scenes/ui/window_system/GameWindow.gd")
+const TaskbarScript := preload("res://scenes/ui/window_system/Taskbar.gd")
 
 const ZONE_TERRAINS: Dictionary = {
 	WorldConstants.ZONE_AERHEIM: preload("res://scenes/game/terrain/AerheimTerrain.tscn"),
@@ -101,9 +103,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_I:
-				if _inventory_screen and _inventory_screen.has_method("toggle"):
-					_inventory_screen.toggle()
-					get_viewport().set_input_as_handled()
+				WindowManager.toggle_window("inventory")
+				get_viewport().set_input_as_handled()
 
 
 func _connect_signals() -> void:
@@ -244,100 +245,138 @@ func _setup_hud() -> void:
 	_logout_dialog.confirmed.connect(_on_logout_confirmed)
 	_hud_root.add_child(_logout_dialog)
 
-	# Player frame — top-left
-	var player_margin := MarginContainer.new()
-	player_margin.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	player_margin.add_theme_constant_override("margin_top", 16)
-	player_margin.add_theme_constant_override("margin_left", 16)
-	player_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(player_margin)
-
+	# Player frame — top-left (fixed HUD, all features disabled)
+	var player_window := PanelContainer.new()
+	player_window.set_script(GameWindowScript)
+	player_window.call("setup", "player_frame", tr("WINDOW_PLAYER"), {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(10, 10),
+		"default_size": Vector2(220, 120),
+	})
+	_hud_root.add_child(player_window)
 	var PlayerFrameScript := preload("res://scenes/ui/game_hud/PlayerFrame.gd")
 	var player_frame := PanelContainer.new()
 	player_frame.set_script(PlayerFrameScript)
-	player_margin.add_child(player_frame)
+	player_window.call("set_content", player_frame)
 
-	# Target frame — top-center
-	var target_center := CenterContainer.new()
-	target_center.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	target_center.add_theme_constant_override("margin_top", 16)
-	target_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(target_center)
-
+	# Target frame — top-center (fixed HUD, all features disabled)
+	var target_window := PanelContainer.new()
+	target_window.set_script(GameWindowScript)
+	target_window.call("setup", "target_frame", tr("WINDOW_TARGET"), {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(540, 10),
+		"default_size": Vector2(200, 80),
+	})
+	_hud_root.add_child(target_window)
 	var TargetFrameScript := preload("res://scenes/ui/game_hud/TargetFrame.gd")
 	_target_frame = PanelContainer.new()
 	_target_frame.set_script(TargetFrameScript)
-	target_center.add_child(_target_frame)
+	target_window.call("set_content", _target_frame)
 
-	# Skill bar — bottom-center
-	var skill_margin := MarginContainer.new()
-	skill_margin.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	skill_margin.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	skill_margin.add_theme_constant_override("margin_bottom", 16)
-	skill_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(skill_margin)
-
-	var skill_center := CenterContainer.new()
-	skill_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	skill_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	skill_margin.add_child(skill_center)
-
+	# Skill bar — bottom-center (fixed HUD, all features disabled)
+	var skill_window := PanelContainer.new()
+	skill_window.set_script(GameWindowScript)
+	skill_window.call("setup", "skill_bar", tr("WINDOW_SKILLS"), {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(660, 1000),
+		"default_size": Vector2(600, 64),
+	})
+	_hud_root.add_child(skill_window)
 	var SkillBarScript := preload("res://scenes/ui/game_hud/SkillBar.gd")
 	var skill_bar := PanelContainer.new()
 	skill_bar.set_script(SkillBarScript)
-	skill_center.add_child(skill_bar)
+	skill_window.call("set_content", skill_bar)
 
-	# Notification stack — right side
-	var notif_margin := MarginContainer.new()
-	notif_margin.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	notif_margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	notif_margin.add_theme_constant_override("margin_right", 16)
-	notif_margin.add_theme_constant_override("margin_top", 200)
-	notif_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(notif_margin)
-
+	# Notification stack — right side (fixed HUD, all features disabled)
+	var notif_window := PanelContainer.new()
+	notif_window.set_script(GameWindowScript)
+	notif_window.call("setup", "notifications", "", {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(1680, 200),
+		"default_size": Vector2(220, 400),
+	})
+	_hud_root.add_child(notif_window)
 	var NotifScript := preload("res://scenes/ui/game_hud/NotificationStack.gd")
 	_notifications = VBoxContainer.new()
 	_notifications.set_script(NotifScript)
-	notif_margin.add_child(_notifications)
+	notif_window.call("set_content", _notifications)
 
-	# Inventory screen — center, initially hidden
-	var inv_center := CenterContainer.new()
-	inv_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	inv_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(inv_center)
-
+	# Inventory screen — draggable, resizable, minimizable, closable
+	var inv_window := PanelContainer.new()
+	inv_window.set_script(GameWindowScript)
+	inv_window.call("setup", "inventory", tr("WINDOW_INVENTORY"), {
+		"draggable": true, "resizable": true,
+		"minimizable": true, "closable": true,
+		"default_position": Vector2(100, 100),
+		"default_size": Vector2(450, 500),
+		"min_size": Vector2(350, 400),
+		"max_size": Vector2(600, 700),
+	})
+	inv_window.visible = false
+	_hud_root.add_child(inv_window)
 	_inventory_screen = PanelContainer.new()
 	_inventory_screen.set_script(InventoryScreenScript)
-	inv_center.add_child(_inventory_screen)
+	inv_window.call("set_content", _inventory_screen)
+	_inventory_screen.visibility_changed.connect(func():
+		if _inventory_screen.visible and _inventory_screen.has_method("_refresh_all"):
+			_inventory_screen._refresh_all()
+	)
 
-	# NPC dialog — center, initially hidden
-	var npc_dialog_center := CenterContainer.new()
-	npc_dialog_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	npc_dialog_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(npc_dialog_center)
-
+	# NPC dialog — draggable, closable, not resizable/minimizable
+	var dialog_window := PanelContainer.new()
+	dialog_window.set_script(GameWindowScript)
+	dialog_window.call("setup", "npc_dialog", tr("WINDOW_NPC_DIALOG"), {
+		"draggable": true, "resizable": false,
+		"minimizable": false, "closable": true,
+		"default_position": Vector2(400, 300),
+		"default_size": Vector2(300, 200),
+	})
+	dialog_window.visible = false
+	_hud_root.add_child(dialog_window)
 	_npc_dialog = PanelContainer.new()
 	_npc_dialog.set_script(NpcDialogScript)
 	_npc_dialog.shop_requested.connect(_on_npc_shop_requested)
-	npc_dialog_center.add_child(_npc_dialog)
+	dialog_window.call("set_content", _npc_dialog)
 
-	# NPC shop screen — center, initially hidden
-	var shop_center := CenterContainer.new()
-	shop_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shop_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(shop_center)
-
+	# NPC shop screen — all features enabled
+	var shop_window := PanelContainer.new()
+	shop_window.set_script(GameWindowScript)
+	shop_window.call("setup", "npc_shop", tr("WINDOW_SHOP"), {
+		"draggable": true, "resizable": true,
+		"minimizable": true, "closable": true,
+		"default_position": Vector2(300, 80),
+		"default_size": Vector2(500, 550),
+		"min_size": Vector2(400, 450),
+		"max_size": Vector2(700, 700),
+	})
+	shop_window.visible = false
+	_hud_root.add_child(shop_window)
 	_npc_shop_screen = PanelContainer.new()
 	_npc_shop_screen.set_script(NpcShopScreenScript)
-	shop_center.add_child(_npc_shop_screen)
+	shop_window.call("set_content", _npc_shop_screen)
+
+	# Taskbar — dynamic buttons for minimized windows
+	var taskbar := PanelContainer.new()
+	taskbar.set_script(TaskbarScript)
+	_hud_root.add_child(taskbar)
 
 	# Death screen overlay (added last so it draws on top of other HUD elements)
+	var death_window := PanelContainer.new()
+	death_window.set_script(GameWindowScript)
+	death_window.call("setup", "death_screen", "", {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+	})
+	_hud_root.add_child(death_window)
 	var DeathScreenScript := preload("res://scenes/ui/game_hud/DeathScreen.gd")
 	_death_screen = ColorRect.new()
 	_death_screen.set_script(DeathScreenScript)
 	_death_screen.respawn_requested.connect(_on_respawn_requested)
-	_hud_root.add_child(_death_screen)
+	death_window.call("set_content", _death_screen)
 
 
 func _on_logout_pressed() -> void:
