@@ -9,19 +9,19 @@ const NPCS: Dictionary = {
 	1: {
 		"name": "NPC_WEAPON_MERCHANT",
 		"zone_id": 0,
-		"pos": Vector3(505.0, 0.0, 495.0),
+		"pos": Vector3(492.0, 0.0, 514.0),
 		"shop_items": [1, 2, 3],
 	},
 	2: {
 		"name": "NPC_ARMOR_MERCHANT",
 		"zone_id": 0,
-		"pos": Vector3(510.0, 0.0, 495.0),
+		"pos": Vector3(492.0, 0.0, 520.0),
 		"shop_items": [4, 5, 6],
 	},
 	3: {
 		"name": "NPC_POTION_MERCHANT",
 		"zone_id": 0,
-		"pos": Vector3(515.0, 0.0, 495.0),
+		"pos": Vector3(492.0, 0.0, 526.0),
 		"shop_items": [7, 8],
 	},
 }
