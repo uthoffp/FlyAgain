@@ -21,6 +21,7 @@ config/main_scene="res://scenes/ui/screens/LoginScreen.tscn"
 NetworkManager="*res://autoloads/NetworkManager.gd"
 GameState="*res://autoloads/GameState.gd"
 UIManager="*res://autoloads/UIManager.gd"
+WindowManager="*res://autoloads/WindowManager.gd"
 
 [debug]
 
