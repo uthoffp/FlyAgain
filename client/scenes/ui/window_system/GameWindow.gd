@@ -108,6 +108,11 @@ func _rebuild_ui() -> void:
 
 
 func _build_ui() -> void:
+	# Build resize handles first so they are behind the vbox in the scene tree.
+	# Godot processes input from last child to first, so later children
+	# (the vbox with titlebar buttons) receive clicks before the handles.
+	_build_resize_handles()
+
 	_vbox = VBoxContainer.new()
 	_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_vbox.add_theme_constant_override("separation", 0)
@@ -161,8 +166,6 @@ func _build_ui() -> void:
 	_content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vbox.add_child(_content_container)
-
-	_build_resize_handles()
 
 
 func _apply_style() -> void:
@@ -221,10 +224,6 @@ func _position_resize_handles() -> void:
 		return
 	var s := size
 	var h := HANDLE_SIZE
-	# Offset top handles below titlebar so they don't block title buttons
-	var top_offset := 0.0
-	if _title_bar_panel and _title_bar_panel.visible:
-		top_offset = _title_bar_panel.size.y
 	for handle: Control in _resize_handles:
 		var edge: String = handle.get_meta("edge")
 		match edge:
@@ -235,16 +234,16 @@ func _position_resize_handles() -> void:
 				handle.position = Vector2(h, s.y - h)
 				handle.size = Vector2(s.x - 2 * h, h)
 			"left":
-				handle.position = Vector2(0, top_offset)
-				handle.size = Vector2(h, s.y - top_offset - h)
+				handle.position = Vector2(0, h)
+				handle.size = Vector2(h, s.y - 2 * h)
 			"right":
-				handle.position = Vector2(s.x - h, top_offset)
-				handle.size = Vector2(h, s.y - top_offset - h)
+				handle.position = Vector2(s.x - h, h)
+				handle.size = Vector2(h, s.y - 2 * h)
 			"top_left":
-				handle.position = Vector2(0, top_offset)
+				handle.position = Vector2(0, 0)
 				handle.size = Vector2(h, h)
 			"top_right":
-				handle.position = Vector2(s.x - h, top_offset)
+				handle.position = Vector2(s.x - h, 0)
 				handle.size = Vector2(h, h)
 			"bottom_left":
 				handle.position = Vector2(0, s.y - h)
