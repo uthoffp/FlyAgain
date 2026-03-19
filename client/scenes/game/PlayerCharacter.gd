@@ -182,17 +182,39 @@ func _physics_process(delta: float) -> void:
 		direction = Vector3.ZERO
 		is_moving = false
 
-	# Client-side prediction
-	var new_pos := _predictor.apply_input(
-		direction, is_moving, _is_flying, GameState.player_dex, delta)
+	# Keep predictor sequence in sync (for network packets)
+	_predictor.apply_input(direction, is_moving, _is_flying, GameState.player_dex, delta)
+
+	# Calculate velocity for CharacterBody3D physics
+	var speed := WorldConstants.FLY_MOVE_SPEED if _is_flying else WorldConstants.GROUND_MOVE_SPEED
+	speed += GameState.player_dex * 0.05
+
+	if is_moving and direction.length_squared() > 0.001:
+		velocity = direction * speed
+	else:
+		velocity = Vector3.ZERO
+
+	if not _is_flying:
+		velocity.y = 0.0
+
+	# Use Godot physics for collision with environment (layer 2)
+	move_and_slide()
+
+	# Clamp to world boundaries
+	global_position.x = clampf(global_position.x,
+		WorldConstants.WORLD_BOUNDARY_MIN, WorldConstants.WORLD_BOUNDARY_MAX)
+	global_position.z = clampf(global_position.z,
+		WorldConstants.WORLD_BOUNDARY_MIN, WorldConstants.WORLD_BOUNDARY_MAX)
 
 	# Snap to terrain height when on the ground
 	if not _is_flying:
-		var terrain_y := _get_terrain_height(new_pos.x, new_pos.z)
-		new_pos.y = terrain_y
-		_predictor.set_position(new_pos)
+		global_position.y = _get_terrain_height(global_position.x, global_position.z)
+	else:
+		global_position.y = clampf(global_position.y,
+			WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_Y_POSITION)
 
-	global_position = new_pos
+	# Sync predictor with actual position (after collision resolution)
+	_predictor.set_position(global_position)
 
 	# Rotate only the model toward movement direction (NOT the root node,
 	# because CameraPivot is a child and would rotate with it).
