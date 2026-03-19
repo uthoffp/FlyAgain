@@ -64,6 +64,7 @@ server/src/main/generated/
 .env
 *.local
 !.claude/settings.local.json
+.claude/worktrees/
 
 # ===== Logs =====
 logs/
