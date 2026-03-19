@@ -72,10 +72,6 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		visible = false
-		get_viewport().set_input_as_handled()
-	# Cancel drag if mouse released outside any slot
 	if _dragging and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_cancel_drag()
 

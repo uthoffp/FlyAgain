@@ -36,14 +36,6 @@ func _process(_delta: float) -> void:
 		visible = false
 
 
-func _input(event: InputEvent) -> void:
-	if not visible:
-		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		visible = false
-		get_viewport().set_input_as_handled()
-
-
 func _apply_style() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.06, 0.12, 0.95)
