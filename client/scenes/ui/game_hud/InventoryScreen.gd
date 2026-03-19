@@ -28,7 +28,6 @@ var _rollback_snapshot: Dictionary = {}
 
 
 func _ready() -> void:
-	visible = false
 	custom_minimum_size = Vector2(820, 520)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_panel_style()
@@ -55,9 +54,7 @@ func _exit_tree() -> void:
 
 
 func toggle() -> void:
-	visible = not visible
-	if visible:
-		_refresh_all()
+	WindowManager.toggle_window("inventory")
 
 
 func _process(_delta: float) -> void:
@@ -99,20 +96,6 @@ func _build_ui() -> void:
 	var root_vbox := VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", 8)
 	add_child(root_vbox)
-
-	# Title bar with close button
-	var title_row := HBoxContainer.new()
-	root_vbox.add_child(title_row)
-	var title := Label.new()
-	title.text = tr("INVENTORY_TITLE")
-	title.add_theme_color_override("font_color", Colors.TEXT_TITLE)
-	title.add_theme_font_size_override("font_size", 16)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(title)
-	var close_btn := Button.new()
-	close_btn.text = "X"
-	close_btn.pressed.connect(func(): visible = false)
-	title_row.add_child(close_btn)
 
 	# Main content: equipment (left) + inventory grid (right)
 	var content := HBoxContainer.new()

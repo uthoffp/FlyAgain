@@ -20,6 +20,7 @@ var min_size: Vector2 = Vector2(200, 150)
 var max_size: Vector2 = Vector2(800, 600)
 
 ## Internal nodes
+var _title_bar_panel: PanelContainer
 var _title_bar: HBoxContainer
 var _title_label: Label
 var _minimize_button: Button
@@ -93,6 +94,7 @@ func _rebuild_ui() -> void:
 		child.free()
 	# Reset node references
 	_vbox = null
+	_title_bar_panel = null
 	_title_bar = null
 	_title_label = null
 	_minimize_button = null
@@ -111,12 +113,14 @@ func _build_ui() -> void:
 	add_child(_vbox)
 
 	# -- Title Bar --
+	var show_titlebar := draggable or resizable or minimizable or closable
+	_title_bar_panel = PanelContainer.new()
+	_title_bar_panel.visible = show_titlebar
+	_vbox.add_child(_title_bar_panel)
+
 	_title_bar = HBoxContainer.new()
 	_title_bar.add_theme_constant_override("separation", 4)
-	_vbox.add_child(_title_bar)
-
-	var show_titlebar := draggable or resizable or minimizable or closable
-	_title_bar.visible = show_titlebar
+	_title_bar_panel.add_child(_title_bar)
 
 	# Drag handle (fills remaining space)
 	_drag_handle = Control.new()
@@ -169,12 +173,12 @@ func _apply_style() -> void:
 	add_theme_stylebox_override("panel", style)
 
 	# Titlebar background
-	if _title_bar.visible:
+	if _title_bar_panel and _title_bar_panel.visible:
 		var tb_style := StyleBoxFlat.new()
 		tb_style.bg_color = Color(Colors.BG_DARK.r, Colors.BG_DARK.g, Colors.BG_DARK.b, 0.8)
 		tb_style.set_content_margin_all(4)
 		tb_style.set_corner_radius_all(4)
-		_title_bar.add_theme_stylebox_override("panel", tb_style)
+		_title_bar_panel.add_theme_stylebox_override("panel", tb_style)
 
 
 # ---- Resize Handles ----
@@ -187,8 +191,8 @@ func _build_resize_handles() -> void:
 		handle.visible = resizable
 		handle.set_meta("edge", edge)
 		handle.gui_input.connect(_on_resize_input.bind(edge))
-		handle.mouse_entered.connect(_on_resize_hover.bind(edge))
-		handle.mouse_exited.connect(_on_resize_hover_exit)
+		handle.mouse_entered.connect(_on_resize_hover.bind(edge, handle))
+		handle.mouse_exited.connect(_on_resize_hover_exit.bind(handle))
 		add_child(handle)
 		_resize_handles.append(handle)
 
@@ -289,22 +293,22 @@ func _on_resize_input(event: InputEvent, edge: String) -> void:
 		position = new_pos
 
 
-func _on_resize_hover(edge: String) -> void:
+func _on_resize_hover(edge: String, handle: Control) -> void:
 	if not resizable:
 		return
 	match edge:
 		"left", "right":
-			mouse_default_cursor_shape = Control.CURSOR_HSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_HSIZE
 		"top", "bottom":
-			mouse_default_cursor_shape = Control.CURSOR_VSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_VSIZE
 		"top_left", "bottom_right":
-			mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
 		"top_right", "bottom_left":
-			mouse_default_cursor_shape = Control.CURSOR_BDIAGSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_BDIAGSIZE
 
 
-func _on_resize_hover_exit() -> void:
-	mouse_default_cursor_shape = Control.CURSOR_ARROW
+func _on_resize_hover_exit(handle: Control) -> void:
+	handle.mouse_default_cursor_shape = Control.CURSOR_ARROW
 
 
 # ---- Drag Handling ----
@@ -389,8 +393,8 @@ func get_content() -> Control:
 
 # ---- Accessors for testing ----
 
-func get_title_bar() -> HBoxContainer:
-	return _title_bar
+func get_title_bar() -> PanelContainer:
+	return _title_bar_panel
 
 func get_title_label() -> Label:
 	return _title_label

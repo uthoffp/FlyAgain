@@ -27,7 +27,6 @@ var _tooltip: PanelContainer = null
 
 
 func _ready() -> void:
-	visible = false
 	custom_minimum_size = Vector2(900, 560)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_style()
@@ -58,7 +57,7 @@ func open_shop(npc_def_id: int) -> void:
 	_populate_shop_list()
 	_refresh_inventory()
 	_update_sell_info()
-	visible = true
+	WindowManager.open_window("npc_shop")
 
 
 func _process(_delta: float) -> void:
@@ -68,7 +67,7 @@ func _process(_delta: float) -> void:
 		_gold_label.text = str(GameState.player_gold) + " Gold"
 	# Auto-close if too far
 	if not NpcRegistry.is_in_range(_npc_def_id, GameState.player_position):
-		visible = false
+		WindowManager.close_window("npc_shop")
 
 
 func _apply_style() -> void:
@@ -86,7 +85,7 @@ func _build_ui() -> void:
 	root.add_theme_constant_override("separation", 8)
 	add_child(root)
 
-	# Title bar
+	# Title and gold display
 	var title_row := HBoxContainer.new()
 	root.add_child(title_row)
 	_title_label = Label.new()
@@ -98,10 +97,6 @@ func _build_ui() -> void:
 	_gold_label.add_theme_color_override("font_color", Colors.GOLD)
 	_gold_label.add_theme_font_size_override("font_size", 14)
 	title_row.add_child(_gold_label)
-	var close_btn := Button.new()
-	close_btn.text = "X"
-	close_btn.pressed.connect(func(): visible = false)
-	title_row.add_child(close_btn)
 
 	# Content: shop (left) + inventory (right)
 	var content := HBoxContainer.new()

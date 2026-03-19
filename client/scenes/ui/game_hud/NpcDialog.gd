@@ -10,7 +10,6 @@ var _npc_position: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
-	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_apply_style()
 
@@ -25,7 +24,7 @@ func show_dialog(npc_def_id: int) -> void:
 	for child in get_children():
 		child.queue_free()
 	_build_content(npc_data)
-	visible = true
+	WindowManager.open_window("npc_dialog")
 
 
 func _process(_delta: float) -> void:
@@ -33,7 +32,7 @@ func _process(_delta: float) -> void:
 		return
 	# Auto-close if player moves too far
 	if not NpcRegistry.is_in_range(_npc_def_id, GameState.player_position):
-		visible = false
+		WindowManager.close_window("npc_dialog")
 
 
 func _apply_style() -> void:
@@ -61,11 +60,6 @@ func _build_content(npc_data: Dictionary) -> void:
 	var shop_btn := Button.new()
 	shop_btn.text = tr("NPC_DIALOG_SHOP")
 	shop_btn.pressed.connect(func():
-		visible = false
+		WindowManager.close_window("npc_dialog")
 		shop_requested.emit(_npc_def_id))
 	vbox.add_child(shop_btn)
-
-	var close_btn := Button.new()
-	close_btn.text = tr("SHOP_CLOSE")
-	close_btn.pressed.connect(func(): visible = false)
-	vbox.add_child(close_btn)
