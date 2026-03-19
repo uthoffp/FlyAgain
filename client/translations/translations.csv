@@ -71,3 +71,12 @@ NPC_WEAPON_MERCHANT,Weapon Merchant,Waffenhändler
 NPC_ARMOR_MERCHANT,Armor Merchant,Rüstungshändler
 NPC_POTION_MERCHANT,Potion Merchant,Trankhändler
 NPC_DIALOG_SHOP,Shop,Shop
+WINDOW_INVENTORY,Inventory,Inventar
+WINDOW_SHOP,Shop,Laden
+WINDOW_NPC_DIALOG,Dialog,Dialog
+WINDOW_PLAYER,Player,Spieler
+WINDOW_TARGET,Target,Ziel
+WINDOW_SKILLS,Skills,Fähigkeiten
+WINDOW_MINIMIZE,Minimize,Minimieren
+WINDOW_CLOSE,Close,Schließen
+WINDOW_RESTORE,Restore,Wiederherstellen
