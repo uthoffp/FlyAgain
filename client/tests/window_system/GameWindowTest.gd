@@ -97,3 +97,30 @@ func test_window_id_stored_as_meta() -> void:
 func test_default_position_stored_as_meta() -> void:
 	_window.call("setup", "test", "Test", {"default_position": Vector2(50, 75)})
 	assert_object(_window.get_meta("default_position")).is_equal(Vector2(50, 75))
+
+
+# ---- Resize ----
+
+func test_resize_handles_created_when_resizable() -> void:
+	_window.call("setup", "test", "Test", {"resizable": true})
+	await get_tree().process_frame
+	var handles: Array = _window.call("get_resize_handles")
+	assert_int(handles.size()).is_equal(8)
+
+
+func test_resize_handles_hidden_when_not_resizable() -> void:
+	_window.call("setup", "test", "Test", {"resizable": false})
+	await get_tree().process_frame
+	var handles: Array = _window.call("get_resize_handles")
+	for handle: Control in handles:
+		assert_bool(handle.visible).is_false()
+
+
+func test_window_respects_min_size() -> void:
+	_window.call("setup", "test", "Test", {
+		"min_size": Vector2(100, 80),
+		"default_size": Vector2(100, 80),
+	})
+	await get_tree().process_frame
+	assert_float(_window.size.x).is_greater_equal(100.0)
+	assert_float(_window.size.y).is_greater_equal(80.0)

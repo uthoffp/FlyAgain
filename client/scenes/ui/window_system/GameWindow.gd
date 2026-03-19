@@ -32,6 +32,15 @@ var _drag_handle: Control
 var _dragging: bool = false
 var _drag_offset: Vector2 = Vector2.ZERO
 
+## Resize state
+const HANDLE_SIZE := 6.0
+var _resize_handles: Array[Control] = []
+var _resizing: bool = false
+var _resize_edge: String = ""
+var _resize_start_pos: Vector2 = Vector2.ZERO
+var _resize_start_size: Vector2 = Vector2.ZERO
+var _resize_start_window_pos: Vector2 = Vector2.ZERO
+
 
 func setup(id: String, title: String, options: Dictionary = {}) -> void:
 	window_id = id
@@ -90,6 +99,7 @@ func _rebuild_ui() -> void:
 	_close_button = null
 	_content_container = null
 	_drag_handle = null
+	_resize_handles = []
 	_build_ui()
 	_apply_style()
 
@@ -147,6 +157,8 @@ func _build_ui() -> void:
 	_content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vbox.add_child(_content_container)
 
+	_build_resize_handles()
+
 
 func _apply_style() -> void:
 	var style := StyleBoxFlat.new()
@@ -163,6 +175,136 @@ func _apply_style() -> void:
 		tb_style.set_content_margin_all(4)
 		tb_style.set_corner_radius_all(4)
 		_title_bar.add_theme_stylebox_override("panel", tb_style)
+
+
+# ---- Resize Handles ----
+
+func _build_resize_handles() -> void:
+	var edges := ["top", "bottom", "left", "right", "top_left", "top_right", "bottom_left", "bottom_right"]
+	for edge: String in edges:
+		var handle := Control.new()
+		handle.mouse_filter = Control.MOUSE_FILTER_STOP
+		handle.visible = resizable
+		handle.set_meta("edge", edge)
+		handle.gui_input.connect(_on_resize_input.bind(edge))
+		handle.mouse_entered.connect(_on_resize_hover.bind(edge))
+		handle.mouse_exited.connect(_on_resize_hover_exit)
+		add_child(handle)
+		_resize_handles.append(handle)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_position_resize_handles()
+
+
+func _position_resize_handles() -> void:
+	if _resize_handles.is_empty():
+		return
+	var s := size
+	var h := HANDLE_SIZE
+	for handle: Control in _resize_handles:
+		var edge: String = handle.get_meta("edge")
+		match edge:
+			"top":
+				handle.position = Vector2(h, 0)
+				handle.size = Vector2(s.x - 2 * h, h)
+			"bottom":
+				handle.position = Vector2(h, s.y - h)
+				handle.size = Vector2(s.x - 2 * h, h)
+			"left":
+				handle.position = Vector2(0, h)
+				handle.size = Vector2(h, s.y - 2 * h)
+			"right":
+				handle.position = Vector2(s.x - h, h)
+				handle.size = Vector2(h, s.y - 2 * h)
+			"top_left":
+				handle.position = Vector2(0, 0)
+				handle.size = Vector2(h, h)
+			"top_right":
+				handle.position = Vector2(s.x - h, 0)
+				handle.size = Vector2(h, h)
+			"bottom_left":
+				handle.position = Vector2(0, s.y - h)
+				handle.size = Vector2(h, h)
+			"bottom_right":
+				handle.position = Vector2(s.x - h, s.y - h)
+				handle.size = Vector2(h, h)
+
+
+func _on_resize_input(event: InputEvent, edge: String) -> void:
+	if not resizable:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_resizing = true
+			_resize_edge = edge
+			_resize_start_pos = get_global_mouse_position()
+			_resize_start_size = size
+			_resize_start_window_pos = position
+			_emit_focus()
+		else:
+			_resizing = false
+			if WindowManager:
+				WindowManager.clamp_to_viewport(self)
+				WindowManager.schedule_save()
+	elif event is InputEventMouseMotion and _resizing:
+		var delta := get_global_mouse_position() - _resize_start_pos
+		var new_size := _resize_start_size
+		var new_pos := _resize_start_window_pos
+		match _resize_edge:
+			"right":
+				new_size.x = _resize_start_size.x + delta.x
+			"bottom":
+				new_size.y = _resize_start_size.y + delta.y
+			"left":
+				new_size.x = _resize_start_size.x - delta.x
+				new_pos.x = _resize_start_window_pos.x + delta.x
+			"top":
+				new_size.y = _resize_start_size.y - delta.y
+				new_pos.y = _resize_start_window_pos.y + delta.y
+			"bottom_right":
+				new_size += delta
+			"bottom_left":
+				new_size.x = _resize_start_size.x - delta.x
+				new_size.y = _resize_start_size.y + delta.y
+				new_pos.x = _resize_start_window_pos.x + delta.x
+			"top_right":
+				new_size.x = _resize_start_size.x + delta.x
+				new_size.y = _resize_start_size.y - delta.y
+				new_pos.y = _resize_start_window_pos.y + delta.y
+			"top_left":
+				new_size.x = _resize_start_size.x - delta.x
+				new_size.y = _resize_start_size.y - delta.y
+				new_pos += delta
+		# Clamp size
+		new_size.x = clampf(new_size.x, min_size.x, max_size.x)
+		new_size.y = clampf(new_size.y, min_size.y, max_size.y)
+		# Adjust position for left/top edges so window doesn't jump
+		if _resize_edge.contains("left"):
+			new_pos.x = _resize_start_window_pos.x + (_resize_start_size.x - new_size.x)
+		if _resize_edge.contains("top"):
+			new_pos.y = _resize_start_window_pos.y + (_resize_start_size.y - new_size.y)
+		size = new_size
+		position = new_pos
+
+
+func _on_resize_hover(edge: String) -> void:
+	if not resizable:
+		return
+	match edge:
+		"left", "right":
+			mouse_default_cursor_shape = Control.CURSOR_HSIZE
+		"top", "bottom":
+			mouse_default_cursor_shape = Control.CURSOR_VSIZE
+		"top_left", "bottom_right":
+			mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
+		"top_right", "bottom_left":
+			mouse_default_cursor_shape = Control.CURSOR_BDIAGSIZE
+
+
+func _on_resize_hover_exit() -> void:
+	mouse_default_cursor_shape = Control.CURSOR_ARROW
 
 
 # ---- Drag Handling ----
@@ -261,3 +403,6 @@ func get_minimize_button() -> Button:
 
 func get_close_button() -> Button:
 	return _close_button
+
+func get_resize_handles() -> Array[Control]:
+	return _resize_handles
