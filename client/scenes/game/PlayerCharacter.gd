@@ -246,7 +246,7 @@ func _try_target_entity(screen_pos: Vector2) -> bool:
 
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 0xFFFFFFFF  # Check all layers for entities
+	query.collision_mask = 1  # Layer 1 only = entities (layer 2 = environment/buildings)
 	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 
