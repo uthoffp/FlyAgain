@@ -72,7 +72,8 @@ func setup(id: String, title: String, options: Dictionary = {}) -> void:
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	var has_features := draggable or resizable or minimizable or closable
+	mouse_filter = Control.MOUSE_FILTER_STOP if has_features else Control.MOUSE_FILTER_IGNORE
 	_build_ui()
 	_apply_style()
 
@@ -165,12 +166,19 @@ func _build_ui() -> void:
 
 
 func _apply_style() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Colors.BG_PANEL
-	style.border_color = Colors.BORDER_PANEL
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	add_theme_stylebox_override("panel", style)
+	var has_features := draggable or resizable or minimizable or closable
+	if has_features:
+		# Styled window with background and border
+		var style := StyleBoxFlat.new()
+		style.bg_color = Colors.BG_PANEL
+		style.border_color = Colors.BORDER_PANEL
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(6)
+		add_theme_stylebox_override("panel", style)
+	else:
+		# Transparent wrapper — zero visual overhead
+		var empty := StyleBoxEmpty.new()
+		add_theme_stylebox_override("panel", empty)
 
 	# Titlebar background
 	if _title_bar_panel and _title_bar_panel.visible:
@@ -180,15 +188,21 @@ func _apply_style() -> void:
 		tb_style.set_corner_radius_all(4)
 		_title_bar_panel.add_theme_stylebox_override("panel", tb_style)
 
+	# Content container — transparent so content panel's own style shows through
+	if _content_container:
+		var empty_content := StyleBoxEmpty.new()
+		_content_container.add_theme_stylebox_override("panel", empty_content)
+
 
 # ---- Resize Handles ----
 
 func _build_resize_handles() -> void:
+	if not resizable:
+		return
 	var edges := ["top", "bottom", "left", "right", "top_left", "top_right", "bottom_left", "bottom_right"]
 	for edge: String in edges:
 		var handle := Control.new()
 		handle.mouse_filter = Control.MOUSE_FILTER_STOP
-		handle.visible = resizable
 		handle.set_meta("edge", edge)
 		handle.gui_input.connect(_on_resize_input.bind(edge))
 		handle.mouse_entered.connect(_on_resize_hover.bind(edge, handle))
@@ -207,6 +221,10 @@ func _position_resize_handles() -> void:
 		return
 	var s := size
 	var h := HANDLE_SIZE
+	# Offset top handles below titlebar so they don't block title buttons
+	var top_offset := 0.0
+	if _title_bar_panel and _title_bar_panel.visible:
+		top_offset = _title_bar_panel.size.y
 	for handle: Control in _resize_handles:
 		var edge: String = handle.get_meta("edge")
 		match edge:
@@ -217,16 +235,16 @@ func _position_resize_handles() -> void:
 				handle.position = Vector2(h, s.y - h)
 				handle.size = Vector2(s.x - 2 * h, h)
 			"left":
-				handle.position = Vector2(0, h)
-				handle.size = Vector2(h, s.y - 2 * h)
+				handle.position = Vector2(0, top_offset)
+				handle.size = Vector2(h, s.y - top_offset - h)
 			"right":
-				handle.position = Vector2(s.x - h, h)
-				handle.size = Vector2(h, s.y - 2 * h)
+				handle.position = Vector2(s.x - h, top_offset)
+				handle.size = Vector2(h, s.y - top_offset - h)
 			"top_left":
-				handle.position = Vector2(0, 0)
+				handle.position = Vector2(0, top_offset)
 				handle.size = Vector2(h, h)
 			"top_right":
-				handle.position = Vector2(s.x - h, 0)
+				handle.position = Vector2(s.x - h, top_offset)
 				handle.size = Vector2(h, h)
 			"bottom_left":
 				handle.position = Vector2(0, s.y - h)
