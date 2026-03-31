@@ -108,13 +108,21 @@ func _rebuild_ui() -> void:
 
 
 func _build_ui() -> void:
+	var has_features := draggable or resizable or minimizable or closable
+
+	# Build resize handles first so they are behind the vbox in the scene tree.
+	# Godot processes input from last child to first, so later children
+	# (the vbox with titlebar buttons) receive clicks before the handles.
+	_build_resize_handles()
+
 	_vbox = VBoxContainer.new()
 	_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_vbox.add_theme_constant_override("separation", 0)
+	_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_vbox)
 
 	# -- Title Bar --
-	var show_titlebar := draggable or resizable or minimizable or closable
+	var show_titlebar := has_features
 	_title_bar_panel = PanelContainer.new()
 	_title_bar_panel.visible = show_titlebar
 	_vbox.add_child(_title_bar_panel)
@@ -157,15 +165,13 @@ func _build_ui() -> void:
 	_title_bar.add_child(_close_button)
 
 	# -- Content Container --
+	# For feature-less windows (fixed HUD elements), content must not block
+	# mouse input so clicks pass through to the 3D world behind them.
 	_content_container = PanelContainer.new()
 	_content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content_container.mouse_filter = Control.MOUSE_FILTER_IGNORE if not has_features else Control.MOUSE_FILTER_STOP
 	_vbox.add_child(_content_container)
-
-	# Build resize handles AFTER the vbox so they sit on top in the scene tree.
-	# Godot processes input from last child to first, so handles receive
-	# mouse events before the vbox content underneath.
-	_build_resize_handles()
 
 
 func _apply_style() -> void:
@@ -207,8 +213,9 @@ func _build_resize_handles() -> void:
 		var handle := Control.new()
 		handle.mouse_filter = Control.MOUSE_FILTER_STOP
 		handle.set_meta("edge", edge)
-		handle.mouse_default_cursor_shape = _cursor_for_edge(edge)
 		handle.gui_input.connect(_on_resize_input.bind(edge))
+		handle.mouse_entered.connect(_on_resize_hover.bind(edge, handle))
+		handle.mouse_exited.connect(_on_resize_hover_exit.bind(handle))
 		add_child(handle)
 		_resize_handles.append(handle)
 
@@ -309,17 +316,22 @@ func _on_resize_input(event: InputEvent, edge: String) -> void:
 		position = new_pos
 
 
-func _cursor_for_edge(edge: String) -> Control.CursorShape:
+func _on_resize_hover(edge: String, handle: Control) -> void:
+	if not resizable:
+		return
 	match edge:
 		"left", "right":
-			return Control.CURSOR_HSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_HSIZE
 		"top", "bottom":
-			return Control.CURSOR_VSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_VSIZE
 		"top_left", "bottom_right":
-			return Control.CURSOR_FDIAGSIZE
+			handle.mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
 		"top_right", "bottom_left":
-			return Control.CURSOR_BDIAGSIZE
-	return Control.CURSOR_ARROW
+			handle.mouse_default_cursor_shape = Control.CURSOR_BDIAGSIZE
+
+
+func _on_resize_hover_exit(handle: Control) -> void:
+	handle.mouse_default_cursor_shape = Control.CURSOR_ARROW
 
 
 # ---- Drag Handling ----

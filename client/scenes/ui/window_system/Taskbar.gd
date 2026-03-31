@@ -98,7 +98,7 @@ func _on_minimized_changed() -> void:
 	var ids := WindowManager.get_minimized_windows()
 	var titles: Dictionary = {}
 	for id: String in ids:
-		var window: Control = WindowManager.get_window(id)
+		var window: Control = WindowManager.get_game_window(id)
 		if window:
 			titles[id] = window.get_meta("window_title", id)
 	refresh_buttons(ids, titles)

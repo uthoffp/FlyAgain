@@ -50,14 +50,14 @@ func unregister_window(window: Control) -> void:
 	window_unregistered.emit(window)
 
 
-func get_window(window_id: String) -> Control:
+func get_game_window(window_id: String) -> Control:
 	return _windows.get(window_id, null)
 
 
 # ---- Visibility ----
 
 func open_window(window_id: String) -> void:
-	var window: Control = get_window(window_id)
+	var window: Control = get_game_window(window_id)
 	if window == null:
 		return
 	_minimized.erase(window_id)
@@ -68,7 +68,7 @@ func open_window(window_id: String) -> void:
 
 
 func close_window(window_id: String) -> void:
-	var window: Control = get_window(window_id)
+	var window: Control = get_game_window(window_id)
 	if window == null:
 		return
 	window.visible = false
@@ -78,7 +78,7 @@ func close_window(window_id: String) -> void:
 
 
 func toggle_window(window_id: String) -> void:
-	var window: Control = get_window(window_id)
+	var window: Control = get_game_window(window_id)
 	if window == null:
 		return
 	if window.visible:
@@ -88,7 +88,7 @@ func toggle_window(window_id: String) -> void:
 
 
 func minimize_window(window_id: String) -> void:
-	var window: Control = get_window(window_id)
+	var window: Control = get_game_window(window_id)
 	if window == null:
 		return
 	window.visible = false
@@ -98,7 +98,7 @@ func minimize_window(window_id: String) -> void:
 
 
 func restore_window(window_id: String) -> void:
-	var window: Control = get_window(window_id)
+	var window: Control = get_game_window(window_id)
 	if window == null:
 		return
 	_minimized.erase(window_id)
@@ -120,7 +120,7 @@ func bring_to_front(window_id: String) -> void:
 
 func _apply_z_order() -> void:
 	for i in range(_z_order.size()):
-		var window: Control = get_window(_z_order[i])
+		var window: Control = get_game_window(_z_order[i])
 		if window != null:
 			window.z_index = i
 
@@ -131,7 +131,7 @@ func is_frontmost_closable(window_id: String) -> bool:
 	## Returns true if window_id is the frontmost visible, closable window.
 	for i in range(_z_order.size() - 1, -1, -1):
 		var id: String = _z_order[i]
-		var win: Control = get_window(id)
+		var win: Control = get_game_window(id)
 		if win and win.visible and win.get_meta("closable", false):
 			return id == window_id
 	return false
