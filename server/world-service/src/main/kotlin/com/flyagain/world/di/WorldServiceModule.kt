@@ -126,7 +126,9 @@ val worldServiceModule = module {
             jwtSecret = get<Config>().getString("flyagain.auth.jwt-secret"),
             sessionSecretProvider = get(),
             characterDataStub = get(),
-            skillSystem = get()
+            skillSystem = get(),
+            inventoryStub = get(),
+            broadcastService = get()
         )
     }
     single { MovementHandler(get(), get(), get()) }

@@ -27,7 +27,7 @@ class GameDataRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource
                             .setType(rs.getInt("type"))
                             .setSubtype(rs.getInt("subtype"))
                             .setLevelReq(rs.getInt("level_req"))
-                            .setClassReq(rs.getInt("class_req").let { if (rs.wasNull()) -1 else it })
+                            .setClassReq(rs.getInt("class_req").let { if (rs.wasNull()) 0 else it })
                             .setRarity(rs.getInt("rarity"))
                             .setBaseAttack(rs.getInt("base_attack"))
                             .setBaseDefense(rs.getInt("base_defense"))

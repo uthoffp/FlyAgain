@@ -147,6 +147,16 @@ class EquipItemHandler(
                         .setSlot(inventorySlot).setItemId(0).setAmount(0).build())
                 } else emptyList()
                 val changedEquipSlots = updatedEquipment.slotsList.filter { it.slotType == equipSlotType }
+                // If the DB query didn't return the just-equipped slot, construct it
+                // from the item we know was equipped to ensure the client always
+                // receives the equipment update.
+                val equipDelta = changedEquipSlots.ifEmpty {
+                    listOf(com.flyagain.common.grpc.EquipmentSlot.newBuilder()
+                        .setSlotType(equipSlotType)
+                        .setItemId(invSlot.itemId)
+                        .setEnhancement(invSlot.enhancement)
+                        .build())
+                }
 
                 // Send success response
                 val response = ClientEquipItemResponse.newBuilder()
@@ -155,7 +165,7 @@ class EquipItemHandler(
                 ctx.writeAndFlush(Packet(Opcode.EQUIP_ITEM_VALUE, response.toByteArray()))
 
                 // Send delta inventory update (only changed inventory slot + affected equipment slot)
-                broadcastService.sendInventoryUpdate(player, changedInvSlots + clearedInvSlots, changedEquipSlots)
+                broadcastService.sendInventoryUpdate(player, changedInvSlots + clearedInvSlots, equipDelta)
 
                 logger.debug("Player {} equipped item {} to slot {}", player.name, invSlot.itemId, equipSlotType)
             } catch (e: Exception) {

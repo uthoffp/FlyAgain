@@ -58,7 +58,7 @@ func toggle() -> void:
 
 
 func _process(_delta: float) -> void:
-	if not visible:
+	if not is_visible_in_tree():
 		return
 	if _gold_label:
 		_gold_label.text = str(GameState.player_gold) + " Gold"
@@ -66,8 +66,8 @@ func _process(_delta: float) -> void:
 		_drag_preview.global_position = get_global_mouse_position() - Vector2(SLOT_SIZE / 2.0, SLOT_SIZE / 2.0)
 
 
-func _input(event: InputEvent) -> void:
-	if not visible:
+func _unhandled_input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
 		return
 	if _dragging and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_cancel_drag()
@@ -166,6 +166,13 @@ func _create_slot_panel(is_equip: bool, idx: int) -> Panel:
 	return panel
 
 
+func _reset_slot_border(panel: Panel) -> void:
+	var style: StyleBoxFlat = panel.get_theme_stylebox("panel").duplicate()
+	style.border_color = Color(0.25, 0.25, 0.3, 0.6)
+	style.set_border_width_all(1)
+	panel.add_theme_stylebox_override("panel", style)
+
+
 # ---- Slot rendering ----
 
 func _refresh_all() -> void:
@@ -185,6 +192,8 @@ func _refresh_inv_slot(slot_idx: int) -> void:
 	# Remove old children (item display)
 	for child in panel.get_children():
 		child.queue_free()
+	# Reset border to default neutral color
+	_reset_slot_border(panel)
 	var slot_data = GameState.inventory_slots[slot_idx]
 	if slot_data == null:
 		return
@@ -202,6 +211,8 @@ func _refresh_equip_slot(slot_type: int) -> void:
 	var panel: Panel = _equip_slots[slot_type]
 	for child in panel.get_children():
 		child.queue_free()
+	# Reset border to default neutral color
+	_reset_slot_border(panel)
 	var equip_data = GameState.equipment_slots.get(slot_type)
 	if equip_data == null:
 		return
@@ -265,6 +276,7 @@ func _on_slot_input(event: InputEvent, panel: Panel, is_equip: bool, idx: int) -
 			_start_drag(is_equip, idx, panel)
 		elif _dragging:
 			_end_drag(is_equip, idx)
+			get_viewport().set_input_as_handled()
 
 
 func _on_double_click(is_equip: bool, idx: int) -> void:
@@ -437,10 +449,10 @@ func _on_unequip_item_response(data: Dictionary) -> void:
 
 
 func _on_inventory_changed() -> void:
-	if visible:
+	if is_visible_in_tree():
 		_refresh_inventory()
 
 
 func _on_equipment_changed() -> void:
-	if visible:
+	if is_visible_in_tree():
 		_refresh_equipment()

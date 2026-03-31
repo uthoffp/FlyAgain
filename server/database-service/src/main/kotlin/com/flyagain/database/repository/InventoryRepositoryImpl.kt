@@ -17,7 +17,7 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
 
     override suspend fun getInventory(characterId: String): List<InventorySlot> = withConnection { conn ->
         conn.prepareStatement(
-            "SELECT id, slot, item_id, amount, enhancement FROM inventory WHERE character_id = ? ORDER BY slot"
+            "SELECT id, slot, item_id, amount, enhancement FROM inventory WHERE character_id = ? AND slot >= 0 ORDER BY slot"
         ).use { stmt ->
             stmt.setObject(1, UUID.fromString(characterId))
             stmt.executeQuery().use { rs ->
@@ -270,12 +270,40 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
             stmt.executeQuery().use { rs -> if (rs.next()) rs.getString("id") else null }
         } ?: return@withTransaction false
 
+        // If there's already an item equipped in that slot, move it back to the freed bag slot
+        val oldEquippedInvId = conn.prepareStatement(
+            "SELECT inventory_id FROM equipment WHERE character_id = ? AND slot_type = ?"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.setInt(2, equipSlotType)
+            stmt.executeQuery().use { rs -> if (rs.next()) rs.getString("inventory_id") else null }
+        }
+
         // Remove existing equipment in that slot
         conn.prepareStatement(
             "DELETE FROM equipment WHERE character_id = ? AND slot_type = ?"
         ).use { stmt ->
             stmt.setObject(1, charUuid)
             stmt.setInt(2, equipSlotType)
+            stmt.executeUpdate()
+        }
+
+        // Move previously equipped item back to the now-freed inventory slot
+        if (oldEquippedInvId != null) {
+            conn.prepareStatement(
+                "UPDATE inventory SET slot = ? WHERE id = ?"
+            ).use { stmt ->
+                stmt.setInt(1, inventorySlot)
+                stmt.setObject(2, UUID.fromString(oldEquippedInvId))
+                stmt.executeUpdate()
+            }
+        }
+
+        // Move new item out of the bag (slot = -1 means "equipped, not in bag")
+        conn.prepareStatement(
+            "UPDATE inventory SET slot = -1 WHERE id = ?"
+        ).use { stmt ->
+            stmt.setObject(1, UUID.fromString(inventoryId))
             stmt.executeUpdate()
         }
 
@@ -292,14 +320,51 @@ class InventoryRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSourc
     }
 
     override suspend fun unequipItem(characterId: String, equipSlotType: Int): Boolean = withTransaction { conn ->
-        val deleted = conn.prepareStatement(
+        val charUuid = UUID.fromString(characterId)
+
+        // Find the inventory item referenced by this equipment slot
+        val inventoryId = conn.prepareStatement(
+            "SELECT inventory_id FROM equipment WHERE character_id = ? AND slot_type = ?"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.setInt(2, equipSlotType)
+            stmt.executeQuery().use { rs -> if (rs.next()) rs.getString("inventory_id") else null }
+        } ?: return@withTransaction false
+
+        // Remove equipment entry
+        conn.prepareStatement(
             "DELETE FROM equipment WHERE character_id = ? AND slot_type = ?"
         ).use { stmt ->
-            stmt.setObject(1, UUID.fromString(characterId))
+            stmt.setObject(1, charUuid)
             stmt.setInt(2, equipSlotType)
             stmt.executeUpdate()
         }
-        deleted > 0
+
+        // Find first free bag slot (0-99)
+        val usedSlots = conn.prepareStatement(
+            "SELECT slot FROM inventory WHERE character_id = ? AND slot >= 0 AND slot < 100 ORDER BY slot"
+        ).use { stmt ->
+            stmt.setObject(1, charUuid)
+            stmt.executeQuery().use { rs ->
+                val slots = mutableSetOf<Int>()
+                while (rs.next()) slots.add(rs.getInt("slot"))
+                slots
+            }
+        }
+
+        val freeSlot = (0 until 100).firstOrNull { it !in usedSlots }
+            ?: return@withTransaction false  // Inventory full — cannot unequip
+
+        // Move item back to bag
+        conn.prepareStatement(
+            "UPDATE inventory SET slot = ? WHERE id = ?"
+        ).use { stmt ->
+            stmt.setInt(1, freeSlot)
+            stmt.setObject(2, UUID.fromString(inventoryId))
+            stmt.executeUpdate()
+        }
+
+        true
     }
 
     override suspend fun atomicBuyItem(characterId: String, itemId: Int, amount: Int, newGold: Long): Int = withTransaction { conn ->

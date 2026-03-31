@@ -5,6 +5,9 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.flyagain.common.grpc.CharacterSkillList
 import com.flyagain.common.grpc.CharacterSkillRecord
+import com.flyagain.common.grpc.EquipmentContents
+import com.flyagain.common.grpc.InventoryContents
+import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.EnterWorldRequest
 import com.flyagain.common.proto.EnterWorldResponse
@@ -13,6 +16,7 @@ import com.flyagain.world.combat.CombatEngine
 import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
 import io.lettuce.core.RedisFuture
@@ -62,6 +66,8 @@ class EnterWorldHandlerTest {
 
     private val sessionSecretProvider = mockk<RedisSessionSecretProvider>(relaxed = true)
     private val characterDataStub = mockk<CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub>()
+    private val inventoryStub = mockk<InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub>()
+    private val broadcastService = mockk<BroadcastService>(relaxed = true)
     private val combatEngine = mockk<CombatEngine>(relaxed = true)
     private val skillSystem = SkillSystem(entityManager, combatEngine)
 
@@ -72,7 +78,9 @@ class EnterWorldHandlerTest {
         jwtSecret = JWT_SECRET,
         sessionSecretProvider = sessionSecretProvider,
         characterDataStub = characterDataStub,
-        skillSystem = skillSystem
+        skillSystem = skillSystem,
+        inventoryStub = inventoryStub,
+        broadcastService = broadcastService
     )
 
     init {
@@ -91,6 +99,10 @@ class EnterWorldHandlerTest {
 
         // Default: gRPC getCharacterSkills returns empty skill list
         coEvery { characterDataStub.getCharacterSkills(any(), any()) } returns CharacterSkillList.getDefaultInstance()
+
+        // Default: gRPC inventory stubs return empty contents
+        coEvery { inventoryStub.getInventory(any(), any()) } returns InventoryContents.getDefaultInstance()
+        coEvery { inventoryStub.getEquipment(any(), any()) } returns EquipmentContents.getDefaultInstance()
     }
 
     // ---- Helper functions ----
@@ -328,7 +340,9 @@ class EnterWorldHandlerTest {
             jwtSecret = JWT_SECRET,
             sessionSecretProvider = sessionSecretProvider,
             characterDataStub = characterDataStub,
-            skillSystem = localSkillSystem
+            skillSystem = localSkillSystem,
+            inventoryStub = inventoryStub,
+            broadcastService = broadcastService
         )
 
         // Mock zoneManager behavior: we need to mock addPlayerToZone to return null.
@@ -345,7 +359,9 @@ class EnterWorldHandlerTest {
             jwtSecret = JWT_SECRET,
             sessionSecretProvider = sessionSecretProvider,
             characterDataStub = characterDataStub,
-            skillSystem = localSkillSystem
+            skillSystem = localSkillSystem,
+            inventoryStub = inventoryStub,
+            broadcastService = broadcastService
         )
 
         val request = makeRequest()
