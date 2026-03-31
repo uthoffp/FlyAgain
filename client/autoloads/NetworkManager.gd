@@ -649,8 +649,9 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			unequip_item_response.emit(data)
 		PacketProtocol.OPCODE_NPC_BUY:
 			var data := ProtoDecoder.new(payload).decode_npc_buy_response()
-			print("[NET] NPC_BUY: success=%s gold=%d slot=%d" % [
-				data.get("success", false), data.get("new_gold", 0), data.get("assigned_slot", -1)])
+			print("[NET] NPC_BUY: success=%s gold=%d slot=%d err=%s" % [
+				data.get("success", false), data.get("new_gold", 0), data.get("assigned_slot", -1),
+				data.get("error_message", "")])
 			npc_buy_response.emit(data)
 		PacketProtocol.OPCODE_NPC_SELL:
 			var data := ProtoDecoder.new(payload).decode_npc_sell_response()

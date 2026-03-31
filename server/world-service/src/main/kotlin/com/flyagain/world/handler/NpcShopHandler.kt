@@ -50,6 +50,9 @@ class NpcShopHandler(
         val itemDefId = request.itemDefId
         val amount = request.amount
 
+        logger.info("NPC buy request from {}: npcId={}, itemDefId={}, amount={}, playerPos=({},{},{}), gold={}",
+            player.name, npcEntityId, itemDefId, amount, player.x, player.y, player.z, player.gold)
+
         // Validate NPC exists
         if (npcShopRegistry.getNpcDefinition(npcEntityId) == null) {
             sendBuyError(ctx, "Unknown NPC")
@@ -269,6 +272,7 @@ class NpcShopHandler(
     }
 
     private fun sendBuyError(ctx: ChannelHandlerContext, reason: String) {
+        logger.warn("NPC buy rejected: {}", reason)
         val response = ClientNpcBuyResponse.newBuilder()
             .setSuccess(false)
             .setErrorMessage(reason)

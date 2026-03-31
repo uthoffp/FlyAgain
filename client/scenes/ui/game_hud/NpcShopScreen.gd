@@ -61,7 +61,7 @@ func open_shop(npc_def_id: int) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not visible:
+	if not is_visible_in_tree():
 		return
 	if _gold_label:
 		_gold_label.text = str(GameState.player_gold) + " Gold"
@@ -232,6 +232,7 @@ func _create_shop_entry(item_id: int, item_def: Dictionary) -> PanelContainer:
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 2)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(vbox)
 
 	var rarity: int = item_def.get("rarity", 0)
@@ -239,6 +240,7 @@ func _create_shop_entry(item_id: int, item_def: Dictionary) -> PanelContainer:
 	name_label.text = tr(item_def.get("name", ""))
 	name_label.add_theme_color_override("font_color", ItemDatabase.get_rarity_color(rarity))
 	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(name_label)
 
 	var stats_text := ""
@@ -252,6 +254,7 @@ func _create_shop_entry(item_id: int, item_def: Dictionary) -> PanelContainer:
 	stats_label.text = stats_text
 	stats_label.add_theme_color_override("font_color", Colors.TEXT_SECONDARY)
 	stats_label.add_theme_font_size_override("font_size", 11)
+	stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(stats_label)
 
 	# Level gate
@@ -263,15 +266,34 @@ func _create_shop_entry(item_id: int, item_def: Dictionary) -> PanelContainer:
 		req_label.text = tr("ITEM_LEVEL_REQ").replace("{level}", str(level_req))
 		req_label.add_theme_color_override("font_color", Colors.TEXT_ERROR)
 		req_label.add_theme_font_size_override("font_size", 10)
+		req_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vbox.add_child(req_label)
 
+	panel.set_meta("item_id", item_id)
 	panel.gui_input.connect(func(event: InputEvent):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_selected_shop_item = item_id
 			_buy_amount = 1
-			_update_buy_amount())
+			_update_buy_amount()
+			_highlight_selected_shop_entry())
 
 	return panel
+
+
+func _highlight_selected_shop_entry() -> void:
+	for child in _shop_list.get_children():
+		if not (child is PanelContainer):
+			continue
+		var style: StyleBoxFlat = child.get_theme_stylebox("panel") as StyleBoxFlat
+		if style == null:
+			continue
+		var entry_item_id: int = child.get_meta("item_id", 0)
+		if entry_item_id == _selected_shop_item:
+			style.border_color = Colors.GOLD
+			style.set_border_width_all(2)
+		else:
+			style.border_color = Color(0.2, 0.2, 0.3, 0.5)
+			style.set_border_width_all(1)
 
 
 func _refresh_inventory() -> void:
@@ -371,7 +393,7 @@ func _on_sell_pressed() -> void:
 
 
 func _on_npc_buy_response(data: Dictionary) -> void:
-	if not visible:
+	if not is_visible_in_tree():
 		return
 	if not data.get("success", false):
 		# Could show error notification
@@ -379,13 +401,13 @@ func _on_npc_buy_response(data: Dictionary) -> void:
 
 
 func _on_npc_sell_response(data: Dictionary) -> void:
-	if not visible:
+	if not is_visible_in_tree():
 		return
 	_selected_sell_slot = -1
 	_update_sell_info()
 
 
 func _on_inventory_changed() -> void:
-	if visible:
+	if is_visible_in_tree():
 		_refresh_inventory()
 		_update_sell_info()
