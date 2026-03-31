@@ -493,6 +493,9 @@ func _on_zone_data(data: Dictionary) -> void:
 				eid, entity_data.get("name", "")])
 			_entity_factory.spawn_entity(entity_data)
 
+	# Spawn client-side NPC entities for this zone
+	_spawn_zone_npcs(GameState.current_zone_id)
+
 	# Hide loading overlay after a brief delay to let the scene settle
 	_is_zone_transitioning = false
 	_hide_loading_deferred()
@@ -552,23 +555,73 @@ func _spawn_local_player() -> void:
 	_player.target_cleared.connect(_on_player_target_cleared)
 	_player.auto_attack_toggled.connect(_on_player_auto_attack_toggled)
 	_player.approach_in_range.connect(_on_player_approach_in_range)
+	_player.movement_started.connect(_on_player_movement_started)
+
+
+# ---- NPC spawning ----
+
+## Mapping from npc_def_id -> client-side entity_id (negative to avoid server ID conflicts)
+var _npc_entity_ids: Dictionary = {}
+
+func _spawn_zone_npcs(zone_id: int) -> void:
+	# Clear previous NPC entity mappings
+	for npc_eid in _npc_entity_ids.values():
+		_entity_factory.despawn_entity(npc_eid)
+	_npc_entity_ids.clear()
+
+	var next_npc_eid := -1
+	for npc_def_id in NpcRegistry.NPCS:
+		var npc_data := NpcRegistry.get_npc(npc_def_id)
+		if npc_data.is_empty():
+			continue
+		# Only spawn NPCs for the current zone (zone_id 0 = Aerheim = 1 internally)
+		var npc_zone: int = npc_data.get("zone_id", -1)
+		if npc_zone == 0 and zone_id != WorldConstants.ZONE_AERHEIM:
+			continue
+		if npc_zone > 0 and npc_zone != zone_id:
+			continue
+
+		var npc_pos: Vector3 = npc_data.get("pos", Vector3.ZERO)
+		# Snap NPC Y to terrain height
+		if _terrain and _terrain.has_method("get_height_at"):
+			npc_pos.y = _terrain.get_height_at(npc_pos.x, npc_pos.z)
+
+		var entity_data := {
+			"entity_id": next_npc_eid,
+			"entity_type": WorldConstants.ENTITY_TYPE_NPC,
+			"name": tr(npc_data.get("name", "")),
+			"level": 0,
+			"hp": 1,
+			"max_hp": 1,
+			"position": {"x": npc_pos.x, "y": npc_pos.y, "z": npc_pos.z},
+		}
+		_entity_factory.spawn_entity(entity_data)
+		_npc_entity_ids[npc_def_id] = next_npc_eid
+		print("[WORLD] Spawned NPC '%s' (def_id=%d, eid=%d) at %s" % [
+			entity_data["name"], npc_def_id, next_npc_eid, str(npc_pos)])
+		next_npc_eid -= 1
 
 
 # ---- Combat / Targeting ----
 
 ## Player requested a target selection (click on entity).
 func _on_player_target_selected(entity_id: int) -> void:
-	NetworkManager.send_select_target(entity_id)
-	# Check if clicked entity is near a known NPC position
-	var entity := _entity_factory.get_entity(entity_id)
-	if entity and is_instance_valid(entity):
-		for npc_def_id in NpcRegistry.NPCS:
-			var npc := NpcRegistry.get_npc(npc_def_id)
-			var npc_pos: Vector3 = npc.get("pos", Vector3.ZERO)
-			if entity.global_position.distance_to(npc_pos) < 3.0:
+	# Check if the clicked entity is an NPC (client-side, negative ID)
+	for npc_def_id in _npc_entity_ids:
+		if _npc_entity_ids[npc_def_id] == entity_id:
+			# Show selection ring on the NPC
+			_deselect_current_target()
+			var npc_entity := _entity_factory.get_entity(entity_id)
+			if npc_entity and is_instance_valid(npc_entity) and npc_entity.has_method("set_selected"):
+				npc_entity.set_selected(true)
+			GameState.selected_target_id = entity_id
+			GameState.selected_target_name = npc_entity.entity_name if npc_entity else ""
+			if NpcRegistry.is_in_range(npc_def_id, GameState.player_position):
 				if _npc_dialog and _npc_dialog.has_method("show_dialog"):
 					_npc_dialog.show_dialog(npc_def_id)
-				break
+			return  # Don't send select_target to server for NPCs
+
+	NetworkManager.send_select_target(entity_id)
 
 
 ## Player pressed Escape to clear their target.
@@ -723,7 +776,7 @@ func _on_gold_updated(data: Dictionary) -> void:
 
 ## Deselect the currently selected target and clear GameState target fields.
 func _deselect_current_target() -> void:
-	if GameState.selected_target_id > 0:
+	if GameState.selected_target_id != 0:
 		var old_entity := _entity_factory.get_entity(GameState.selected_target_id)
 		if old_entity and is_instance_valid(old_entity) and old_entity.has_method("set_selected"):
 			old_entity.set_selected(false)
@@ -781,6 +834,12 @@ func _on_npc_shop_requested(npc_def_id: int) -> void:
 		_npc_shop_screen.open_shop(npc_def_id)
 
 
+## Close NPC dialog and shop when the player starts moving.
+func _on_player_movement_started() -> void:
+	WindowManager.close_window("npc_dialog")
+	WindowManager.close_window("npc_shop")
+
+
 ## Handle inventory update — show loot notifications ONLY for server-pushed updates
 ## (not for player-initiated move/equip/buy/sell which have their own response handlers).
 var _suppress_loot_notifications: bool = false
@@ -791,7 +850,7 @@ func _on_inventory_updated(data: Dictionary) -> void:
 		_suppress_loot_notifications = false
 		return
 	# Only show notifications when no inventory/shop UI is open (i.e., this is a loot drop)
-	if (_inventory_screen and _inventory_screen.visible) or (_npc_shop_screen and _npc_shop_screen.visible):
+	if (_inventory_screen and _inventory_screen.is_visible_in_tree()) or (_npc_shop_screen and _npc_shop_screen.is_visible_in_tree()):
 		return
 	var slots: Array = data.get("slots", [])
 	for slot_data in slots:

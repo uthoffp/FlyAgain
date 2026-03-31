@@ -88,6 +88,8 @@ func _update_name_label() -> void:
 	if entity_type == WorldConstants.ENTITY_TYPE_PLAYER:
 		var class_abbr := _get_class_abbreviation(character_class)
 		_name_label.text = "%s [%s Lv.%d]" % [entity_name, class_abbr, level]
+	elif entity_type == WorldConstants.ENTITY_TYPE_NPC:
+		_name_label.text = entity_name
 	else:
 		_name_label.text = "%s [Lv.%d]" % [entity_name, level]
 
@@ -120,6 +122,12 @@ func _apply_appearance() -> void:
 				_mesh.scale = Vector3(1.2, 1.2, 1.2)
 		WorldConstants.ENTITY_TYPE_NPC:
 			mat.albedo_color = Color(0.2, 0.8, 0.2)
+			# Slightly taller capsule to distinguish NPCs from other entities
+			var npc_mesh := CylinderMesh.new()
+			npc_mesh.top_radius = 0.35
+			npc_mesh.bottom_radius = 0.35
+			npc_mesh.height = 1.8
+			_mesh.mesh = npc_mesh
 		WorldConstants.ENTITY_TYPE_LOOT:
 			mat.albedo_color = Color(0.8, 0.7, 0.2)
 			_mesh.scale = Vector3(0.5, 0.5, 0.5)

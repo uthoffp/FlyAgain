@@ -20,7 +20,7 @@ func test_get_shop_items() -> void:
 
 
 func test_is_in_range_close() -> void:
-	assert_bool(NpcRegistry.is_in_range(1, Vector3(505.0, 0.0, 495.0))).is_true()
+	assert_bool(NpcRegistry.is_in_range(1, Vector3(487.0, 0.0, 514.0))).is_true()
 
 
 func test_is_in_range_far() -> void:

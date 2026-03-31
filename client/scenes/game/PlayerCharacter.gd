@@ -10,6 +10,7 @@ signal target_selected(entity_id: int)
 signal target_cleared()
 signal auto_attack_toggled(enable: bool, target_id: int)
 signal approach_in_range(entity_id: int)
+signal movement_started()
 
 ## Adjust in the editor if the model clips into or floats above the ground.
 @export var model_y_offset: float = 0.0
@@ -61,6 +62,9 @@ var _approach_entity: Node3D = null
 var _approach_entity_id: int = 0
 var _pending_target_id: int = 0  # Set on first click, before server confirms
 const APPROACH_ATTACK_RANGE := 2.0
+
+# Movement state tracking for NPC interaction closure
+var _was_moving: bool = false
 
 
 func _ready() -> void:
@@ -182,6 +186,11 @@ func _physics_process(delta: float) -> void:
 		direction = Vector3.ZERO
 		is_moving = false
 
+	# Emit movement_started on rising edge (was stopped, now moving)
+	if is_moving and not _was_moving:
+		movement_started.emit()
+	_was_moving = is_moving
+
 	# Keep predictor sequence in sync (for network packets)
 	_predictor.apply_input(direction, is_moving, _is_flying, GameState.player_dex, delta)
 
@@ -213,8 +222,9 @@ func _physics_process(delta: float) -> void:
 		global_position.y = clampf(global_position.y,
 			WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_Y_POSITION)
 
-	# Sync predictor with actual position (after collision resolution)
+	# Sync predictor and global state with actual position (after collision resolution)
 	_predictor.set_position(global_position)
+	GameState.player_position = global_position
 
 	# Rotate only the model toward movement direction (NOT the root node,
 	# because CameraPivot is a child and would rotate with it).
@@ -289,6 +299,7 @@ func _try_target_entity(screen_pos: Vector2) -> bool:
 	if entity and entity.hp > 0:
 		if entity.entity_id == GameState.selected_target_id or entity.entity_id == _pending_target_id:
 			_start_approach(entity)
+			target_selected.emit(entity.entity_id)
 		else:
 			cancel_approach()
 			_pending_target_id = entity.entity_id

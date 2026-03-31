@@ -28,7 +28,7 @@ func show_dialog(npc_def_id: int) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not visible:
+	if not is_visible_in_tree():
 		return
 	# Auto-close if player moves too far
 	if not NpcRegistry.is_in_range(_npc_def_id, GameState.player_position):
