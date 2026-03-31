@@ -252,6 +252,7 @@ class CharacterSelectHandlerTest {
         assertEquals(20, response.stats.dex)
         assertEquals(15, response.stats.`int`)
         assertEquals(5000, response.stats.xp)
+        assertEquals(10000, response.stats.gold)
 
         // World service endpoint
         assertEquals("127.0.0.1", response.worldServiceHost)

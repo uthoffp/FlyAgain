@@ -86,6 +86,7 @@ message CharacterStats {
     int32 int_ = 9;
     int64 xp = 10;
     int64 xp_to_next_level = 11;
+    int64 gold = 12;
 }
 
 // ============================================================

@@ -220,11 +220,12 @@ func decode_position() -> Dictionary:
 
 
 ## Decodes a CharacterStats sub-message.
-## Returns: { level, hp, max_hp, mp, max_mp, str, sta, dex, int_, xp, xp_to_next_level }
+## Returns: { level, hp, max_hp, mp, max_mp, str, sta, dex, int_, xp, xp_to_next_level, gold }
 func decode_character_stats() -> Dictionary:
 	var result := {
 		"level": 0, "hp": 0, "max_hp": 0, "mp": 0, "max_mp": 0,
 		"str": 0, "sta": 0, "dex": 0, "int_": 0, "xp": 0, "xp_to_next_level": 0,
+		"gold": 0,
 	}
 	while _has_bytes():
 		var pair := _next_tag()
@@ -244,6 +245,7 @@ func decode_character_stats() -> Dictionary:
 			9:  result["int_"]             = _read_varint()
 			10: result["xp"]              = _read_varint()
 			11: result["xp_to_next_level"] = _read_varint()
+			12: result["gold"]            = _read_varint()
 			_:  _skip(wt)
 	return result
 
