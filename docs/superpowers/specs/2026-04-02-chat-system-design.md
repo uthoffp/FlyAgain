@@ -58,10 +58,12 @@ Lives in `world-service/chat/ChatService.kt`. Allows future replacement with a d
 - **handleShout**: Get all players via `ZoneChannel.getAllPlayers()`, send ChatBroadcast (channel_type=1) to all
 - **handleWhisper**: Lookup target via `EntityManager.getPlayerByName(targetName)`:
   - Found → send ChatBroadcast (channel_type=2, whisper_in) to recipient + ChatBroadcast (channel_type=3, whisper_out) to sender
-  - Not found → ErrorResponse (0x0603) to sender: "Player not found" / "Spieler nicht gefunden"
-  - Self-whisper → ErrorResponse
+  - Not found → ErrorResponse (0x0603) with error code 404 to sender. Client localizes: "Player not found" / "Spieler nicht gefunden"
+  - Self-whisper → ErrorResponse with error code 400. Client localizes: "Cannot whisper to yourself" / "Du kannst dir nicht selbst schreiben"
 
-Dependencies: ZoneManager, EntityManager, BroadcastService (injected via Koin).
+Dependencies (injected via Koin): ZoneManager (to resolve player's current ZoneChannel via `getChannel(player.zoneId, player.channelId)`), EntityManager (for server-wide player lookup by name), BroadcastService (for sending packets to individual players via `sendToPlayer()`).
+
+For Say/Shout broadcasts, ChatServiceImpl resolves the ZoneChannel via ZoneManager, iterates the relevant player set (nearby or all), and calls `BroadcastService.sendToPlayer()` for each recipient. A new public method `broadcastToNearby(channel: ZoneChannel, x: Float, z: Float, packet: Packet)` will be added to BroadcastService to encapsulate the SpatialGrid lookup + iteration pattern for Say chat.
 
 ### ChatHandler
 
@@ -78,13 +80,13 @@ New lookup map: `playersByName: ConcurrentHashMap<String, PlayerEntity>` (lowerc
 
 New method: `getPlayerByName(name: String): PlayerEntity?`
 
-Populated/cleared alongside existing maps in `addPlayer()`/`removePlayer()`.
+Populated in `tryAddPlayer()` and cleared in `removePlayer()` alongside existing maps.
 
 ### Rate Limiting
 
 - **Budget**: 10 messages per 10 seconds, shared across all channels
 - **Implementation**: In-memory `ArrayDeque<Long>` on PlayerEntity storing timestamps of recent messages
-- **On exceed**: ErrorResponse with code 429, "Rate limit exceeded" / "Nachrichtenlimit erreicht"
+- **On exceed**: ErrorResponse with error code 429. Client localizes: "Rate limit exceeded" / "Nachrichtenlimit erreicht"
 - **No Redis needed** — player state is ephemeral and per-connection
 
 ### PacketRouter Integration
@@ -113,8 +115,12 @@ Register `ChatService` (bind interface) and `ChatHandler` as singletons in the w
 
 - Scrollable RichTextLabel for message display (BBCode for colors)
 - LineEdit at bottom for input
-- Color scheme: Say=white, Shout=yellow, System/Error=red
+- Tab buttons for channel filtering: All, Say, Shout — filters which messages are shown in the main window
+- Color scheme: Say=white, Shout=yellow, Whisper=magenta, System/Error=red
+- Sender name displayed in a distinct highlight color (light blue) for visual distinction from message text
+- Message display format: `[Channel] PlayerName: message` — e.g. `[Shout] Warrior42: Hello everyone!`
 - Prefix parsing in input: no prefix=say, `/shout`=shout, `/say Name`=whisper
+- Auto-scroll to bottom on new messages; pauses auto-scroll when user scrolls up to read history
 - Say/Shout history cleared on zone change
 - Displays say, shout, and system messages (NOT whisper — those go to WhisperWindows)
 
@@ -149,7 +155,7 @@ All UI labels, placeholder texts, tooltips, and error messages localized in Engl
 ### Server-Side (ChatHandler)
 
 - Max 200 characters — reject longer messages with ErrorResponse
-- Strip null bytes (`\0`)
+- Strip null bytes (`\0`) and Unicode control characters (U+0000–U+001F, U+007F–U+009F, U+200B zero-width space, U+202E RTL override, etc.)
 - Strip HTML/BBCode tags — plaintext only
 - Trim leading/trailing whitespace
 - Reject empty messages after sanitization
@@ -160,13 +166,14 @@ All UI labels, placeholder texts, tooltips, and error messages localized in Engl
 
 - 10 messages per 10 seconds, global budget across all channels
 - In-memory ArrayDeque on PlayerEntity
-- On exceed → ErrorResponse 429
+- On exceed → ErrorResponse with error code 429
 
 ### Client-Side
 
 - LineEdit max_length = 200
 - Empty input → do not send packet
 - Validate target name is not empty for `/say` prefix
+- Validate target name format (1–16 chars, alphanumeric) before sending
 
 ## Persistence
 
