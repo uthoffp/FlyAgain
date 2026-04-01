@@ -39,7 +39,11 @@ window/stretch/mode="canvas_items"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg", "res://addons/meshy-godot-plugin/plugin.cfg", "res://addons/terrain_3d/plugin.cfg")
+enabled=PackedStringArray("res://addons/meshy-godot-plugin/plugin.cfg", "res://addons/terrain_3d/plugin.cfg", "res://addons/gdUnit4/plugin.cfg")
+
+[gdunit4]
+
+ui/toolbar/run_overall=true
 
 [input]
 

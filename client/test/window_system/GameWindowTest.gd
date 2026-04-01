@@ -8,9 +8,15 @@ var _window: PanelContainer
 
 
 func before_test() -> void:
-	_window = auto_free(PanelContainer.new())
+	_window = PanelContainer.new()
 	_window.set_script(load("res://scenes/ui/window_system/GameWindow.gd"))
 	add_child(_window)
+
+
+func after_test() -> void:
+	if is_instance_valid(_window):
+		_window.queue_free()
+		_window = null
 
 
 # ---- Structure ----
@@ -32,7 +38,7 @@ func test_has_content_container() -> void:
 func test_set_content_adds_child_to_container() -> void:
 	_window.call("setup", "test", "Test Window", {})
 	await get_tree().process_frame
-	var content: Control = auto_free(Control.new())
+	var content: Control = Control.new()
 	_window.call("set_content", content)
 	var container: PanelContainer = _window.call("get_content_container")
 	assert_int(container.get_child_count()).is_equal(1)
