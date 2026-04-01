@@ -89,21 +89,32 @@ func _exit_tree() -> void:
 
 
 func _rebuild_ui() -> void:
-	# Remove all existing children immediately
-	for child in get_children():
-		remove_child(child)
-		child.free()
-	# Reset node references
-	_vbox = null
-	_title_bar_panel = null
-	_title_bar = null
-	_title_label = null
-	_minimize_button = null
-	_close_button = null
-	_content_container = null
-	_drag_handle = null
+	# Update existing UI elements instead of destroying and recreating.
+	# Using free() here would cause use-after-free crashes during Godot
+	# cleanup when nodes are also tracked by test harnesses (auto_free).
+	var has_features := draggable or resizable or minimizable or closable
+	mouse_filter = Control.MOUSE_FILTER_STOP if has_features else Control.MOUSE_FILTER_IGNORE
+
+	if _title_bar_panel:
+		_title_bar_panel.visible = has_features
+	if _title_label:
+		_title_label.text = window_title
+	if _minimize_button:
+		_minimize_button.visible = minimizable
+	if _close_button:
+		_close_button.visible = closable
+	if _content_container:
+		_content_container.mouse_filter = Control.MOUSE_FILTER_IGNORE if not has_features else Control.MOUSE_FILTER_STOP
+
+	# Rebuild resize handles: remove old ones, add new if resizable.
+	# Use free() (not queue_free) — deferred deletion can race with
+	# engine shutdown and crash in GDScriptInstance destructor.
+	for handle in _resize_handles:
+		remove_child(handle)
+		handle.free()
 	_resize_handles = []
-	_build_ui()
+	_build_resize_handles()
+
 	_apply_style()
 
 
