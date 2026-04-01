@@ -37,6 +37,7 @@ Chat system for FlyAgain with three channels: Say (nearby players), Shout (zone-
 | text | string | 3 | Message content |
 | channel_type | int32 | 4 | 0=say, 1=shout, 2=whisper_in, 3=whisper_out |
 | timestamp | int64 | 5 | Server time in milliseconds |
+| target_name | string | 6 | For whisper_out: recipient name (so client can route to correct window) |
 
 ## Server Architecture
 
