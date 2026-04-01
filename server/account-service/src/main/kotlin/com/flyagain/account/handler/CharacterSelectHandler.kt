@@ -130,6 +130,7 @@ class CharacterSelectHandler(
                 .setInt(character.intStat)
                 .setXp(character.xp)
                 .setXpToNextLevel(xpToNextLevel(character.level))
+                .setGold(character.gold)
                 .build())
             .setWorldServiceHost(worldServiceHost)
             .setWorldServiceTcpPort(worldServiceTcpPort)

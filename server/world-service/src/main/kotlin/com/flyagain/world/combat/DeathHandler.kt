@@ -1,11 +1,17 @@
 package com.flyagain.world.combat
 
+import com.flyagain.common.grpc.*
 import com.flyagain.world.ai.AIState
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
+import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 
 /**
@@ -14,7 +20,7 @@ import org.slf4j.LoggerFactory
  * When a monster dies:
  * 1. Transition AI to DEAD, record death time, clear combat state.
  * 2. Award XP and gold to the killer.
- * 3. Roll loot (logged only; inventory delivery deferred to Phase 1.6).
+ * 3. Roll loot and deliver items to inventory via gRPC.
  * 4. Broadcast XP gain and, on level-up, stats update.
  *
  * When a player dies:
@@ -25,8 +31,14 @@ import org.slf4j.LoggerFactory
 class DeathHandler(
     private val xpSystem: XpSystem,
     private val lootSystem: LootSystem,
+    private val skillSystem: SkillSystem,
     private val broadcastService: BroadcastService,
-    private val entityManager: EntityManager
+    private val entityManager: EntityManager,
+    private val inventoryStub: InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub,
+    private val characterDataStub: CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub,
+    private val itemCache: ItemDefinitionCache,
+    private val asyncScope: CoroutineScope,
+    private val inventoryLockManager: InventoryLockManager
 ) {
 
     private val logger = LoggerFactory.getLogger(DeathHandler::class.java)
@@ -57,8 +69,31 @@ class DeathHandler(
         logger.debug("Player {} gained {} XP from killing {} (level {})",
             killer.name, xpResult.xpGained, monster.name, killer.level)
 
-        // 4. If the player leveled up, broadcast updated stats to nearby players
+        // 4. If the player leveled up, grant newly unlocked skills and broadcast stats
         if (xpResult.leveledUp) {
+            val newSkills = skillSystem.grantUnlockedSkills(killer)
+            if (newSkills.isNotEmpty()) {
+                // Persist newly granted skills asynchronously
+                asyncScope.launch {
+                    try {
+                        val request = GrantCharacterSkillsRequest.newBuilder()
+                            .setCharacterId(killer.characterId)
+                            .also { builder ->
+                                for (skillId in newSkills) {
+                                    builder.addSkills(
+                                        CharacterSkillRecord.newBuilder()
+                                            .setSkillId(skillId)
+                                            .setSkillLevel(1)
+                                    )
+                                }
+                            }
+                            .build()
+                        characterDataStub.grantCharacterSkills(request)
+                    } catch (e: Exception) {
+                        logger.warn("Failed to persist granted skills for {}: {}", killer.name, e.message)
+                    }
+                }
+            }
             broadcastService.broadcastEntityStatsUpdate(channel, killer)
             logger.info("Player {} leveled up to {} after killing {}",
                 killer.name, killer.level, monster.name)
@@ -74,11 +109,44 @@ class DeathHandler(
         logger.debug("Player {} received {} gold from killing {} (total: {})",
             killer.name, goldDrop, monster.name, killer.gold)
 
-        // 6. Roll loot (Phase 1.6 will deliver items to inventory)
+        // 6. Roll loot and deliver to inventory
         val lootDrops = lootSystem.rollLoot(monster.definitionId)
         if (lootDrops.isNotEmpty()) {
-            logger.debug("Loot rolled for monster {} (defId={}): {}",
-                monster.name, monster.definitionId, lootDrops)
+            asyncScope.launch {
+                val lock = inventoryLockManager.getLock(killer.characterId)
+                lock.withLock {
+                    val assignedSlots = mutableSetOf<Int>()
+                    for (drop in lootDrops) {
+                        try {
+                            val addResponse = inventoryStub.addItem(
+                                AddItemRequest.newBuilder()
+                                    .setCharacterId(killer.characterId)
+                                    .setItemId(drop.itemId)
+                                    .setAmount(drop.amount)
+                                    .build()
+                            )
+                            if (addResponse.success) {
+                                assignedSlots.add(addResponse.assignedSlot)
+                            }
+                            logger.debug("Delivered loot item {} x{} to player {}", drop.itemId, drop.amount, killer.name)
+                        } catch (e: Exception) {
+                            logger.warn("Failed to deliver loot item {} to player {}: {}", drop.itemId, killer.name, e.message)
+                        }
+                    }
+                    // Send delta inventory update with only the slots that received loot
+                    if (assignedSlots.isNotEmpty()) {
+                        try {
+                            val inv = inventoryStub.getInventory(
+                                GetInventoryRequest.newBuilder().setCharacterId(killer.characterId).build()
+                            )
+                            val changedSlots = inv.slotsList.filter { it.slot in assignedSlots }
+                            broadcastService.sendInventoryUpdate(killer, changedSlots, emptyList())
+                        } catch (e: Exception) {
+                            logger.warn("Failed to send inventory update after loot: {}", e.message)
+                        }
+                    }
+                }
+            }
         }
     }
 

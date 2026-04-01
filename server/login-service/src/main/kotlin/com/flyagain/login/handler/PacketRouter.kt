@@ -43,6 +43,8 @@ class PacketRouter(
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet) {
         MdcHelper.restoreMdc(ctx)
+        // Any incoming packet counts as activity for heartbeat tracking
+        heartbeatTracker.recordHeartbeat(ctx.channel())
         when (msg.opcode) {
             Opcode.LOGIN_REQUEST_VALUE -> {
                 val request = try {
@@ -96,7 +98,7 @@ class PacketRouter(
      */
     private fun handleHeartbeat(ctx: ChannelHandlerContext, packet: Packet) {
         try {
-            heartbeatTracker.recordHeartbeat(ctx.channel())
+            // recordHeartbeat already called in channelRead0 for all packets
             val heartbeat = Heartbeat.parseFrom(packet.payload)
             val response = Heartbeat.newBuilder()
                 .setClientTime(heartbeat.clientTime)

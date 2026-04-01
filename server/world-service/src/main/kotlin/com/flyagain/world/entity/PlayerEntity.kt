@@ -32,7 +32,15 @@ data class PlayerEntity(
     var statPoints: Int = 0,
     var xp: Long = 0L,
     var xpToNextLevel: Long = 100L,
-    var gold: Long = 0L,
+    @Volatile var gold: Long = 0L,
+
+    // Equipment stat bonuses (recalculated when equipment changes)
+    // @Volatile because these are set by EquipItemHandler on Netty I/O threads
+    // but read by CombatEngine/GameLoop on the game loop thread.
+    @Volatile var bonusAttack: Int = 0,
+    @Volatile var bonusDefense: Int = 0,
+    @Volatile var bonusHp: Int = 0,
+    @Volatile var bonusMp: Int = 0,
 
     // Combat — @Volatile because these are set on Netty I/O threads
     // (ToggleAutoAttackHandler, SelectTargetHandler) but read on the game loop thread
@@ -57,6 +65,7 @@ data class PlayerEntity(
     // Rate limiting for expensive operations
     var lastZoneChangeTime: Long = 0L,
     var lastChannelSwitchTime: Long = 0L,
+    var lastInventoryOpTime: Long = 0L,
 
     // Movement input (from latest client packet)
     var inputDx: Float = 0f,
@@ -82,7 +91,7 @@ data class PlayerEntity(
      * TODO: Refine per-class formulas in later phases.
      */
     fun getAttackPower(): Int {
-        return str * 2 + level
+        return str * 2 + level + bonusAttack
     }
 
     /**
@@ -90,7 +99,7 @@ data class PlayerEntity(
      * TODO: Factor in equipment bonuses.
      */
     fun getDefense(): Int {
-        return sta + level
+        return sta + level + bonusDefense
     }
 
     /**

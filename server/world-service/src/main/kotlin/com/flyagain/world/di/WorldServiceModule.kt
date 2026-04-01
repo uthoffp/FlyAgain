@@ -2,6 +2,7 @@ package com.flyagain.world.di
 
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.flyagain.common.grpc.GameDataServiceGrpcKt
+import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
 import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.TcpServer
 import com.flyagain.common.network.UdpFloodProtection
@@ -17,12 +18,19 @@ import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.gameloop.GameLoop
 import com.flyagain.world.gameloop.InputQueue
 import com.flyagain.world.handler.EnterWorldHandler
+import com.flyagain.world.handler.EquipItemHandler
 import com.flyagain.world.handler.MovementHandler
+import com.flyagain.world.handler.MoveItemHandler
+import com.flyagain.world.handler.NpcShopHandler
 import com.flyagain.world.handler.PacketRouter
 import com.flyagain.world.handler.SelectTargetHandler
 import com.flyagain.world.handler.ToggleAutoAttackHandler
 import com.flyagain.world.handler.UseSkillHandler
 import com.flyagain.world.handler.ZoneChangeHandler
+import com.flyagain.world.inventory.EquipmentStatCalculator
+import com.flyagain.world.inventory.InventoryLockManager
+import com.flyagain.world.inventory.ItemDefinitionCache
+import com.flyagain.world.inventory.NpcShopRegistry
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.network.WorldUdpHandler
@@ -64,6 +72,7 @@ val worldServiceModule = module {
     }
     single { CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub(get<ManagedChannel>()) }
     single { GameDataServiceGrpcKt.GameDataServiceCoroutineStub(get<ManagedChannel>()) }
+    single { InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub(get<ManagedChannel>()) }
 
     // Core game systems
     single { EntityManager() }
@@ -75,7 +84,24 @@ val worldServiceModule = module {
     single { SkillSystem(get(), get()) }
     single { MonsterAI(get(), get()) }
     single { BroadcastService(get()) }
-    single { DeathHandler(get(), get(), get(), get()) }
+    single { ItemDefinitionCache() }
+    single { EquipmentStatCalculator(get()) }
+    single { NpcShopRegistry() }
+    single { InventoryLockManager() }
+    single {
+        DeathHandler(
+            xpSystem = get(),
+            lootSystem = get(),
+            skillSystem = get(),
+            broadcastService = get(),
+            entityManager = get(),
+            inventoryStub = get(),
+            characterDataStub = get(),
+            itemCache = get(),
+            asyncScope = get(),
+            inventoryLockManager = get()
+        )
+    }
 
     // Session lifecycle
     single {
@@ -85,7 +111,9 @@ val worldServiceModule = module {
             redisConnection = get(),
             characterDataStub = get(),
             broadcastService = get(),
-            sessionSecretProvider = get()
+            sessionSecretProvider = get(),
+            skillSystem = get(),
+            inventoryLockManager = get()
         )
     }
 
@@ -96,7 +124,11 @@ val worldServiceModule = module {
             zoneManager = get(),
             redisConnection = get(),
             jwtSecret = get<Config>().getString("flyagain.auth.jwt-secret"),
-            sessionSecretProvider = get()
+            sessionSecretProvider = get(),
+            characterDataStub = get(),
+            skillSystem = get(),
+            inventoryStub = get(),
+            broadcastService = get()
         )
     }
     single { MovementHandler(get(), get(), get()) }
@@ -104,6 +136,9 @@ val worldServiceModule = module {
     single { SelectTargetHandler(get(), get()) }
     single { UseSkillHandler(get(), get(), get()) }
     single { ToggleAutoAttackHandler(get(), get()) }
+    single { MoveItemHandler(get(), get(), get()) }
+    single { EquipItemHandler(get(), get(), get(), get(), get(), get()) }
+    single { NpcShopHandler(get(), get(), get(), get(), get()) }
 
     // Heartbeat tracker
     single { HeartbeatTracker() }
@@ -116,6 +151,9 @@ val worldServiceModule = module {
             selectTargetHandler = get(),
             useSkillHandler = get(),
             toggleAutoAttackHandler = get(),
+            moveItemHandler = get(),
+            equipItemHandler = get(),
+            npcShopHandler = get(),
             entityManager = get(),
             sessionLifecycleManager = get(),
             heartbeatTracker = get(),

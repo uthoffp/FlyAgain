@@ -50,6 +50,15 @@ signal auto_attack_response(data: Dictionary)
 signal entity_stats_updated(data: Dictionary)
 signal gold_updated(data: Dictionary)
 
+# ---- Signals (inventory) ----
+
+signal inventory_updated(data: Dictionary)
+signal move_item_response(data: Dictionary)
+signal equip_item_response(data: Dictionary)
+signal unequip_item_response(data: Dictionary)
+signal npc_buy_response(data: Dictionary)
+signal npc_sell_response(data: Dictionary)
+
 
 # ---- Configuration ----
 
@@ -275,6 +284,33 @@ func send_use_skill(skill_id: int, target_entity_id: int) -> void:
 	_send_world(PacketProtocol.OPCODE_USE_SKILL, payload)
 
 
+## ---- Inventory send methods ----
+
+func send_move_item(from_slot: int, to_slot: int) -> void:
+	_send_world(PacketProtocol.OPCODE_MOVE_ITEM,
+		ProtoEncoder.encode_move_item_request(from_slot, to_slot))
+
+
+func send_equip_item(inventory_slot: int, equip_slot_type: int) -> void:
+	_send_world(PacketProtocol.OPCODE_EQUIP_ITEM,
+		ProtoEncoder.encode_equip_item_request(inventory_slot, equip_slot_type))
+
+
+func send_unequip_item(equip_slot_type: int) -> void:
+	_send_world(PacketProtocol.OPCODE_UNEQUIP_ITEM,
+		ProtoEncoder.encode_unequip_item_request(equip_slot_type))
+
+
+func send_npc_buy(npc_entity_id: int, item_def_id: int, amount: int) -> void:
+	_send_world(PacketProtocol.OPCODE_NPC_BUY,
+		ProtoEncoder.encode_npc_buy_request(npc_entity_id, item_def_id, amount))
+
+
+func send_npc_sell(npc_entity_id: int, inventory_slot: int, amount: int) -> void:
+	_send_world(PacketProtocol.OPCODE_NPC_SELL,
+		ProtoEncoder.encode_npc_sell_request(npc_entity_id, inventory_slot, amount))
+
+
 # ---- Auth/account TCP connection handling ----
 
 func _start_connect() -> void:
@@ -327,6 +363,8 @@ func _on_connected() -> void:
 	_heartbeat_elapsed = 0.0
 	_reconnect_count   = 0
 	push_print("NetworkManager: connected to %s:%d" % [_target_host, _target_port])
+	# Send an immediate heartbeat so the server knows the connection is alive
+	_send_heartbeat()
 	connected_to_server.emit()
 
 
@@ -381,6 +419,9 @@ func _on_world_connected() -> void:
 	_world_state = _State.CONNECTED
 	_world_heartbeat_elapsed = 0.0
 	push_print("NetworkManager: world connected to %s:%d" % [_world_host, _world_tcp_port])
+	# Send an immediate heartbeat so the server knows the connection is alive
+	# before the regular heartbeat interval kicks in
+	_send_world_heartbeat()
 	world_connected.emit()
 
 
@@ -460,6 +501,8 @@ func _dispatch_frame(frame: PackedByteArray) -> void:
 func _send(opcode: int, payload: PackedByteArray) -> void:
 	if _state != _State.CONNECTED:
 		push_warning("NetworkManager: cannot send %s — not connected" % PacketProtocol.opcode_name(opcode))
+		return
+	if _tcp.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 		return
 	var err := _tcp.put_data(PacketProtocol.build_packet(opcode, payload))
 	if err != OK:
@@ -588,6 +631,34 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			print("[NET] GOLD_UPDATE: +%d gold (total=%d)" % [
 				data.get("gold_gained", 0), data.get("total_gold", 0)])
 			gold_updated.emit(data)
+		PacketProtocol.OPCODE_MOVE_ITEM:
+			var data := ProtoDecoder.new(payload).decode_move_item_response()
+			print("[NET] MOVE_ITEM: success=%s msg=%s" % [data.get("success", false), data.get("error_message", "")])
+			move_item_response.emit(data)
+		PacketProtocol.OPCODE_INVENTORY_UPDATE:
+			var data := ProtoDecoder.new(payload).decode_inventory_update()
+			print("[NET] INVENTORY_UPDATE: slots=%d equipment=%d" % [
+				data.get("slots", []).size(), data.get("equipment", []).size()])
+			GameState.merge_inventory_update(data.get("slots", []), data.get("equipment", []))
+			inventory_updated.emit(data)
+		PacketProtocol.OPCODE_EQUIP_ITEM:
+			var data := ProtoDecoder.new(payload).decode_equip_item_response()
+			print("[NET] EQUIP_ITEM: success=%s msg=%s" % [data.get("success", false), data.get("error_message", "")])
+			equip_item_response.emit(data)
+		PacketProtocol.OPCODE_UNEQUIP_ITEM:
+			var data := ProtoDecoder.new(payload).decode_unequip_item_response()
+			print("[NET] UNEQUIP_ITEM: success=%s msg=%s" % [data.get("success", false), data.get("error_message", "")])
+			unequip_item_response.emit(data)
+		PacketProtocol.OPCODE_NPC_BUY:
+			var data := ProtoDecoder.new(payload).decode_npc_buy_response()
+			print("[NET] NPC_BUY: success=%s gold=%d slot=%d err=%s" % [
+				data.get("success", false), data.get("new_gold", 0), data.get("assigned_slot", -1),
+				data.get("error_message", "")])
+			npc_buy_response.emit(data)
+		PacketProtocol.OPCODE_NPC_SELL:
+			var data := ProtoDecoder.new(payload).decode_npc_sell_response()
+			print("[NET] NPC_SELL: success=%s gold=%d" % [data.get("success", false), data.get("new_gold", 0)])
+			npc_sell_response.emit(data)
 		PacketProtocol.OPCODE_HEARTBEAT:
 			pass
 		_:

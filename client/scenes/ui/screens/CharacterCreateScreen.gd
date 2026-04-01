@@ -20,6 +20,10 @@ const CLASS_DESCRIPTIONS: Dictionary = {
 	"Cleric":   "Healer / Support — Healing and buffs for the group. Essential in dungeons.",
 }
 
+## Classes that are currently enabled for character creation.
+## All other classes will be shown as disabled with a "Coming Soon" hint.
+const ENABLED_CLASSES: Array[String] = ["Warrior"]
+
 var _selected_class: String = "Warrior"
 
 # Shared state for character creation response (avoids closure capture issues)
@@ -50,7 +54,11 @@ func _connect_signals() -> void:
 	for btn in _class_grid.get_children():
 		if btn is FlyButton:
 			var class_name_str: String = btn.label_text
-			btn.pressed.connect(func(): _select_class(class_name_str))
+			if class_name_str not in ENABLED_CLASSES:
+				btn.disabled = true
+				btn.tooltip_text = "Bald verfügbar / Coming Soon"
+			else:
+				btn.pressed.connect(func(): _select_class(class_name_str))
 
 	NetworkManager.error_response.connect(_on_error_response)
 
@@ -215,5 +223,9 @@ func _set_interactive(enabled: bool) -> void:
 	_back_btn.disabled   = not enabled
 	_name_field.get_node("Input").editable = enabled
 	for btn in _class_grid.get_children():
-		if btn is Button:
-			btn.disabled = not enabled
+		if btn is FlyButton:
+			# Keep disabled classes always disabled
+			if btn.label_text not in ENABLED_CLASSES:
+				btn.disabled = true
+			else:
+				btn.disabled = not enabled

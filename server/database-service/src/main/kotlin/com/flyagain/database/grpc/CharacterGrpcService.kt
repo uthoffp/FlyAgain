@@ -75,4 +75,12 @@ class CharacterGrpcService(
         val skills = gameDataRepo.getCharacterSkills(request.characterId)
         return CharacterSkillList.newBuilder().addAllSkills(skills).build()
     }
+
+    /** Grants skills to a character (used on level-up to persist newly unlocked skills). */
+    override suspend fun grantCharacterSkills(request: GrantCharacterSkillsRequest): Empty {
+        logger.debug("grantCharacterSkills: charId={}, count={}", request.characterId, request.skillsCount)
+        val skills = request.skillsList.map { it.skillId to it.skillLevel }
+        gameDataRepo.grantCharacterSkills(request.characterId, skills)
+        return Empty.getDefaultInstance()
+    }
 }

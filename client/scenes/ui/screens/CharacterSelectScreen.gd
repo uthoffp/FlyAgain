@@ -177,6 +177,7 @@ func _on_character_selected(character_id: String) -> void:
 	GameState.player_int     = stats.get("int_", 0)
 	GameState.player_xp      = stats.get("xp", 0)
 	GameState.player_xp_to_next_level = stats.get("xp_to_next_level", 100)
+	GameState.player_gold    = stats.get("gold", 0)
 
 	_status.show_info("Verbinde mit Welt-Server...")
 

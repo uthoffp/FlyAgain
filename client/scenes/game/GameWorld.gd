@@ -9,6 +9,11 @@ const PlayerCharacterScene := preload("res://scenes/game/PlayerCharacter.tscn")
 const ZonePortalScene := preload("res://scenes/game/ZonePortal.tscn")
 const FlyButtonScene := preload("res://scenes/ui/components/FlyButton.tscn")
 const DamageNumber := preload("res://scenes/game/DamageNumber.gd")
+const InventoryScreenScript := preload("res://scenes/ui/game_hud/InventoryScreen.gd")
+const NpcDialogScript := preload("res://scenes/ui/game_hud/NpcDialog.gd")
+const NpcShopScreenScript := preload("res://scenes/ui/game_hud/NpcShopScreen.gd")
+const GameWindowScript := preload("res://scenes/ui/window_system/GameWindow.gd")
+const TaskbarScript := preload("res://scenes/ui/window_system/Taskbar.gd")
 
 const ZONE_TERRAINS: Dictionary = {
 	WorldConstants.ZONE_AERHEIM: preload("res://scenes/game/terrain/AerheimTerrain.tscn"),
@@ -48,6 +53,9 @@ var _target_frame: PanelContainer = null
 var _hud_root: Control = null
 var _death_screen = null  # DeathScreen (ColorRect with script)
 var _notifications = null  # NotificationStack (VBoxContainer with script)
+var _inventory_screen = null   # InventoryScreen (PanelContainer with script)
+var _npc_dialog = null         # NpcDialog (PanelContainer with script)
+var _npc_shop_screen = null    # NpcShopScreen (PanelContainer with script)
 
 # Loading overlay nodes
 var _loading_layer: CanvasLayer = null
@@ -91,6 +99,14 @@ func _process(delta: float) -> void:
 				_loading_dots.text = _DOT_PATTERNS[_dot_index]
 
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_I:
+				WindowManager.toggle_window("inventory")
+				get_viewport().set_input_as_handled()
+
+
 func _connect_signals() -> void:
 	NetworkManager.zone_data_received.connect(_on_zone_data)
 	NetworkManager.entity_spawned.connect(_on_entity_spawned)
@@ -105,6 +121,7 @@ func _connect_signals() -> void:
 	NetworkManager.auto_attack_response.connect(_on_auto_attack_response)
 	NetworkManager.entity_stats_updated.connect(_on_entity_stats_updated)
 	NetworkManager.gold_updated.connect(_on_gold_updated)
+	NetworkManager.inventory_updated.connect(_on_inventory_updated)
 
 
 func _disconnect_signals() -> void:
@@ -133,6 +150,8 @@ func _disconnect_signals() -> void:
 		NetworkManager.entity_stats_updated.disconnect(_on_entity_stats_updated)
 	if NetworkManager.gold_updated.is_connected(_on_gold_updated):
 		NetworkManager.gold_updated.disconnect(_on_gold_updated)
+	if NetworkManager.inventory_updated.is_connected(_on_inventory_updated):
+		NetworkManager.inventory_updated.disconnect(_on_inventory_updated)
 
 
 # ---- Loading overlay ----
@@ -226,69 +245,138 @@ func _setup_hud() -> void:
 	_logout_dialog.confirmed.connect(_on_logout_confirmed)
 	_hud_root.add_child(_logout_dialog)
 
-	# Player frame — top-left
-	var player_margin := MarginContainer.new()
-	player_margin.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	player_margin.add_theme_constant_override("margin_top", 16)
-	player_margin.add_theme_constant_override("margin_left", 16)
-	player_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(player_margin)
-
+	# Player frame — top-left (fixed HUD, all features disabled)
+	var player_window := PanelContainer.new()
+	player_window.set_script(GameWindowScript)
+	player_window.call("setup", "player_frame", tr("WINDOW_PLAYER"), {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(10, 10),
+		"default_size": Vector2(220, 120),
+	})
+	_hud_root.add_child(player_window)
 	var PlayerFrameScript := preload("res://scenes/ui/game_hud/PlayerFrame.gd")
 	var player_frame := PanelContainer.new()
 	player_frame.set_script(PlayerFrameScript)
-	player_margin.add_child(player_frame)
+	player_window.call("set_content", player_frame)
 
-	# Target frame — top-center
-	var target_center := CenterContainer.new()
-	target_center.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	target_center.add_theme_constant_override("margin_top", 16)
-	target_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(target_center)
-
+	# Target frame — top-center (fixed HUD, all features disabled)
+	var target_window := PanelContainer.new()
+	target_window.set_script(GameWindowScript)
+	target_window.call("setup", "target_frame", tr("WINDOW_TARGET"), {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(540, 10),
+		"default_size": Vector2(200, 80),
+	})
+	_hud_root.add_child(target_window)
 	var TargetFrameScript := preload("res://scenes/ui/game_hud/TargetFrame.gd")
 	_target_frame = PanelContainer.new()
 	_target_frame.set_script(TargetFrameScript)
-	target_center.add_child(_target_frame)
+	target_window.call("set_content", _target_frame)
 
-	# Skill bar — bottom-center
-	var skill_margin := MarginContainer.new()
-	skill_margin.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	skill_margin.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	skill_margin.add_theme_constant_override("margin_bottom", 16)
-	skill_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(skill_margin)
-
-	var skill_center := CenterContainer.new()
-	skill_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	skill_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	skill_margin.add_child(skill_center)
-
+	# Skill bar — bottom-center (fixed HUD, all features disabled)
+	var skill_window := PanelContainer.new()
+	skill_window.set_script(GameWindowScript)
+	skill_window.call("setup", "skill_bar", tr("WINDOW_SKILLS"), {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(660, 1000),
+		"default_size": Vector2(600, 64),
+	})
+	_hud_root.add_child(skill_window)
 	var SkillBarScript := preload("res://scenes/ui/game_hud/SkillBar.gd")
 	var skill_bar := PanelContainer.new()
 	skill_bar.set_script(SkillBarScript)
-	skill_center.add_child(skill_bar)
+	skill_window.call("set_content", skill_bar)
 
-	# Notification stack — right side
-	var notif_margin := MarginContainer.new()
-	notif_margin.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	notif_margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	notif_margin.add_theme_constant_override("margin_right", 16)
-	notif_margin.add_theme_constant_override("margin_top", 200)
-	notif_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_root.add_child(notif_margin)
-
+	# Notification stack — right side (fixed HUD, all features disabled)
+	var notif_window := PanelContainer.new()
+	notif_window.set_script(GameWindowScript)
+	notif_window.call("setup", "notifications", "", {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+		"default_position": Vector2(1680, 200),
+		"default_size": Vector2(220, 400),
+	})
+	_hud_root.add_child(notif_window)
 	var NotifScript := preload("res://scenes/ui/game_hud/NotificationStack.gd")
 	_notifications = VBoxContainer.new()
 	_notifications.set_script(NotifScript)
-	notif_margin.add_child(_notifications)
+	notif_window.call("set_content", _notifications)
+
+	# Inventory screen — draggable, resizable, minimizable, closable
+	var inv_window := PanelContainer.new()
+	inv_window.set_script(GameWindowScript)
+	inv_window.call("setup", "inventory", tr("WINDOW_INVENTORY"), {
+		"draggable": true, "resizable": true,
+		"minimizable": true, "closable": true,
+		"default_position": Vector2(100, 100),
+		"default_size": Vector2(450, 500),
+		"min_size": Vector2(350, 400),
+		"max_size": Vector2(600, 700),
+	})
+	inv_window.visible = false
+	_hud_root.add_child(inv_window)
+	_inventory_screen = PanelContainer.new()
+	_inventory_screen.set_script(InventoryScreenScript)
+	inv_window.call("set_content", _inventory_screen)
+	_inventory_screen.visibility_changed.connect(func():
+		if _inventory_screen.visible and _inventory_screen.has_method("_refresh_all"):
+			_inventory_screen._refresh_all()
+	)
+
+	# NPC dialog — draggable, closable, not resizable/minimizable
+	var dialog_window := PanelContainer.new()
+	dialog_window.set_script(GameWindowScript)
+	dialog_window.call("setup", "npc_dialog", tr("WINDOW_NPC_DIALOG"), {
+		"draggable": true, "resizable": false,
+		"minimizable": false, "closable": true,
+		"default_position": Vector2(400, 300),
+		"default_size": Vector2(300, 200),
+	})
+	dialog_window.visible = false
+	_hud_root.add_child(dialog_window)
+	_npc_dialog = PanelContainer.new()
+	_npc_dialog.set_script(NpcDialogScript)
+	_npc_dialog.shop_requested.connect(_on_npc_shop_requested)
+	dialog_window.call("set_content", _npc_dialog)
+
+	# NPC shop screen — all features enabled
+	var shop_window := PanelContainer.new()
+	shop_window.set_script(GameWindowScript)
+	shop_window.call("setup", "npc_shop", tr("WINDOW_SHOP"), {
+		"draggable": true, "resizable": true,
+		"minimizable": true, "closable": true,
+		"default_position": Vector2(300, 80),
+		"default_size": Vector2(500, 550),
+		"min_size": Vector2(400, 450),
+		"max_size": Vector2(700, 700),
+	})
+	shop_window.visible = false
+	_hud_root.add_child(shop_window)
+	_npc_shop_screen = PanelContainer.new()
+	_npc_shop_screen.set_script(NpcShopScreenScript)
+	shop_window.call("set_content", _npc_shop_screen)
+
+	# Taskbar — dynamic buttons for minimized windows
+	var taskbar := PanelContainer.new()
+	taskbar.set_script(TaskbarScript)
+	_hud_root.add_child(taskbar)
 
 	# Death screen overlay (added last so it draws on top of other HUD elements)
+	var death_window := PanelContainer.new()
+	death_window.set_script(GameWindowScript)
+	death_window.call("setup", "death_screen", "", {
+		"draggable": false, "resizable": false,
+		"minimizable": false, "closable": false,
+	})
+	_hud_root.add_child(death_window)
 	var DeathScreenScript := preload("res://scenes/ui/game_hud/DeathScreen.gd")
 	_death_screen = ColorRect.new()
 	_death_screen.set_script(DeathScreenScript)
 	_death_screen.respawn_requested.connect(_on_respawn_requested)
-	_hud_root.add_child(_death_screen)
+	death_window.call("set_content", _death_screen)
 
 
 func _on_logout_pressed() -> void:
@@ -405,6 +493,9 @@ func _on_zone_data(data: Dictionary) -> void:
 				eid, entity_data.get("name", "")])
 			_entity_factory.spawn_entity(entity_data)
 
+	# Spawn client-side NPC entities for this zone
+	_spawn_zone_npcs(GameState.current_zone_id)
+
 	# Hide loading overlay after a brief delay to let the scene settle
 	_is_zone_transitioning = false
 	_hide_loading_deferred()
@@ -464,12 +555,72 @@ func _spawn_local_player() -> void:
 	_player.target_cleared.connect(_on_player_target_cleared)
 	_player.auto_attack_toggled.connect(_on_player_auto_attack_toggled)
 	_player.approach_in_range.connect(_on_player_approach_in_range)
+	_player.movement_started.connect(_on_player_movement_started)
+
+
+# ---- NPC spawning ----
+
+## Mapping from npc_def_id -> client-side entity_id (negative to avoid server ID conflicts)
+var _npc_entity_ids: Dictionary = {}
+
+func _spawn_zone_npcs(zone_id: int) -> void:
+	# Clear previous NPC entity mappings
+	for npc_eid in _npc_entity_ids.values():
+		_entity_factory.despawn_entity(npc_eid)
+	_npc_entity_ids.clear()
+
+	var next_npc_eid := -1
+	for npc_def_id in NpcRegistry.NPCS:
+		var npc_data := NpcRegistry.get_npc(npc_def_id)
+		if npc_data.is_empty():
+			continue
+		# Only spawn NPCs for the current zone (zone_id 0 = Aerheim = 1 internally)
+		var npc_zone: int = npc_data.get("zone_id", -1)
+		if npc_zone == 0 and zone_id != WorldConstants.ZONE_AERHEIM:
+			continue
+		if npc_zone > 0 and npc_zone != zone_id:
+			continue
+
+		var npc_pos: Vector3 = npc_data.get("pos", Vector3.ZERO)
+		# Snap NPC Y to terrain height
+		if _terrain and _terrain.has_method("get_height_at"):
+			npc_pos.y = _terrain.get_height_at(npc_pos.x, npc_pos.z)
+
+		var entity_data := {
+			"entity_id": next_npc_eid,
+			"entity_type": WorldConstants.ENTITY_TYPE_NPC,
+			"name": tr(npc_data.get("name", "")),
+			"level": 0,
+			"hp": 1,
+			"max_hp": 1,
+			"position": {"x": npc_pos.x, "y": npc_pos.y, "z": npc_pos.z},
+		}
+		_entity_factory.spawn_entity(entity_data)
+		_npc_entity_ids[npc_def_id] = next_npc_eid
+		print("[WORLD] Spawned NPC '%s' (def_id=%d, eid=%d) at %s" % [
+			entity_data["name"], npc_def_id, next_npc_eid, str(npc_pos)])
+		next_npc_eid -= 1
 
 
 # ---- Combat / Targeting ----
 
 ## Player requested a target selection (click on entity).
 func _on_player_target_selected(entity_id: int) -> void:
+	# Check if the clicked entity is an NPC (client-side, negative ID)
+	for npc_def_id in _npc_entity_ids:
+		if _npc_entity_ids[npc_def_id] == entity_id:
+			# Show selection ring on the NPC
+			_deselect_current_target()
+			var npc_entity := _entity_factory.get_entity(entity_id)
+			if npc_entity and is_instance_valid(npc_entity) and npc_entity.has_method("set_selected"):
+				npc_entity.set_selected(true)
+			GameState.selected_target_id = entity_id
+			GameState.selected_target_name = npc_entity.entity_name if npc_entity else ""
+			if NpcRegistry.is_in_range(npc_def_id, GameState.player_position):
+				if _npc_dialog and _npc_dialog.has_method("show_dialog"):
+					_npc_dialog.show_dialog(npc_def_id)
+			return  # Don't send select_target to server for NPCs
+
 	NetworkManager.send_select_target(entity_id)
 
 
@@ -625,7 +776,7 @@ func _on_gold_updated(data: Dictionary) -> void:
 
 ## Deselect the currently selected target and clear GameState target fields.
 func _deselect_current_target() -> void:
-	if GameState.selected_target_id > 0:
+	if GameState.selected_target_id != 0:
 		var old_entity := _entity_factory.get_entity(GameState.selected_target_id)
 		if old_entity and is_instance_valid(old_entity) and old_entity.has_method("set_selected"):
 			old_entity.set_selected(false)
@@ -676,3 +827,43 @@ func _show_level_up_effect() -> void:
 		(viewport_size.x - 250.0) / 2.0,
 		viewport_size.y / 2.0 - 40.0)
 	_hud_root.add_child(label)
+
+
+func _on_npc_shop_requested(npc_def_id: int) -> void:
+	if _npc_shop_screen and _npc_shop_screen.has_method("open_shop"):
+		_npc_shop_screen.open_shop(npc_def_id)
+
+
+## Close NPC dialog and shop when the player starts moving.
+func _on_player_movement_started() -> void:
+	WindowManager.close_window("npc_dialog")
+	WindowManager.close_window("npc_shop")
+
+
+## Handle inventory update — show loot notifications ONLY for server-pushed updates
+## (not for player-initiated move/equip/buy/sell which have their own response handlers).
+var _suppress_loot_notifications: bool = false
+
+func _on_inventory_updated(data: Dictionary) -> void:
+	# Suppress notifications when the update is from a player-initiated action
+	if _suppress_loot_notifications:
+		_suppress_loot_notifications = false
+		return
+	# Only show notifications when no inventory/shop UI is open (i.e., this is a loot drop)
+	if (_inventory_screen and _inventory_screen.is_visible_in_tree()) or (_npc_shop_screen and _npc_shop_screen.is_visible_in_tree()):
+		return
+	var slots: Array = data.get("slots", [])
+	for slot_data in slots:
+		var item_id: int = slot_data.get("item_id", 0)
+		var amount: int = slot_data.get("amount", 0)
+		if item_id > 0 and _notifications and _notifications.has_method("show_notification"):
+			var item_def := ItemDatabase.get_item(item_id)
+			if item_def.is_empty():
+				continue
+			var item_name: String = tr(item_def.get("name", ""))
+			var text: String
+			if amount > 1:
+				text = tr("ITEM_RECEIVED_STACK").replace("{name}", item_name).replace("{amount}", str(amount))
+			else:
+				text = tr("ITEM_RECEIVED").replace("{name}", item_name)
+			_notifications.show_notification(text, ItemDatabase.get_rarity_color(item_def.get("rarity", 0)))

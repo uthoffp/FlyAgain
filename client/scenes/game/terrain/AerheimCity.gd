@@ -80,6 +80,8 @@ func _build_walls() -> void:
 
 func _place_wall_segment(pos: Vector3, size: Vector3) -> void:
 	var body := StaticBody3D.new()
+	body.collision_layer = 2  # Layer 2 = environment (not targeted by entity raycast)
+	body.collision_mask = 0
 	body.position = pos
 
 	var mesh_inst := MeshInstance3D.new()
@@ -147,6 +149,8 @@ func _build_buildings() -> void:
 
 func _place_building(pos: Vector3, size: Vector3, color: Color) -> void:
 	var body := StaticBody3D.new()
+	body.collision_layer = 2  # Layer 2 = environment (not targeted by entity raycast)
+	body.collision_mask = 0
 	body.position = pos
 
 	var mesh_inst := MeshInstance3D.new()
@@ -183,9 +187,10 @@ func _place_building(pos: Vector3, size: Vector3, color: Color) -> void:
 
 func _place_npc_markers() -> void:
 	_place_marker("NPC_Innkeeper", CENTER + Vector3(13, 0, -10))
-	_place_marker("NPC_Shopkeeper_Weapons", CENTER + Vector3(-13, 0, 14))
-	_place_marker("NPC_Shopkeeper_Armor", CENTER + Vector3(-13, 0, 20))
-	_place_marker("NPC_Shopkeeper_Potions", CENTER + Vector3(-13, 0, 26))
+	# Merchant markers match NpcRegistry.gd and DB migration V18
+	_place_marker("NPC_Shopkeeper_Weapons", Vector3(487.0, 0.0, 514.0))
+	_place_marker("NPC_Shopkeeper_Armor", Vector3(487.0, 0.0, 520.0))
+	_place_marker("NPC_Shopkeeper_Potions", Vector3(487.0, 0.0, 526.0))
 	_place_marker("NPC_GuildMaster", CENTER + Vector3(18, 0, 18))
 	_place_marker("NPC_Guard_North", CENTER + Vector3(0, 0, -WALL_HALF + 2))
 	_place_marker("NPC_Guard_South", CENTER + Vector3(0, 0, WALL_HALF - 2))

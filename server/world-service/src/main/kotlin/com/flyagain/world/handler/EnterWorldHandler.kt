@@ -1,11 +1,20 @@
 package com.flyagain.world.handler
 
+import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.grpc.CharacterSkillRecord
+import com.flyagain.common.grpc.GetCharacterSkillsRequest
+import com.flyagain.common.grpc.GetEquipmentRequest
+import com.flyagain.common.grpc.GetInventoryRequest
+import com.flyagain.common.grpc.GrantCharacterSkillsRequest
+import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
+import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.combat.XpSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.EntitySpawnBuilder
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
 import io.lettuce.core.api.StatefulRedisConnection
@@ -29,7 +38,11 @@ class EnterWorldHandler(
     private val zoneManager: ZoneManager,
     private val redisConnection: StatefulRedisConnection<String, String>,
     private val jwtSecret: String,
-    private val sessionSecretProvider: RedisSessionSecretProvider
+    private val sessionSecretProvider: RedisSessionSecretProvider,
+    private val characterDataStub: CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub,
+    private val skillSystem: SkillSystem,
+    private val inventoryStub: InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub,
+    private val broadcastService: BroadcastService
 ) {
 
     private val logger = LoggerFactory.getLogger(EnterWorldHandler::class.java)
@@ -127,6 +140,49 @@ class EnterWorldHandler(
             player.xpToNextLevel = 0L
         }
 
+        // Load character skills from database and register in SkillSystem
+        try {
+            val skillsRequest = GetCharacterSkillsRequest.newBuilder()
+                .setCharacterId(characterId)
+                .build()
+            val skillsList = characterDataStub.getCharacterSkills(skillsRequest)
+            val skillMap = skillsList.skillsList.associate { it.skillId to it.skillLevel }
+            skillSystem.setPlayerSkills(characterId, skillMap)
+            logger.info("Loaded {} skills for character {}", skillMap.size, characterId)
+
+            // Auto-grant any skills the player qualifies for but doesn't have yet
+            val totalDefs = skillSystem.getAllSkillDefinitions().size
+            logger.info("Skill system has {} definitions loaded, player class={}, level={}",
+                totalDefs, player.characterClass, player.level)
+            val newSkills = skillSystem.grantUnlockedSkills(player)
+            logger.info("Auto-granted {} new skills for character {} (total now: {})",
+                newSkills.size, characterId, skillMap.size + newSkills.size)
+            if (newSkills.isNotEmpty()) {
+                // Persist newly granted skills asynchronously
+                try {
+                    val grantRequest = GrantCharacterSkillsRequest.newBuilder()
+                        .setCharacterId(characterId)
+                        .also { builder ->
+                            for (skillId in newSkills) {
+                                builder.addSkills(
+                                    CharacterSkillRecord.newBuilder()
+                                        .setSkillId(skillId)
+                                        .setSkillLevel(1)
+                                )
+                            }
+                        }
+                        .build()
+                    characterDataStub.grantCharacterSkills(grantRequest)
+                } catch (e: Exception) {
+                    logger.warn("Failed to persist auto-granted skills for {}: {}", characterId, e.message)
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to load skills for character {}", characterId, e)
+            sendError(ctx, "Failed to load character skills. Please try again.")
+            return null
+        }
+
         // Atomically add to entity manager (rejects if account already has a player in world)
         if (!entityManager.tryAddPlayer(player)) {
             logger.warn("Account {} already has a player in world, rejecting duplicate login", accountId)
@@ -161,6 +217,9 @@ class EnterWorldHandler(
 
         // Build EntitySpawn for the new player and broadcast to nearby
         broadcastPlayerSpawn(player, channel)
+
+        // Send full inventory + equipment snapshot and gold to the new player
+        sendInventorySnapshot(player)
 
         logger.info("Player {} (characterId={}, entityId={}) entered world in zone {} channel {}",
             player.name, characterId, entityId, zoneManager.getZoneName(targetZone), channel.channelId)
@@ -264,6 +323,35 @@ class EnterWorldHandler(
             broadcastCount++
         }
         logger.info("broadcastPlayerSpawn for {}: sent to {} nearby players", player.name, broadcastCount)
+    }
+
+    private suspend fun sendInventorySnapshot(player: PlayerEntity) {
+        try {
+            val inventoryRequest = GetInventoryRequest.newBuilder()
+                .setCharacterId(player.characterId)
+                .build()
+            val inventoryContents = inventoryStub.getInventory(inventoryRequest)
+
+            val equipmentRequest = GetEquipmentRequest.newBuilder()
+                .setCharacterId(player.characterId)
+                .build()
+            val equipmentContents = inventoryStub.getEquipment(equipmentRequest)
+
+            broadcastService.sendInventoryUpdate(
+                player,
+                inventoryContents.slotsList,
+                equipmentContents.slotsList
+            )
+
+            // Send gold update so the client knows the current gold amount
+            broadcastService.sendGoldUpdate(player, 0)
+
+            logger.info("Sent inventory snapshot ({} slots, {} equipment) and gold ({}) to {}",
+                inventoryContents.slotsList.size, equipmentContents.slotsList.size,
+                player.gold, player.name)
+        } catch (e: Exception) {
+            logger.warn("Failed to send inventory snapshot for {}: {}", player.name, e.message)
+        }
     }
 
     private fun sendError(ctx: ChannelHandlerContext, message: String) {

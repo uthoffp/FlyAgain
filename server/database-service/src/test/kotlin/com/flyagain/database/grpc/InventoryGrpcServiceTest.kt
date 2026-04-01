@@ -162,18 +162,102 @@ class InventoryGrpcServiceTest {
     }
 
     @Test
-    fun `npcBuy returns not implemented`() = runTest {
-        val result = service.npcBuy(NpcBuyRequest.getDefaultInstance())
+    fun `npcBuy atomically deducts gold and adds item`() = runTest {
+        coEvery { inventoryRepo.atomicBuyItem("c-1", 10, 1, 500L) } returns 3
 
-        assertFalse(result.success)
-        assertTrue(result.errorMessage.contains("Not implemented"))
+        val result = service.npcBuy(
+            NpcBuyRequest.newBuilder()
+                .setCharacterId("c-1")
+                .setItemDefId(10)
+                .setAmount(1)
+                .setCurrentGold(500L)
+                .build()
+        )
+
+        assertTrue(result.success)
+        assertEquals(500L, result.newGold)
+        assertEquals(3, result.assignedSlot)
+        coVerify(exactly = 1) { inventoryRepo.atomicBuyItem("c-1", 10, 1, 500L) }
     }
 
     @Test
-    fun `npcSell returns not implemented`() = runTest {
-        val result = service.npcSell(NpcSellRequest.getDefaultInstance())
+    fun `npcBuy returns failure when inventory full`() = runTest {
+        coEvery { inventoryRepo.atomicBuyItem("c-1", 10, 1, 500L) } throws
+            NoSuchElementException("Inventory full")
+
+        val result = service.npcBuy(
+            NpcBuyRequest.newBuilder()
+                .setCharacterId("c-1")
+                .setItemDefId(10)
+                .setAmount(1)
+                .setCurrentGold(500L)
+                .build()
+        )
 
         assertFalse(result.success)
-        assertTrue(result.errorMessage.contains("Not implemented"))
+        assertTrue(result.errorMessage.contains("Inventory full"))
+    }
+
+    @Test
+    fun `npcSell removes item from inventory`() = runTest {
+        coEvery { inventoryRepo.removeItem("c-1", 5, 1) } returns Unit
+
+        val result = service.npcSell(
+            NpcSellRequest.newBuilder()
+                .setCharacterId("c-1")
+                .setInventorySlot(5)
+                .setAmount(1)
+                .build()
+        )
+
+        assertTrue(result.success)
+        coVerify(exactly = 1) { inventoryRepo.removeItem("c-1", 5, 1) }
+    }
+
+    @Test
+    fun `npcSell returns failure on error`() = runTest {
+        coEvery { inventoryRepo.removeItem("c-1", 5, 1) } throws
+            RuntimeException("Database error")
+
+        val result = service.npcSell(
+            NpcSellRequest.newBuilder()
+                .setCharacterId("c-1")
+                .setInventorySlot(5)
+                .setAmount(1)
+                .build()
+        )
+
+        assertFalse(result.success)
+        assertTrue(result.errorMessage.contains("Database error"))
+    }
+
+    @Test
+    fun `updateGold returns success`() = runTest {
+        coEvery { inventoryRepo.updateGold("c-1", 1000L) } returns Unit
+
+        val result = service.updateGold(
+            UpdateGoldRequest.newBuilder()
+                .setCharacterId("c-1")
+                .setNewGold(1000L)
+                .build()
+        )
+
+        assertTrue(result.success)
+        coVerify(exactly = 1) { inventoryRepo.updateGold("c-1", 1000L) }
+    }
+
+    @Test
+    fun `updateGold returns failure on error`() = runTest {
+        coEvery { inventoryRepo.updateGold("c-1", 1000L) } throws
+            RuntimeException("Database error")
+
+        val result = service.updateGold(
+            UpdateGoldRequest.newBuilder()
+                .setCharacterId("c-1")
+                .setNewGold(1000L)
+                .build()
+        )
+
+        assertFalse(result.success)
     }
 }

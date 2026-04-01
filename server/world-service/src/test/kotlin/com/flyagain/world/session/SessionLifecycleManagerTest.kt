@@ -2,8 +2,11 @@ package com.flyagain.world.session
 
 import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
 import com.google.protobuf.Empty
+import com.flyagain.world.combat.CombatEngine
+import com.flyagain.world.combat.SkillSystem
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.zone.ZoneManager
@@ -39,6 +42,8 @@ class SessionLifecycleManagerTest {
 
     private val characterDataStub = mockk<CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub>()
     private val sessionSecretProvider = mockk<RedisSessionSecretProvider>(relaxed = true)
+    private val combatEngine = mockk<CombatEngine>(relaxed = true)
+    private val skillSystem = SkillSystem(entityManager, combatEngine)
 
     private val manager: SessionLifecycleManager
 
@@ -56,7 +61,7 @@ class SessionLifecycleManagerTest {
         coEvery { characterDataStub.saveCharacter(any(), any()) } returns Empty.getDefaultInstance()
 
         manager = SessionLifecycleManager(
-            entityManager, zoneManager, redisConnection, characterDataStub, broadcastService, sessionSecretProvider
+            entityManager, zoneManager, redisConnection, characterDataStub, broadcastService, sessionSecretProvider, skillSystem, InventoryLockManager()
         )
     }
 

@@ -70,4 +70,31 @@ interface GameDataRepository {
      * @return list of [CharacterSkillRecord]s with skill ID and current level
      */
     suspend fun getCharacterSkills(characterId: String): List<CharacterSkillRecord>
+
+    /**
+     * Grants skills to a character. Uses INSERT ON CONFLICT to avoid duplicates.
+     *
+     * @param characterId the character receiving the skills
+     * @param skills list of (skillId, skillLevel) pairs to grant
+     */
+    suspend fun grantCharacterSkills(characterId: String, skills: List<Pair<Int, Int>>)
+
+    /**
+     * Retrieves all NPC definitions, ordered by ID.
+     *
+     * NPC definitions describe each NPC's name, zone placement, position,
+     * and type (vendor, quest giver, etc.).
+     *
+     * @return complete list of [NpcDefinitionRecord]s
+     */
+    suspend fun getAllNpcDefinitions(): List<NpcDefinitionRecord>
+
+    /**
+     * Retrieves all NPC shop item mappings, ordered by NPC ID.
+     *
+     * Shop item records define which items each vendor NPC sells.
+     *
+     * @return complete list of [NpcShopItemRecord]s
+     */
+    suspend fun getAllNpcShopItems(): List<NpcShopItemRecord>
 }

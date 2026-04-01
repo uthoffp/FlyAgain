@@ -10,6 +10,7 @@ signal target_selected(entity_id: int)
 signal target_cleared()
 signal auto_attack_toggled(enable: bool, target_id: int)
 signal approach_in_range(entity_id: int)
+signal movement_started()
 
 ## Adjust in the editor if the model clips into or floats above the ground.
 @export var model_y_offset: float = 0.0
@@ -61,6 +62,9 @@ var _approach_entity: Node3D = null
 var _approach_entity_id: int = 0
 var _pending_target_id: int = 0  # Set on first click, before server confirms
 const APPROACH_ATTACK_RANGE := 2.0
+
+# Movement state tracking for NPC interaction closure
+var _was_moving: bool = false
 
 
 func _ready() -> void:
@@ -182,17 +186,45 @@ func _physics_process(delta: float) -> void:
 		direction = Vector3.ZERO
 		is_moving = false
 
-	# Client-side prediction
-	var new_pos := _predictor.apply_input(
-		direction, is_moving, _is_flying, GameState.player_dex, delta)
+	# Emit movement_started on rising edge (was stopped, now moving)
+	if is_moving and not _was_moving:
+		movement_started.emit()
+	_was_moving = is_moving
+
+	# Keep predictor sequence in sync (for network packets)
+	_predictor.apply_input(direction, is_moving, _is_flying, GameState.player_dex, delta)
+
+	# Calculate velocity for CharacterBody3D physics
+	var speed := WorldConstants.FLY_MOVE_SPEED if _is_flying else WorldConstants.GROUND_MOVE_SPEED
+	speed += GameState.player_dex * 0.05
+
+	if is_moving and direction.length_squared() > 0.001:
+		velocity = direction * speed
+	else:
+		velocity = Vector3.ZERO
+
+	if not _is_flying:
+		velocity.y = 0.0
+
+	# Use Godot physics for collision with environment (layer 2)
+	move_and_slide()
+
+	# Clamp to world boundaries
+	global_position.x = clampf(global_position.x,
+		WorldConstants.WORLD_BOUNDARY_MIN, WorldConstants.WORLD_BOUNDARY_MAX)
+	global_position.z = clampf(global_position.z,
+		WorldConstants.WORLD_BOUNDARY_MIN, WorldConstants.WORLD_BOUNDARY_MAX)
 
 	# Snap to terrain height when on the ground
 	if not _is_flying:
-		var terrain_y := _get_terrain_height(new_pos.x, new_pos.z)
-		new_pos.y = terrain_y
-		_predictor.set_position(new_pos)
+		global_position.y = _get_terrain_height(global_position.x, global_position.z)
+	else:
+		global_position.y = clampf(global_position.y,
+			WorldConstants.MIN_Y_POSITION, WorldConstants.MAX_Y_POSITION)
 
-	global_position = new_pos
+	# Sync predictor and global state with actual position (after collision resolution)
+	_predictor.set_position(global_position)
+	GameState.player_position = global_position
 
 	# Rotate only the model toward movement direction (NOT the root node,
 	# because CameraPivot is a child and would rotate with it).
@@ -246,7 +278,7 @@ func _try_target_entity(screen_pos: Vector2) -> bool:
 
 	var space_state := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.collision_mask = 0xFFFFFFFF  # Check all layers for entities
+	query.collision_mask = 1  # Layer 1 only = entities (layer 2 = environment/buildings)
 	query.exclude = [get_rid()]
 	var result := space_state.intersect_ray(query)
 
@@ -267,6 +299,7 @@ func _try_target_entity(screen_pos: Vector2) -> bool:
 	if entity and entity.hp > 0:
 		if entity.entity_id == GameState.selected_target_id or entity.entity_id == _pending_target_id:
 			_start_approach(entity)
+			target_selected.emit(entity.entity_id)
 		else:
 			cancel_approach()
 			_pending_target_id = entity.entity_id

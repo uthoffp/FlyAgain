@@ -276,6 +276,45 @@ class BroadcastService(
     }
 
     /**
+     * Send an inventory and equipment update to a specific player.
+     *
+     * Supports both full snapshots (all slots, used on world entry) and
+     * delta updates (only changed slots, used after inventory operations).
+     * The client treats each received slot as an upsert — slots with
+     * amount=0 indicate the slot was cleared.
+     */
+    fun sendInventoryUpdate(
+        player: PlayerEntity,
+        inventorySlots: List<com.flyagain.common.grpc.InventorySlot>,
+        equipmentSlots: List<com.flyagain.common.grpc.EquipmentSlot>
+    ) {
+        val slotInfos = inventorySlots.map { slot ->
+            InventorySlotInfo.newBuilder()
+                .setSlot(slot.slot)
+                .setItemId(slot.itemId)
+                .setAmount(slot.amount)
+                .setEnhancement(slot.enhancement)
+                .build()
+        }
+
+        val equipInfos = equipmentSlots.map { slot ->
+            EquipmentSlotInfo.newBuilder()
+                .setSlotType(slot.slotType)
+                .setItemId(slot.itemId)
+                .setEnhancement(slot.enhancement)
+                .build()
+        }
+
+        val updateMsg = InventoryUpdateMessage.newBuilder()
+            .addAllSlots(slotInfos)
+            .addAllEquipment(equipInfos)
+            .build()
+
+        val packet = Packet(Opcode.INVENTORY_UPDATE_VALUE, updateMsg.toByteArray())
+        sendToPlayer(player, packet)
+    }
+
+    /**
      * Broadcast an entity stats update (e.g. after level-up) to nearby players.
      */
     fun broadcastEntityStatsUpdate(channel: ZoneChannel, player: PlayerEntity) {

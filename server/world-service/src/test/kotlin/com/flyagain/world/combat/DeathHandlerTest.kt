@@ -1,14 +1,19 @@
 package com.flyagain.world.combat
 
+import com.flyagain.common.grpc.CharacterDataServiceGrpcKt
+import com.flyagain.common.grpc.InventoryDataServiceGrpcKt
 import com.flyagain.world.ai.AIState
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.MonsterEntity
 import com.flyagain.world.entity.PlayerEntity
+import com.flyagain.world.inventory.InventoryLockManager
+import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.zone.ZoneChannel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.test.TestScope
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -19,10 +24,20 @@ class DeathHandlerTest {
 
     private val xpSystem = XpSystem()
     private val lootSystem = LootSystem()
+    private val skillSystem = SkillSystem(mockk(relaxed = true), CombatEngine(mockk(relaxed = true)))
     private val broadcastService = mockk<BroadcastService>(relaxed = true)
     private val entityManager = mockk<EntityManager>(relaxed = true)
+    private val inventoryStub = mockk<InventoryDataServiceGrpcKt.InventoryDataServiceCoroutineStub>(relaxed = true)
+    private val characterDataStub = mockk<CharacterDataServiceGrpcKt.CharacterDataServiceCoroutineStub>(relaxed = true)
+    private val itemCache = mockk<ItemDefinitionCache>(relaxed = true)
+    private val testScope = TestScope()
 
-    private val deathHandler = DeathHandler(xpSystem, lootSystem, broadcastService, entityManager)
+    private val inventoryLockManager = InventoryLockManager()
+
+    private val deathHandler = DeathHandler(
+        xpSystem, lootSystem, skillSystem, broadcastService, entityManager,
+        inventoryStub, characterDataStub, itemCache, testScope, inventoryLockManager
+    )
 
     private fun makePlayer(
         entityId: Long = 1L,

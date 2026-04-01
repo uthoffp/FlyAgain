@@ -23,3 +23,60 @@ LOGOUT_CANCEL,Cancel,Abbrechen
 CHAR_NAME_LENGTH_ERROR,Name must be %d–%d characters long.,Name muss %d–%d Zeichen lang sein.
 CHAR_NAME_INVALID_ERROR,Name must start with a letter and contain only letters and digits.,Name muss mit einem Buchstaben beginnen und darf nur Buchstaben und Ziffern enthalten.
 CHAR_NAME_BLACKLIST_ERROR,This character name is not allowed.,Dieser Charaktername ist nicht erlaubt.
+INVENTORY_TITLE,Inventory,Inventar
+EQUIP_HEAD,Head,Kopf
+EQUIP_CHEST,Chest,Brust
+EQUIP_LEGS,Legs,Beine
+EQUIP_FEET,Feet,Füße
+EQUIP_HANDS,Hands,Hände
+EQUIP_BACK,Back,Rücken
+EQUIP_WEAPON,Weapon,Waffe
+SHOP_TITLE,Shop,Shop
+SHOP_BUY,Buy,Kaufen
+SHOP_SELL,Sell,Verkaufen
+SHOP_CLOSE,Close,Schließen
+SHOP_AMOUNT,Amount,Menge
+SHOP_NOT_ENOUGH_GOLD,Not enough gold,Nicht genug Gold
+SHOP_INVENTORY_FULL,Inventory full,Inventar voll
+SHOP_LEVEL_TOO_LOW,Level too low,Stufe zu niedrig
+ITEM_TYPE_WEAPON,Weapon,Waffe
+ITEM_TYPE_ARMOR,Armor,Rüstung
+ITEM_TYPE_CONSUMABLE,Consumable,Verbrauchsgegenstand
+ITEM_TYPE_QUEST,Quest Item,Questgegenstand
+ITEM_CLASS_ANY,Any,Alle
+ITEM_CLASS_WARRIOR,Warrior,Krieger
+ITEM_CLASS_MAGE,Mage,Magier
+ITEM_CLASS_ASSASSIN,Assassin,Assassine
+ITEM_CLASS_CLERIC,Cleric,Kleriker
+ITEM_LEVEL_REQ,Level Req: {level},Stufenvoraussetzung: {level}
+ITEM_RECEIVED,Received: {name},Erhalten: {name}
+ITEM_RECEIVED_STACK,Received: {name} x{amount},Erhalten: {name} x{amount}
+ITEM_WOODEN_SWORD,Wooden Sword,Holzschwert
+ITEM_IRON_SWORD,Iron Sword,Eisenschwert
+ITEM_STEEL_SWORD,Steel Sword,Stahlschwert
+ITEM_LEATHER_ARMOR,Leather Armor,Lederrüstung
+ITEM_CHAIN_ARMOR,Chain Armor,Kettenrüstung
+ITEM_PLATE_ARMOR,Plate Armor,Plattenrüstung
+ITEM_HEALTH_POTION,Health Potion,Heiltrank
+ITEM_MANA_POTION,Mana Potion,Manatrank
+ITEM_WOODEN_SWORD_DESC,A basic wooden training sword.,Ein einfaches Holz-Übungsschwert.
+ITEM_IRON_SWORD_DESC,A sturdy iron blade.,Eine solide Eisenklinge.
+ITEM_STEEL_SWORD_DESC,A well-crafted steel sword.,Ein gut geschmiedetes Stahlschwert.
+ITEM_LEATHER_ARMOR_DESC,Light leather chest armor.,Leichte Leder-Brustrüstung.
+ITEM_CHAIN_ARMOR_DESC,Linked chain mail armor.,Verknüpfte Kettenrüstung.
+ITEM_PLATE_ARMOR_DESC,Heavy plate armor.,Schwere Plattenrüstung.
+ITEM_HEALTH_POTION_DESC,Restores 50 HP.,Stellt 50 HP wieder her.
+ITEM_MANA_POTION_DESC,Restores 30 MP.,Stellt 30 MP wieder her.
+NPC_WEAPON_MERCHANT,Weapon Merchant,Waffenhändler
+NPC_ARMOR_MERCHANT,Armor Merchant,Rüstungshändler
+NPC_POTION_MERCHANT,Potion Merchant,Trankhändler
+NPC_DIALOG_SHOP,Shop,Shop
+WINDOW_INVENTORY,Inventory,Inventar
+WINDOW_SHOP,Shop,Laden
+WINDOW_NPC_DIALOG,Dialog,Dialog
+WINDOW_PLAYER,Player,Spieler
+WINDOW_TARGET,Target,Ziel
+WINDOW_SKILLS,Skills,Fähigkeiten
+WINDOW_MINIMIZE,Minimize,Minimieren
+WINDOW_CLOSE,Close,Schließen
+WINDOW_RESTORE,Restore,Wiederherstellen

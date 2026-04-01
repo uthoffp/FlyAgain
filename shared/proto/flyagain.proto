@@ -86,6 +86,7 @@ message CharacterStats {
     int32 int_ = 9;
     int64 xp = 10;
     int64 xp_to_next_level = 11;
+    int64 gold = 12;
 }
 
 // ============================================================
@@ -363,4 +364,91 @@ message EntityStatsUpdate {
     int32 sta = 8;
     int32 dex = 9;
     int32 int_ = 10;
+}
+
+// ============================================================
+// Inventory & Shop Messages
+// ============================================================
+
+// Client -> Server: Move item between inventory slots
+message ClientMoveItemRequest {
+    int32 from_slot = 1;
+    int32 to_slot = 2;
+}
+
+// Server -> Client: Move item result
+message ClientMoveItemResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// Client -> Server: Equip item from inventory slot
+message ClientEquipItemRequest {
+    int32 inventory_slot = 1;
+    int32 equip_slot_type = 2;
+}
+
+// Server -> Client: Equip result
+message ClientEquipItemResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// Client -> Server: Unequip item from equipment slot
+message ClientUnequipItemRequest {
+    int32 equip_slot_type = 1;
+}
+
+// Server -> Client: Unequip result
+message ClientUnequipItemResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// Client -> Server: Buy item from NPC
+message ClientNpcBuyRequest {
+    int64 npc_entity_id = 1;
+    int32 item_def_id = 2;
+    int32 amount = 3;
+}
+
+// Server -> Client: Buy result
+message ClientNpcBuyResponse {
+    bool success = 1;
+    int64 new_gold = 2;
+    int32 assigned_slot = 3;
+    string error_message = 4;
+}
+
+// Client -> Server: Sell item to NPC
+message ClientNpcSellRequest {
+    int64 npc_entity_id = 1;
+    int32 inventory_slot = 2;
+    int32 amount = 3;
+}
+
+// Server -> Client: Sell result
+message ClientNpcSellResponse {
+    bool success = 1;
+    int64 new_gold = 2;
+    string error_message = 3;
+}
+
+// Server -> Client: Full inventory snapshot
+message InventoryUpdateMessage {
+    repeated InventorySlotInfo slots = 1;
+    repeated EquipmentSlotInfo equipment = 2;
+}
+
+message InventorySlotInfo {
+    int32 slot = 1;
+    int32 item_id = 2;
+    int32 amount = 3;
+    int32 enhancement = 4;
+}
+
+message EquipmentSlotInfo {
+    int32 slot_type = 1;
+    int32 item_id = 2;
+    int32 enhancement = 3;
 }

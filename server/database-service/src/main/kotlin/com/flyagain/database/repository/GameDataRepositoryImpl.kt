@@ -27,7 +27,7 @@ class GameDataRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource
                             .setType(rs.getInt("type"))
                             .setSubtype(rs.getInt("subtype"))
                             .setLevelReq(rs.getInt("level_req"))
-                            .setClassReq(rs.getInt("class_req").let { if (rs.wasNull()) -1 else it })
+                            .setClassReq(rs.getInt("class_req").let { if (rs.wasNull()) 0 else it })
                             .setRarity(rs.getInt("rarity"))
                             .setBaseAttack(rs.getInt("base_attack"))
                             .setBaseDefense(rs.getInt("base_defense"))
@@ -155,6 +155,62 @@ class GameDataRepositoryImpl(dataSource: DataSource) : BaseRepository(dataSource
                         CharacterSkillRecord.newBuilder()
                             .setSkillId(rs.getInt("skill_id"))
                             .setSkillLevel(rs.getInt("skill_level"))
+                            .build()
+                    )
+                }
+                results
+            }
+        }
+    }
+
+    override suspend fun grantCharacterSkills(characterId: String, skills: List<Pair<Int, Int>>): Unit = withTransaction { conn ->
+        conn.prepareStatement(
+            """INSERT INTO character_skills (character_id, skill_id, skill_level)
+               VALUES (?, ?, ?)
+               ON CONFLICT (character_id, skill_id) DO NOTHING"""
+        ).use { stmt ->
+            val charUuid = UUID.fromString(characterId)
+            for ((skillId, skillLevel) in skills) {
+                stmt.setObject(1, charUuid)
+                stmt.setInt(2, skillId)
+                stmt.setInt(3, skillLevel)
+                stmt.addBatch()
+            }
+            stmt.executeBatch()
+        }
+    }
+
+    override suspend fun getAllNpcDefinitions(): List<NpcDefinitionRecord> = withConnection { conn ->
+        conn.prepareStatement("SELECT * FROM npc_definitions ORDER BY id").use { stmt ->
+            stmt.executeQuery().use { rs ->
+                val results = mutableListOf<NpcDefinitionRecord>()
+                while (rs.next()) {
+                    results.add(
+                        NpcDefinitionRecord.newBuilder()
+                            .setId(rs.getInt("id"))
+                            .setName(rs.getString("name"))
+                            .setZoneId(rs.getInt("zone_id"))
+                            .setPosX(rs.getFloat("pos_x"))
+                            .setPosY(rs.getFloat("pos_y"))
+                            .setPosZ(rs.getFloat("pos_z"))
+                            .setNpcType(rs.getInt("npc_type"))
+                            .build()
+                    )
+                }
+                results
+            }
+        }
+    }
+
+    override suspend fun getAllNpcShopItems(): List<NpcShopItemRecord> = withConnection { conn ->
+        conn.prepareStatement("SELECT * FROM npc_shop_items ORDER BY npc_id").use { stmt ->
+            stmt.executeQuery().use { rs ->
+                val results = mutableListOf<NpcShopItemRecord>()
+                while (rs.next()) {
+                    results.add(
+                        NpcShopItemRecord.newBuilder()
+                            .setNpcId(rs.getInt("npc_id"))
+                            .setItemDefId(rs.getInt("item_def_id"))
                             .build()
                     )
                 }
