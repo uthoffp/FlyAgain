@@ -33,15 +33,17 @@ func test_get_window_returns_null_for_unknown_id() -> void:
 
 func test_register_emits_signal() -> void:
 	var window := _create_mock_window("sig_test")
-	await assert_signal(_manager).is_emitted("window_registered", [window])
+	monitor_signals(_manager, false)
 	_manager.register_window(window)
+	await assert_signal(_manager).is_emitted("window_registered", [window])
 
 
 func test_unregister_emits_signal() -> void:
 	var window := _create_mock_window("sig_test")
+	monitor_signals(_manager, false)
 	_manager.register_window(window)
-	await assert_signal(_manager).is_emitted("window_unregistered", [window])
 	_manager.unregister_window(window)
+	await assert_signal(_manager).is_emitted("window_unregistered", [window])
 
 
 # ---- Z-Order ----

@@ -502,6 +502,8 @@ func _send(opcode: int, payload: PackedByteArray) -> void:
 	if _state != _State.CONNECTED:
 		push_warning("NetworkManager: cannot send %s — not connected" % PacketProtocol.opcode_name(opcode))
 		return
+	if _tcp.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		return
 	var err := _tcp.put_data(PacketProtocol.build_packet(opcode, payload))
 	if err != OK:
 		push_error("NetworkManager: send error %s" % error_string(err))

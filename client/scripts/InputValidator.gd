@@ -78,7 +78,7 @@ static func validate_character_name(char_name: String) -> String:
 
 ## Valid class names and which ones are currently enabled for selection.
 const _VALID_CLASSES := ["Warrior", "Mage", "Assassin", "Cleric"]
-const _ENABLED_CLASSES := ["Warrior"]
+const _ENABLED_CLASSES := ["Warrior", "Mage", "Assassin", "Cleric"]
 
 ## Returns an empty string if the class selection is valid, or an error message.
 static func validate_class_selection(selected_class: String) -> String:
