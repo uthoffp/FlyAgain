@@ -59,6 +59,10 @@ signal unequip_item_response(data: Dictionary)
 signal npc_buy_response(data: Dictionary)
 signal npc_sell_response(data: Dictionary)
 
+# ---- Signals (chat) ----
+
+signal chat_broadcast_received(data: Dictionary)
+
 
 # ---- Configuration ----
 
@@ -309,6 +313,13 @@ func send_npc_buy(npc_entity_id: int, item_def_id: int, amount: int) -> void:
 func send_npc_sell(npc_entity_id: int, inventory_slot: int, amount: int) -> void:
 	_send_world(PacketProtocol.OPCODE_NPC_SELL,
 		ProtoEncoder.encode_npc_sell_request(npc_entity_id, inventory_slot, amount))
+
+
+## ---- Chat send methods ----
+
+func send_chat_message(channel_type: int, text: String, target_name: String = "") -> void:
+	_send_world(PacketProtocol.OPCODE_CHAT_MESSAGE,
+		ProtoEncoder.encode_chat_message(channel_type, text, target_name))
 
 
 # ---- Auth/account TCP connection handling ----
@@ -659,6 +670,9 @@ func _dispatch_world_frame(frame: PackedByteArray) -> void:
 			var data := ProtoDecoder.new(payload).decode_npc_sell_response()
 			print("[NET] NPC_SELL: success=%s gold=%d" % [data.get("success", false), data.get("new_gold", 0)])
 			npc_sell_response.emit(data)
+		PacketProtocol.OPCODE_CHAT_BROADCAST:
+			var data := ProtoDecoder.new(payload).decode_chat_broadcast()
+			chat_broadcast_received.emit(data)
 		PacketProtocol.OPCODE_HEARTBEAT:
 			pass
 		_:

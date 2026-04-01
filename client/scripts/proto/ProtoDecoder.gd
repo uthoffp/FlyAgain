@@ -690,6 +690,34 @@ func decode_entity_stats_update() -> Dictionary:
 	return result
 
 
+## Decodes ChatBroadcastMessage { string sender_name=1; int64 sender_entity_id=2;
+##   string text=3; int32 channel_type=4; int64 timestamp=5; string target_name=6 }
+func decode_chat_broadcast() -> Dictionary:
+	var result := {
+		"sender_name": "",
+		"sender_entity_id": 0,
+		"text": "",
+		"channel_type": 0,
+		"timestamp": 0,
+		"target_name": "",
+	}
+	while _has_bytes():
+		var pair := _next_tag()
+		if pair.is_empty():
+			break
+		var fn: int = pair[0]
+		var wt: int = pair[1]
+		match fn:
+			1: result["sender_name"] = _read_string()
+			2: result["sender_entity_id"] = _read_varint()
+			3: result["text"] = _read_string()
+			4: result["channel_type"] = _read_varint()
+			5: result["timestamp"] = _read_varint()
+			6: result["target_name"] = _read_string()
+			_: _skip(wt)
+	return result
+
+
 # ---- Private helpers ----
 
 func _has_bytes() -> bool:
