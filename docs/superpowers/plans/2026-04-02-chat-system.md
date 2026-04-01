@@ -1634,11 +1634,6 @@ func _on_chat_broadcast(data: Dictionary) -> void:
 		win.add_outgoing(data.get("text", ""))
 
 
-func open_whisper_for_outgoing(target_name: String, text: String) -> void:
-	var win := _open_or_get(target_name)
-	win.add_outgoing(text)
-
-
 func _open_or_get(player_name: String) -> WhisperWindow:
 	var key := player_name.to_lower()
 	if _windows.has(key):
@@ -1694,7 +1689,6 @@ func _evict_oldest() -> void:
 
 func _on_whisper_sent(target_name: String, text: String) -> void:
 	NetworkManager.send_chat_message(2, text, target_name)
-	open_whisper_for_outgoing(target_name, text)
 
 
 func _on_window_closed(window_id: String) -> void:
