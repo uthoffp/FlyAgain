@@ -91,6 +91,8 @@ func _exit_tree() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if GameState.chat_input_active:
+		return
 	if GameState.is_dead:
 		return
 	# Left-click: target entity if hit, otherwise click-to-move
@@ -137,6 +139,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if GameState.chat_input_active:
+		return
 	var wasd_direction := _get_wasd_direction()
 	var has_wasd := wasd_direction.length_squared() > 0.001
 
