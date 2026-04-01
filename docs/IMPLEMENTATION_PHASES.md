@@ -341,24 +341,35 @@ Items (Warrior, Green Plains):
 > Abhaengigkeit: 1.2
 
 **Server:**
-- [ ] `ChatManager`:
+- [x] `ChatManager`:
   - ChatMessage (`0x0501`) empfangen
   - Input-Validierung: Max 200 Zeichen, Tags strippen, Null-Bytes entfernen
   - Rate-Limit: 10 Nachrichten pro 10 Sekunden
   - Channels: `say` (SpatialGrid-Nachbarn), `shout` (ganze Zone)
   - ChatBroadcast (`0x0502`) an relevante Spieler senden
+- [x] Whisper-Channel (server-weit, private Nachrichten)
 
 **Client:**
-- [ ] Chat-Fenster: Scrollbare Nachrichtenliste, Eingabefeld
-- [ ] Chat-Channels: Tab-Buttons fuer Say/Shout
-- [ ] Eingabe mit Enter, `/shout` Prefix fuer Zone-Chat
-- [ ] Spielername farbig anzeigen
+- [x] Chat-Fenster: Scrollbare Nachrichtenliste, Eingabefeld
+- [x] Chat-Channels: Tab-Buttons fuer Say/Shout
+- [x] Eingabe mit Enter, `/shout` Prefix fuer Zone-Chat, `/say` Prefix fuer Whisper
+- [x] Spielername farbig anzeigen
+- [x] WhisperWindow-System mit max 5 Fenstern
+
+**Zusaetzlich implementiert (nicht im Original-Plan):**
+- [x] Whisper-Channel (server-weit, private Nachrichten via `/say PlayerName`)
+- [x] WhisperManager mit max 5 gleichzeitigen Fenstern, LRU-Eviction
+- [x] ChatService-Interface fuer zukuenftige Erweiterbarkeit (Guild-Chat, Party-Chat)
+- [x] ChatMessageSanitizer mit Unicode-Kontrollzeichen-Filterung
+- [x] `target_name`-Feld in ChatBroadcastMessage fuer Whisper-Routing
 
 **Akzeptanzkriterien:**
-- Say-Chat: Nur Spieler in Naehe sehen die Nachricht
-- Shout-Chat: Alle Spieler in der Zone sehen die Nachricht
-- Rate-Limiting greift (keine Spam-Flut)
-- Sonderzeichen/HTML-Tags werden korrekt gehandhabt
+- Say-Chat: Nur Spieler in Naehe sehen die Nachricht ✅
+- Shout-Chat: Alle Spieler in der Zone sehen die Nachricht ✅
+- Whisper-Chat: Private Nachricht an spezifischen Spieler (ganze Zone) ✅
+- Rate-Limiting greift (keine Spam-Flut) ✅
+- Sonderzeichen/HTML-Tags werden korrekt gehandhabt ✅
+- Max 5 Whisper-Fenster mit LRU-Eviction ✅
 
 ---
 
@@ -728,6 +739,17 @@ miteinander zu interagieren und gegeneinander anzutreten.
     - LevelUpEffect: Zentrierte Floating-Animation
     - NotificationStack: XP/Gold-Benachrichtigungen mit Fade-Animationen
 
+**Schritt 1.6** (Inventar/Equipment/NPC-Shops) ist vollstaendig abgeschlossen. ✅
+  - Server: InventoryManager, EquipmentManager, NpcShopHandler mit Validierung
+  - Client: Inventar-UI (10x10 Grid), Equipment-UI (Charakter-Silhouette), NPC-Shop-Window
+  - Items: 8 Items mit Seltenheit und Stats, NPC-Händler in Aerheim
+
+**Schritt 1.7** (Chat-System) ist vollstaendig abgeschlossen. ✅
+  - Server: ChatManager mit Say/Shout/Whisper-Channels, Input-Validierung, Rate-Limiting
+  - Client: Chat-Window mit Tabs, Whisper-Windows (max 5), Farbkodierung von Spielernamen
+  - Features: `/shout` für Zone-Chat, `/say PlayerName` für Private Nachricht
+  - ChatMessageSanitizer mit Unicode-Kontrollzeichen-Filterung
+  - WhisperManager mit LRU-Eviction, ChatService-Interface für zukünftige Erweiterung
+
 **Naechste Prioritaet:**
-1. Phase 1.6: Inventar, Equipment und NPC-Shops (Server-Handler + Client-UI)
-2. Phase 1.7: Chat-System (kann parallel zu 1.6 entwickelt werden)
+1. Phase 1.8: Basis-UI und Polish (HUD, Minimap, Optionen, Audio)
