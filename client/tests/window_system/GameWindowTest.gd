@@ -4,11 +4,11 @@ class_name GameWindowTest
 extends GdUnitTestSuite
 
 
-var _window: Control
+var _window: PanelContainer
 
 
 func before_test() -> void:
-	_window = auto_free(Control.new())
+	_window = auto_free(PanelContainer.new())
 	_window.set_script(load("res://scenes/ui/window_system/GameWindow.gd"))
 	add_child(_window)
 
