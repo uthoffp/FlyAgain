@@ -32,6 +32,9 @@ class EntityManager {
     // Lookup by session token (Long) for fast UDP packet routing
     private val playersBySessionToken = ConcurrentHashMap<Long, PlayerEntity>()
 
+    // Lookup by character name (lowercase key for case-insensitive lookup)
+    private val playersByName = ConcurrentHashMap<String, PlayerEntity>()
+
     /**
      * Generate a new unique entity ID for a player.
      */
@@ -56,6 +59,7 @@ class EntityManager {
         if (player.sessionTokenLong != 0L) {
             playersBySessionToken[player.sessionTokenLong] = player
         }
+        playersByName[player.name.lowercase()] = player
         logger.debug("Player entity added: {} (entityId={}, accountId={})",
             player.name, player.entityId, player.accountId)
         return true
@@ -71,6 +75,7 @@ class EntityManager {
         if (player.sessionTokenLong != 0L) {
             playersBySessionToken.remove(player.sessionTokenLong)
         }
+        playersByName.remove(player.name.lowercase())
         logger.debug("Player entity removed: {} (entityId={})", player.name, entityId)
         return player
     }
@@ -144,4 +149,9 @@ class EntityManager {
      * Check if an entity ID belongs to a monster.
      */
     fun isMonster(entityId: Long): Boolean = monsters.containsKey(entityId)
+
+    /**
+     * Get a player by character name (case-insensitive).
+     */
+    fun getPlayerByName(name: String): PlayerEntity? = playersByName[name.lowercase()]
 }

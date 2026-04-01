@@ -211,4 +211,34 @@ class EntityManagerTest {
         assertFalse(manager.tryAddPlayer(player2))
         assertEquals(1, manager.getPlayerCount())
     }
+
+    @Test
+    fun `getPlayerByName returns correct player`() {
+        val player = makePlayer(entityId = 1L, accountId = "100", characterId = "200")
+        manager.tryAddPlayer(player)
+        val retrieved = manager.getPlayerByName("TestPlayer")
+        assertNotNull(retrieved)
+        assertEquals(1L, retrieved.entityId)
+    }
+
+    @Test
+    fun `getPlayerByName is case-insensitive`() {
+        val player = makePlayer(entityId = 1L, accountId = "100", characterId = "200")
+        manager.tryAddPlayer(player)
+        assertNotNull(manager.getPlayerByName("testplayer"))
+        assertNotNull(manager.getPlayerByName("TESTPLAYER"))
+    }
+
+    @Test
+    fun `getPlayerByName returns null for unknown name`() {
+        assertNull(manager.getPlayerByName("Nobody"))
+    }
+
+    @Test
+    fun `removePlayer cleans up name lookup`() {
+        val player = makePlayer(entityId = 5L, accountId = "10", characterId = "20")
+        manager.tryAddPlayer(player)
+        manager.removePlayer(5L)
+        assertNull(manager.getPlayerByName("TestPlayer"))
+    }
 }
