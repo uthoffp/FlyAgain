@@ -86,6 +86,9 @@ data class PlayerEntity(
      *  Only accessed from the game loop thread — no synchronization needed. */
     val knownEntities: MutableSet<Long> = HashSet(128)
 
+    /** Timestamps of recent chat messages for rate limiting (10 per 10 seconds). */
+    val chatMessageTimestamps: ArrayDeque<Long> = ArrayDeque(10)
+
     /**
      * Computed attack power based on class and stats.
      * TODO: Refine per-class formulas in later phases.
