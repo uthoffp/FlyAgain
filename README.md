@@ -71,7 +71,19 @@ See [docs/godot-setup.md](docs/godot-setup.md) for Godot project setup instructi
 
 ## Status
 
-Early development (Phase 1.4 — world, movement, and zone system ~80% complete). See [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) for the detailed build plan.
+Early development — **Phase 1.6** (Inventory, Equipment & NPC Shops) in progress.
+
+**Completed:**
+- 1.1 Project setup & build pipeline
+- 1.2 Network layer (TCP/TLS + UDP, heartbeat, flood protection)
+- 1.3 Auth system (login, registration, character CRUD, JWT sessions)
+- 1.4 World, movement & zone system (3 zones, flight, spatial grid, 20 Hz game loop)
+- 1.5 Combat & monster AI (tab-targeting, skills, loot, XP/leveling, death/respawn)
+- 1.6 Inventory, equipment & NPC shops (drag & drop inventory, equipment panel, NPC shops, window system with taskbar)
+
+**Up next:** 1.7 Chat system, 1.8 UI polish
+
+See [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) for the detailed build plan.
 
 ## Documentation
 
