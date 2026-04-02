@@ -292,19 +292,19 @@ Monster (Green Plains):
 > Abhaengigkeit: 1.5
 
 **Server:**
-- [ ] `InventoryManager`:
+- [x] `InventoryManager`:
   - MoveItem (`0x0401`): Slot-Validierung, atomare DB-Transaktion
   - Loot aufheben: Naehe-Check, Ownership-Check, freien Slot finden
   - Stack-Logik fuer stackable Items
-- [ ] `EquipmentManager`:
+- [x] `EquipmentManager`:
   - EquipItem (`0x0403`): Level-Req, Klassen-Req, Typ pruefen
   - UnequipItem (`0x0404`): Freien Inventar-Slot pruefen
   - Stats neu berechnen bei Equip/Unequip
-- [ ] `NpcShopHandler`:
+- [x] `NpcShopHandler`:
   - NpcBuy (`0x0405`): NPC-Proximity-Check (10 Einheiten), Gold-Check
   - NpcSell (`0x0406`): Item existiert, Sell-Preis berechnen
   - GoldUpdate (`0x0407`) senden
-- [ ] NPC-Definitionen: Haendler in Aerheim mit Basis-Waffen und -Ruestungen
+- [x] NPC-Definitionen: Haendler in Aerheim mit Basis-Waffen und -Ruestungen
 
 **Client:**
 - [x] Inventar-Fenster: 10x10 Grid (100 Slots), Drag & Drop
@@ -740,16 +740,18 @@ miteinander zu interagieren und gegeneinander anzutreten.
     - NotificationStack: XP/Gold-Benachrichtigungen mit Fade-Animationen
 
 **Schritt 1.6** (Inventar/Equipment/NPC-Shops) ist vollstaendig abgeschlossen. ✅
-  - Server: InventoryManager, EquipmentManager, NpcShopHandler mit Validierung
+  - Server: InventoryRepository, EquipmentStatCalculator, NpcShopHandler mit Validierung
   - Client: Inventar-UI (10x10 Grid), Equipment-UI (Charakter-Silhouette), NPC-Shop-Window
-  - Items: 8 Items mit Seltenheit und Stats, NPC-Händler in Aerheim
+  - Items: 8 Items mit Seltenheit und Stats, NPC-Haendler in Aerheim
 
 **Schritt 1.7** (Chat-System) ist vollstaendig abgeschlossen. ✅
   - Server: ChatManager mit Say/Shout/Whisper-Channels, Input-Validierung, Rate-Limiting
   - Client: Chat-Window mit Tabs, Whisper-Windows (max 5), Farbkodierung von Spielernamen
-  - Features: `/shout` für Zone-Chat, `/say PlayerName` für Private Nachricht
+  - Features: `/shout` fuer Zone-Chat, `/say PlayerName` fuer Private Nachricht
   - ChatMessageSanitizer mit Unicode-Kontrollzeichen-Filterung
-  - WhisperManager mit LRU-Eviction, ChatService-Interface für zukünftige Erweiterung
+  - WhisperManager mit LRU-Eviction, ChatService-Interface fuer zukuenftige Erweiterung
+  - Whisper-Fenster bleiben beim Schliessen im RAM erhalten (hide statt destroy), Nachrichtenhistorie bleibt verfuegbar
+  - Chat-Input blockiert Kamera-Steuerung (A/D) waehrend der Texteingabe
 
 **Naechste Prioritaet:**
 1. Phase 1.8: Basis-UI und Polish (HUD, Minimap, Optionen, Audio)
