@@ -103,6 +103,7 @@ func _on_input_unfocused() -> void:
 
 func _on_text_submitted(text: String) -> void:
 	_input_field.clear()
+	_input_field.release_focus()
 	var trimmed := text.strip_edges()
 	if trimmed.is_empty():
 		return

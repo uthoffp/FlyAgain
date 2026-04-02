@@ -32,15 +32,15 @@ func _on_chat_broadcast(data: Dictionary) -> void:
 		win.add_outgoing(data.get("text", ""))
 
 
-func _open_or_get(player_name: String):
+func _open_or_get(player_name: String) -> PanelContainer:
 	var key := player_name.to_lower()
 	if _windows.has(key):
 		var entry: Dictionary = _windows[key]
 		entry["game_window"].visible = true
 		return entry["whisper"]
 
-	if _windows.size() >= MAX_WINDOWS:
-		_evict_oldest()
+	if _count_visible() >= MAX_WINDOWS:
+		_hide_oldest()
 
 	var game_win := PanelContainer.new()
 	game_win.set_script(GameWindowScript)
@@ -68,17 +68,24 @@ func _open_or_get(player_name: String):
 	return whisper_content
 
 
-func _evict_oldest() -> void:
+func _count_visible() -> int:
+	var count := 0
+	for key in _windows:
+		if _windows[key]["game_window"].visible:
+			count += 1
+	return count
+
+
+func _hide_oldest() -> void:
 	var oldest_key: String = ""
 	var oldest_time: float = INF
 	for key in _windows:
 		var entry: Dictionary = _windows[key]
-		if entry["whisper"].last_activity < oldest_time:
+		if entry["game_window"].visible and entry["whisper"].last_activity < oldest_time:
 			oldest_time = entry["whisper"].last_activity
 			oldest_key = key
 	if oldest_key != "":
-		_windows[oldest_key]["game_window"].queue_free()
-		_windows.erase(oldest_key)
+		_windows[oldest_key]["game_window"].visible = false
 
 
 func _on_whisper_sent(target_name: String, text: String) -> void:
@@ -88,5 +95,4 @@ func _on_whisper_sent(target_name: String, text: String) -> void:
 func _on_window_closed(window_id: String) -> void:
 	var key := window_id.replace("whisper_", "")
 	if _windows.has(key):
-		_windows[key]["game_window"].queue_free()
-		_windows.erase(key)
+		_windows[key]["game_window"].visible = false

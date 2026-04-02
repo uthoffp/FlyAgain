@@ -68,10 +68,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	# A/D keyboard turning (rotate camera yaw)
-	if Input.is_action_pressed("move_left"):
-		_yaw += keyboard_turn_speed * delta
-	if Input.is_action_pressed("move_right"):
-		_yaw -= keyboard_turn_speed * delta
+	if not GameState.chat_input_active:
+		if Input.is_action_pressed("move_left"):
+			_yaw += keyboard_turn_speed * delta
+		if Input.is_action_pressed("move_right"):
+			_yaw -= keyboard_turn_speed * delta
 	rotation = Vector3(_pitch, _yaw, 0.0)
 
 
