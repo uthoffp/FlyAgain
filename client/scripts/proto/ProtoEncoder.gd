@@ -300,3 +300,13 @@ static func encode_npc_sell_request(npc_entity_id: int, inventory_slot: int, amo
 	buf.append_array(_int32_field(2, inventory_slot))
 	buf.append_array(_int32_field(3, amount))
 	return buf
+
+
+## Encodes ChatMessageRequest { int32 channel_type = 1; string text = 2; string target_name = 3 }
+static func encode_chat_message(channel_type: int, text: String, target_name: String = "") -> PackedByteArray:
+	var buf := PackedByteArray()
+	buf.append_array(_int32_field(1, channel_type))
+	buf.append_array(_string_field(2, text))
+	if target_name != "":
+		buf.append_array(_string_field(3, target_name))
+	return buf

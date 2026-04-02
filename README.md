@@ -71,7 +71,7 @@ See [docs/godot-setup.md](docs/godot-setup.md) for Godot project setup instructi
 
 ## Status
 
-Early development — **Phase 1.6** (Inventory, Equipment & NPC Shops) in progress.
+Early development — **Phase 1** nearing completion.
 
 **Completed:**
 - 1.1 Project setup & build pipeline
@@ -80,8 +80,9 @@ Early development — **Phase 1.6** (Inventory, Equipment & NPC Shops) in progre
 - 1.4 World, movement & zone system (3 zones, flight, spatial grid, 20 Hz game loop)
 - 1.5 Combat & monster AI (tab-targeting, skills, loot, XP/leveling, death/respawn)
 - 1.6 Inventory, equipment & NPC shops (drag & drop inventory, equipment panel, NPC shops, window system with taskbar)
+- 1.7 Chat system (say/shout/whisper channels, whisper windows, rate limiting)
 
-**Up next:** 1.7 Chat system, 1.8 UI polish
+**Up next:** 1.8 UI polish (HUD, minimap, options menu, audio)
 
 See [docs/IMPLEMENTATION_PHASES.md](docs/IMPLEMENTATION_PHASES.md) for the detailed build plan.
 

@@ -48,6 +48,9 @@ var player_xp:      int = 0
 var player_gold:    int = 0
 var player_xp_to_next_level: int = 100
 
+## True when the chat input field is focused — blocks gameplay input (WASD, skills, etc.)
+var chat_input_active: bool = false
+
 # ---- Target state ----
 var selected_target_id:      int    = 0
 var selected_target_name:    String = ""

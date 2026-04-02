@@ -80,3 +80,15 @@ WINDOW_SKILLS,Skills,Fähigkeiten
 WINDOW_MINIMIZE,Minimize,Minimieren
 WINDOW_CLOSE,Close,Schließen
 WINDOW_RESTORE,Restore,Wiederherstellen
+CHAT_TITLE,Chat,Chat
+CHAT_SAY,Say,Sagen
+CHAT_SHOUT,Shout,Rufen
+CHAT_ALL,All,Alle
+CHAT_WHISPER,Whisper,Flüstern
+CHAT_PLACEHOLDER,Press Enter to chat...,Eingabe drücken zum Chatten...
+CHAT_INPUT_PLACEHOLDER,Type a message...,Gib eine Nachricht ein...
+CHAT_PLAYER_NOT_FOUND,Player not found.,Spieler nicht gefunden.
+CHAT_CANNOT_WHISPER_SELF,Cannot whisper to yourself.,Du kannst dir nicht selbst schreiben.
+CHAT_RATE_LIMIT,You are sending messages too fast.,Du sendest Nachrichten zu schnell.
+CHAT_CLOSE,Close,Schließen
+WHISPER_TITLE,Whisper: {name},Flüstern: {name}

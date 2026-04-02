@@ -4,6 +4,7 @@ import com.flyagain.common.network.HeartbeatTracker
 import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.*
 import com.flyagain.common.logging.MdcHelper
+import com.flyagain.world.chat.ChatMessageHandler
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.session.SessionLifecycleManager
@@ -39,6 +40,7 @@ import java.net.InetSocketAddress
  * - UNEQUIP_ITEM (0x0404) - unequip item
  * - NPC_BUY (0x0405) - NPC shop buy
  * - NPC_SELL (0x0406) - NPC shop sell
+ * - CHAT_MESSAGE (0x0501) - chat message
  */
 @ChannelHandler.Sharable
 class PacketRouter(
@@ -50,6 +52,7 @@ class PacketRouter(
     private val moveItemHandler: MoveItemHandler,
     private val equipItemHandler: EquipItemHandler,
     private val npcShopHandler: NpcShopHandler,
+    private val chatMessageHandler: ChatMessageHandler,
     private val entityManager: EntityManager,
     private val sessionLifecycleManager: SessionLifecycleManager,
     private val heartbeatTracker: HeartbeatTracker,
@@ -170,6 +173,11 @@ class PacketRouter(
                     logger.warn("Failed to parse TOGGLE_AUTO_ATTACK from player {}: {}", player.name, e.message)
                     sendError(ctx, opcode, 400, "Malformed request.")
                 }
+            }
+
+            // Chat
+            Opcode.CHAT_MESSAGE_VALUE -> {
+                chatMessageHandler.handle(ctx, player, msg)
             }
 
             // Inventory opcodes — all share an inventory rate limit

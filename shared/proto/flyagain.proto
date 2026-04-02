@@ -452,3 +452,24 @@ message EquipmentSlotInfo {
     int32 item_id = 2;
     int32 enhancement = 3;
 }
+
+// ============================================================
+// Chat Messages
+// ============================================================
+
+// Client -> Server: Send a chat message
+message ChatMessageRequest {
+    int32 channel_type = 1;    // 0=say, 1=shout, 2=whisper
+    string text = 2;           // Message content, max 200 chars
+    string target_name = 3;    // Whisper recipient (only for channel_type=2)
+}
+
+// Server -> Client: Chat message broadcast
+message ChatBroadcastMessage {
+    string sender_name = 1;
+    int64 sender_entity_id = 2;
+    string text = 3;
+    int32 channel_type = 4;    // 0=say, 1=shout, 2=whisper_in, 3=whisper_out
+    int64 timestamp = 5;       // Server time in milliseconds
+    string target_name = 6;    // For whisper_out: name of the recipient (so client can route)
+}

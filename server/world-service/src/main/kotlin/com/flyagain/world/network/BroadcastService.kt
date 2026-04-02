@@ -247,6 +247,28 @@ class BroadcastService(
     }
 
     /**
+     * Broadcast a chat message to all players near a position (including sender).
+     * Uses immediate writeAndFlush since chat is not part of the game loop tick.
+     */
+    fun broadcastChatToNearby(channel: ZoneChannel, x: Float, z: Float, packet: Packet) {
+        val nearbyEntityIds = channel.getNearbyEntities(x, z)
+        for (entityId in nearbyEntityIds) {
+            val player = channel.getPlayer(entityId) ?: continue
+            player.tcpChannel?.writeAndFlush(packet)
+        }
+    }
+
+    /**
+     * Broadcast a chat message to all players in a zone channel.
+     * Uses immediate writeAndFlush since chat is not part of the game loop tick.
+     */
+    fun broadcastChatToChannel(channel: ZoneChannel, packet: Packet) {
+        for (player in channel.getAllPlayers()) {
+            player.tcpChannel?.writeAndFlush(packet)
+        }
+    }
+
+    /**
      * Send an XP gain notification to a specific player.
      */
     fun sendXpGain(player: PlayerEntity, xpResult: XpSystem.XpResult) {

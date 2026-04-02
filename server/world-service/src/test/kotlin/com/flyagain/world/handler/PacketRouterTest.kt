@@ -5,6 +5,7 @@ import com.flyagain.common.network.Packet
 import com.flyagain.common.proto.EnterWorldRequest
 import com.flyagain.common.proto.Heartbeat
 import com.flyagain.common.proto.Opcode
+import com.flyagain.world.chat.ChatMessageHandler
 import com.flyagain.world.entity.EntityManager
 import com.flyagain.world.entity.PlayerEntity
 import com.flyagain.world.session.SessionLifecycleManager
@@ -31,6 +32,7 @@ class PacketRouterTest {
     private val moveItemHandler = mockk<MoveItemHandler>(relaxed = true)
     private val equipItemHandler = mockk<EquipItemHandler>(relaxed = true)
     private val npcShopHandler = mockk<NpcShopHandler>(relaxed = true)
+    private val chatMessageHandler = mockk<ChatMessageHandler>(relaxed = true)
     private val entityManager = EntityManager()
     private val sessionLifecycleManager = mockk<SessionLifecycleManager>(relaxed = true)
     private val heartbeatTracker = mockk<HeartbeatTracker>(relaxed = true)
@@ -39,7 +41,7 @@ class PacketRouterTest {
     private val router = PacketRouter(
         enterWorldHandler, zoneChangeHandler,
         selectTargetHandler, useSkillHandler, toggleAutoAttackHandler,
-        moveItemHandler, equipItemHandler, npcShopHandler,
+        moveItemHandler, equipItemHandler, npcShopHandler, chatMessageHandler,
         entityManager, sessionLifecycleManager, heartbeatTracker, testScope
     )
 

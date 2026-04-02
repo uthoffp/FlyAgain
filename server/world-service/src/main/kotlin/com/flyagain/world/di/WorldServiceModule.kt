@@ -31,6 +31,10 @@ import com.flyagain.world.inventory.EquipmentStatCalculator
 import com.flyagain.world.inventory.InventoryLockManager
 import com.flyagain.world.inventory.ItemDefinitionCache
 import com.flyagain.world.inventory.NpcShopRegistry
+import com.flyagain.world.chat.ChatMessageHandler
+import com.flyagain.world.chat.ChatMessageSanitizer
+import com.flyagain.world.chat.ChatService
+import com.flyagain.world.chat.ChatServiceImpl
 import com.flyagain.world.network.BroadcastService
 import com.flyagain.world.network.RedisSessionSecretProvider
 import com.flyagain.world.network.WorldUdpHandler
@@ -88,6 +92,9 @@ val worldServiceModule = module {
     single { EquipmentStatCalculator(get()) }
     single { NpcShopRegistry() }
     single { InventoryLockManager() }
+    single { ChatMessageSanitizer() }
+    single<ChatService> { ChatServiceImpl(get(), get(), get()) }
+    single { ChatMessageHandler(get(), get()) }
     single {
         DeathHandler(
             xpSystem = get(),
@@ -154,6 +161,7 @@ val worldServiceModule = module {
             moveItemHandler = get(),
             equipItemHandler = get(),
             npcShopHandler = get(),
+            chatMessageHandler = get(),
             entityManager = get(),
             sessionLifecycleManager = get(),
             heartbeatTracker = get(),

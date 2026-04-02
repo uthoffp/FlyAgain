@@ -13,6 +13,8 @@ const InventoryScreenScript := preload("res://scenes/ui/game_hud/InventoryScreen
 const NpcDialogScript := preload("res://scenes/ui/game_hud/NpcDialog.gd")
 const NpcShopScreenScript := preload("res://scenes/ui/game_hud/NpcShopScreen.gd")
 const GameWindowScript := preload("res://scenes/ui/window_system/GameWindow.gd")
+const ChatWindowScr := preload("res://scenes/ui/game_hud/ChatWindow.gd")
+const WhisperManagerScr := preload("res://scenes/ui/game_hud/WhisperManager.gd")
 const TaskbarScript := preload("res://scenes/ui/window_system/Taskbar.gd")
 
 const ZONE_TERRAINS: Dictionary = {
@@ -56,6 +58,7 @@ var _notifications = null  # NotificationStack (VBoxContainer with script)
 var _inventory_screen = null   # InventoryScreen (PanelContainer with script)
 var _npc_dialog = null         # NpcDialog (PanelContainer with script)
 var _npc_shop_screen = null    # NpcShopScreen (PanelContainer with script)
+var _whisper_manager = null
 
 # Loading overlay nodes
 var _loading_layer: CanvasLayer = null
@@ -358,6 +361,28 @@ func _setup_hud() -> void:
 	_npc_shop_screen = PanelContainer.new()
 	_npc_shop_screen.set_script(NpcShopScreenScript)
 	shop_window.call("set_content", _npc_shop_screen)
+
+	# Chat window — bottom-left, draggable, resizable, not closable
+	var chat_window := PanelContainer.new()
+	chat_window.set_script(GameWindowScript)
+	chat_window.call("setup", "chat", tr("CHAT_TITLE"), {
+		"draggable": true, "resizable": true,
+		"minimizable": true, "closable": false,
+		"default_position": Vector2(10, 700),
+		"default_size": Vector2(450, 280),
+		"min_size": Vector2(300, 200),
+		"max_size": Vector2(700, 500),
+	})
+	_hud_root.add_child(chat_window)
+	var chat_content := PanelContainer.new()
+	chat_content.set_script(ChatWindowScr)
+	chat_window.call("set_content", chat_content)
+
+	# Whisper manager
+	_whisper_manager = Node.new()
+	_whisper_manager.set_script(WhisperManagerScr)
+	_hud_root.add_child(_whisper_manager)
+	_whisper_manager.initialize(_hud_root)
 
 	# Taskbar — dynamic buttons for minimized windows
 	var taskbar := PanelContainer.new()
